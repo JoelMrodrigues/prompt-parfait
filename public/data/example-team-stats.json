@@ -1,0 +1,49 @@
+{
+  "winrate": 65.5,
+  "avg_game_duration": 32,
+  "region": "EUW",
+  "total_games": 42,
+  "recent_matches": [
+    {
+      "result": "win",
+      "duration": 28,
+      "champions": ["Aatrox", "LeeSin", "Ahri", "Jinx", "Thresh"]
+    },
+    {
+      "result": "win",
+      "duration": 35,
+      "champions": ["Gnar", "Elise", "Syndra", "Caitlyn", "Nautilus"]
+    },
+    {
+      "result": "loss",
+      "duration": 42,
+      "champions": ["Camille", "Graves", "Orianna", "Aphelios", "Leona"]
+    },
+    {
+      "result": "win",
+      "duration": 26,
+      "champions": ["Kennen", "KhaZix", "Zoe", "Kalista", "Rakan"]
+    },
+    {
+      "result": "win",
+      "duration": 31,
+      "champions": ["Ornn", "Sejuani", "Azir", "Ezreal", "Braum"]
+    }
+  ],
+  "detailed": {
+    "economy": {
+      "gold_per_min": 1850
+    },
+    "aggression": {
+      "kills_per_death": 1.8,
+      "first_blood_rate": 58
+    },
+    "objectives": {
+      "baron_rate": 72,
+      "dragon_rate": 68
+    },
+    "vision": {
+      "score_per_min": 2.4
+    }
+  }
+}

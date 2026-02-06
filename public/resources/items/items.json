@@ -1,0 +1,3331 @@
+{
+  "1001": {
+    "id": "1001",
+    "name": "Boots",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1001.png",
+    "description": "<mainText><stats><attention>25</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 300,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "1004": {
+    "id": "1004",
+    "name": "Faerie Charm",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1004.png",
+    "description": "<mainText><stats><attention>50%</attention> Base Mana Regen</stats><br><br></mainText>",
+    "gold": 200,
+    "tags": [
+      "ManaRegen"
+    ]
+  },
+  "1006": {
+    "id": "1006",
+    "name": "Rejuvenation Bead",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1006.png",
+    "description": "<mainText><stats><attention>100%</attention> Base Health Regen</stats><br><br></mainText>",
+    "gold": 300,
+    "tags": [
+      "HealthRegen"
+    ]
+  },
+  "1011": {
+    "id": "1011",
+    "name": "Giant's Belt",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1011.png",
+    "description": "<mainText><stats><attention>350</attention> Health</stats><br><br></mainText>",
+    "gold": 900,
+    "tags": [
+      "Health"
+    ]
+  },
+  "1018": {
+    "id": "1018",
+    "name": "Cloak of Agility",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1018.png",
+    "description": "<mainText><stats><attention>15%</attention> Critical Strike Chance</stats><br><br></mainText>",
+    "gold": 600,
+    "tags": [
+      "CriticalStrike"
+    ]
+  },
+  "1026": {
+    "id": "1026",
+    "name": "Blasting Wand",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1026.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power</stats><br><br></mainText>",
+    "gold": 850,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "1027": {
+    "id": "1027",
+    "name": "Sapphire Crystal",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1027.png",
+    "description": "<mainText><stats><attention>300</attention> Mana</stats><br><br></mainText>",
+    "gold": 300,
+    "tags": [
+      "Mana"
+    ]
+  },
+  "1028": {
+    "id": "1028",
+    "name": "Ruby Crystal",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1028.png",
+    "description": "<mainText><stats><attention>150</attention> Health</stats><br><br></mainText>",
+    "gold": 400,
+    "tags": [
+      "Health"
+    ]
+  },
+  "1029": {
+    "id": "1029",
+    "name": "Cloth Armor",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1029.png",
+    "description": "<mainText><stats><attention>15</attention> Armor</stats><br><br></mainText>",
+    "gold": 300,
+    "tags": [
+      "Armor"
+    ]
+  },
+  "1031": {
+    "id": "1031",
+    "name": "Chain Vest",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1031.png",
+    "description": "<mainText><stats><attention>40</attention> Armor</stats><br><br></mainText>",
+    "gold": 800,
+    "tags": [
+      "Armor"
+    ]
+  },
+  "1033": {
+    "id": "1033",
+    "name": "Null-Magic Mantle",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1033.png",
+    "description": "<mainText><stats><attention>20</attention> Magic Resist</stats><br><br></mainText>",
+    "gold": 400,
+    "tags": [
+      "SpellBlock"
+    ]
+  },
+  "1036": {
+    "id": "1036",
+    "name": "Long Sword",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1036.png",
+    "description": "<mainText><stats><attention>10</attention> Attack Damage</stats><br><br></mainText>",
+    "gold": 350,
+    "tags": [
+      "Damage",
+      "Lane"
+    ]
+  },
+  "1037": {
+    "id": "1037",
+    "name": "Pickaxe",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1037.png",
+    "description": "<mainText><stats><attention>25</attention> Attack Damage</stats><br><br></mainText>",
+    "gold": 875,
+    "tags": [
+      "Damage"
+    ]
+  },
+  "1038": {
+    "id": "1038",
+    "name": "B. F. Sword",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1038.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage</stats><br><br></mainText>",
+    "gold": 1300,
+    "tags": [
+      "Damage"
+    ]
+  },
+  "1042": {
+    "id": "1042",
+    "name": "Dagger",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1042.png",
+    "description": "<mainText><stats><attention>10%</attention> Attack Speed</stats><br><br></mainText>",
+    "gold": 250,
+    "tags": [
+      "AttackSpeed"
+    ]
+  },
+  "1043": {
+    "id": "1043",
+    "name": "Recurve Bow",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1043.png",
+    "description": "<mainText><stats><attention>15%</attention> Attack Speed</stats><br><br><passive>Sting</passive><br>Attacks deal <physicalDamage>15 bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 700,
+    "tags": [
+      "AttackSpeed",
+      "OnHit"
+    ]
+  },
+  "1052": {
+    "id": "1052",
+    "name": "Amplifying Tome",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1052.png",
+    "description": "<mainText><stats><attention>20</attention> Ability Power</stats><br><br></mainText>",
+    "gold": 400,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "1053": {
+    "id": "1053",
+    "name": "Vampiric Scepter",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1053.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage<br><attention>7%</attention> Life Steal</stats><br><br></mainText>",
+    "gold": 900,
+    "tags": [
+      "Damage",
+      "LifeSteal"
+    ]
+  },
+  "1054": {
+    "id": "1054",
+    "name": "Doran's Shield",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1054.png",
+    "description": "<mainText><stats><attention>110</attention> Health</stats><br><br><passive>Enduring Focus</passive><br>Restore <healing>4 Health</healing> every 5 seconds. <br>After taking damage from a champion, restore <healing>Health</healing> over 8 seconds.<br><br><passive>Helping Hand</passive><br>Attacks deal <physicalDamage>5 bonus physical damage</physicalDamage> to minions.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "Lane"
+    ]
+  },
+  "1055": {
+    "id": "1055",
+    "name": "Doran's Blade",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1055.png",
+    "description": "<mainText><stats><attention>10</attention> Attack Damage<br><attention>80</attention> Health<br><attention>3%</attention> Life Steal</stats><br><br></mainText>",
+    "gold": 450,
+    "tags": [
+      "Health",
+      "Damage",
+      "SpellVamp",
+      "Lane"
+    ]
+  },
+  "1056": {
+    "id": "1056",
+    "name": "Doran's Ring",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1056.png",
+    "description": "<mainText><stats><attention>18</attention> Ability Power<br><attention>90</attention> Health</stats><br><br><passive>Restoration</passive><br>Restore <scaleMana>1.25 Mana</scaleMana> every second. If you can't gain Mana, restore <scaleHealth>0.55 Health</scaleHealth> instead.<br><br><passive>Helping Hand</passive><br>Attacks deal <physicalDamage>5 bonus physical damage</physicalDamage> to minions.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "Lane",
+      "ManaRegen",
+      "SpellDamage"
+    ]
+  },
+  "1057": {
+    "id": "1057",
+    "name": "Negatron Cloak",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1057.png",
+    "description": "<mainText><stats><attention>45</attention> Magic Resist</stats><br><br></mainText>",
+    "gold": 850,
+    "tags": [
+      "SpellBlock"
+    ]
+  },
+  "1058": {
+    "id": "1058",
+    "name": "Needlessly Large Rod",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1058.png",
+    "description": "<mainText><stats><attention>65</attention> Ability Power</stats><br><br></mainText>",
+    "gold": 1200,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "1082": {
+    "id": "1082",
+    "name": "Dark Seal",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1082.png",
+    "description": "<mainText><stats><attention>15</attention> Ability Power<br><attention>50</attention> Health</stats><br><br><passive>Glory</passive><br><keyword>Takedowns</keyword> grant <passive>Glory</passive>, up to 10. 5 <passive>Glory</passive> is lost on death.<br>Gain <scaleAP>4 Ability Power</scaleAP> per <passive>Glory</passive>.</mainText>",
+    "gold": 350,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "Lane"
+    ]
+  },
+  "1083": {
+    "id": "1083",
+    "name": "Cull",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1083.png",
+    "description": "<mainText><stats><attention>7</attention> Attack Damage</stats><br><br><passive>Reap</passive><br>Restore <healing>3 Health</healing> <OnHit>On-Hit</OnHit>.<br>Killing minions grants <gold>1 gold</gold>, up to <gold>100</gold>. Reaching the limit grants another <gold>350 gold</gold>.<br></mainText>",
+    "gold": 450,
+    "tags": [
+      "Damage",
+      "OnHit",
+      "Lane"
+    ]
+  },
+  "1101": {
+    "id": "1101",
+    "name": "Scorchclaw Pup",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1101.png",
+    "description": "<mainText><stats></stats><br><br><passive>Jungle Companions</passive><br>Summon a <font color='#DD2E2E'>Scorchclaw</font> that assists you against monsters.<br><br><passive>Scorchclaw's Slash</passive><br>The companion grows as you hunt monsters, empowering your <spellName>Smite</spellName>. When fully grown, it periodically imbues your next Attack or Ability to burn enemies and <status>Slow</status> them. Killing large monsters readies this immediately.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Jungle"
+    ]
+  },
+  "1102": {
+    "id": "1102",
+    "name": "Gustwalker Hatchling",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1102.png",
+    "description": "<mainText><stats></stats><br><br><passive>Jungle Companions</passive><br>Summon a <font color='#38A8E8'>Gustwalker</font> that assists you against monsters.<br><br><passive>Gustwalker's Gait</passive><br>The companion grows as you hunt monsters, empowering your <spellName>Smite</spellName>. When fully grown, it grants <speed>Move Speed</speed> upon entering brush, increased when killing large monsters.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Jungle"
+    ]
+  },
+  "1103": {
+    "id": "1103",
+    "name": "Mosstomper Seedling",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1103.png",
+    "description": "<mainText><stats></stats><br><br><passive>Jungle Companions</passive><br>Summon a <font color='#1CA935'>Mosstomper</font> that assists you against monsters.<br><br><passive>Mosstomper's Courage</passive><br>The companion grows as you hunt monsters, empowering your <spellName>Smite</spellName>. When fully grown, it grants a <shield>shield</shield> that regenerates after killing large monsters or out of combat.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Jungle"
+    ]
+  },
+  "1105": {
+    "id": "1105",
+    "name": "Mosstomper Seedling",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1105.png",
+    "description": "<mainText><stats></stats><br><br><passive>Jungle Companions</passive><br>Summon a <font color='#1CA935'>Mosstomper</font> that assists you against monsters.<br><br><passive>Mosstomper's Courage</passive><br>The companion grows as you hunt monsters, empowering your <spellName>Smite</spellName>. When fully grown, it grants a <shield>shield</shield> that regenerates after killing large monsters or out of combat.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Jungle"
+    ]
+  },
+  "1106": {
+    "id": "1106",
+    "name": "Gustwalker Hatchling",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1106.png",
+    "description": "<mainText><stats></stats><br><br><passive>Jungle Companions</passive><br>Summon a <font color='#38A8E8'>Gustwalker</font> that assists you against monsters.<br><br><passive>Gustwalker's Gait</passive><br>The companion grows as you hunt monsters, empowering your <spellName>Smite</spellName>. When fully grown, it grants <speed>Move Speed</speed> upon entering brush, increased when killing large monsters.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Jungle"
+    ]
+  },
+  "1107": {
+    "id": "1107",
+    "name": "Scorchclaw Pup",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1107.png",
+    "description": "<mainText><stats></stats><br><br><passive>Jungle Companions</passive><br>Summon a <font color='#DD2E2E'>Scorchclaw</font> that assists you against monsters.<br><br><passive>Scorchclaw's Slash</passive><br>The companion grows as you hunt monsters, empowering your <spellName>Smite</spellName>. When fully grown, it periodically imbues your next Attack or Ability to burn enemies and <status>Slow</status> them. Killing large monsters readies this immediately.</mainText>",
+    "gold": 450,
+    "tags": [
+      "Jungle"
+    ]
+  },
+  "1500": {
+    "id": "1500",
+    "name": "Penetrating Bullets",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1500.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "HealthRegen",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1501": {
+    "id": "1501",
+    "name": "Fortification",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1501.png",
+    "description": "<mainText><stats></stats><br><br></mainText>",
+    "gold": 0,
+    "tags": []
+  },
+  "1502": {
+    "id": "1502",
+    "name": "Reinforced Armor",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1502.png",
+    "description": "<mainText><stats></stats><br><br><mainText><unique>Reinforced:</unique> Reduces incoming damage by 80%, including True Damage, when no enemy Lane Minions or Rift Herald are nearby.</mainText></mainText>",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1503": {
+    "id": "1503",
+    "name": "Warden's Eye",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1503.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "HealthRegen",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1506": {
+    "id": "1506",
+    "name": "Reinforced Armor",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1506.png",
+    "description": "<mainText><stats></stats><br><br><mainText><unique>Reinforced:</unique> Reduces incoming damage by 66%, including True Damage, when no enemy Lane Minions or Rift Herald are nearby.<br><unique>Regeneration: </unique>Base turrets have health regeneration, but cannot regenerate past their current segment. Base turrets are segmented at 33%, 66% and 100% health.</mainText></mainText>",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1507": {
+    "id": "1507",
+    "name": "Overcharged",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1507.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1508": {
+    "id": "1508",
+    "name": "Anti-tower Socks",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1508.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1509": {
+    "id": "1509",
+    "name": "Gusto",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1509.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1510": {
+    "id": "1510",
+    "name": "Phreakish Gusto",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1510.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1511": {
+    "id": "1511",
+    "name": "Super Mech Armor",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1511.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1512": {
+    "id": "1512",
+    "name": "Super Mech Power Field",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1512.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1515": {
+    "id": "1515",
+    "name": "Turret Plating",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1515.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor"
+    ]
+  },
+  "1516": {
+    "id": "1516",
+    "name": "Structure Bounty",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1516.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "HealthRegen",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1517": {
+    "id": "1517",
+    "name": "Structure Bounty",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1517.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "HealthRegen",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1518": {
+    "id": "1518",
+    "name": "Structure Bounty",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1518.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "HealthRegen",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1519": {
+    "id": "1519",
+    "name": "Structure Bounty",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1519.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "HealthRegen",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1520": {
+    "id": "1520",
+    "name": "OvererchargedHA",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1520.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "ManaRegen",
+      "OnHit"
+    ]
+  },
+  "1521": {
+    "id": "1521",
+    "name": "Fortification",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1521.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "OnHit"
+    ]
+  },
+  "1522": {
+    "id": "1522",
+    "name": "Tower Power-Up",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/1522.png",
+    "description": "",
+    "gold": 0,
+    "tags": [
+      "Armor",
+      "Damage"
+    ]
+  },
+  "2003": {
+    "id": "2003",
+    "name": "Health Potion",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2003.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Restores <healing>120 Health</healing> over 15 seconds.</mainText>",
+    "gold": 50,
+    "tags": [
+      "HealthRegen",
+      "Consumable",
+      "Lane",
+      "Jungle"
+    ]
+  },
+  "2010": {
+    "id": "2010",
+    "name": "Total Biscuit of Everlasting Will",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2010.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Eat the biscuit to restore <healing>Health</healing> over 5 seconds, increased based on missing health. Consuming or selling a biscuit permanently grants <healing>30 maximum Health</healing>. </mainText>",
+    "gold": 50,
+    "tags": []
+  },
+  "2019": {
+    "id": "2019",
+    "name": "Steel Sigil",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2019.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage<br><attention>30</attention> Armor</stats><br><br></mainText>",
+    "gold": 1100,
+    "tags": [
+      "Armor",
+      "Damage"
+    ]
+  },
+  "2020": {
+    "id": "2020",
+    "name": "The Brutalizer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2020.png",
+    "description": "<mainText><stats><attention>25</attention> Attack Damage<br><attention>10</attention> Ability Haste<br><attention>5</attention> Lethality</stats><br><br></mainText>",
+    "gold": 1337,
+    "tags": [
+      "Damage",
+      "CooldownReduction",
+      "ArmorPenetration"
+    ]
+  },
+  "2021": {
+    "id": "2021",
+    "name": "Tunneler",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2021.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage<br><attention>250</attention> Health</stats><br><br></mainText>",
+    "gold": 1150,
+    "tags": [
+      "Health",
+      "Damage"
+    ]
+  },
+  "2022": {
+    "id": "2022",
+    "name": "Glowing Mote",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2022.png",
+    "description": "<mainText><stats><attention>5</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 250,
+    "tags": [
+      "CooldownReduction"
+    ]
+  },
+  "2031": {
+    "id": "2031",
+    "name": "Refillable Potion",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2031.png",
+    "description": "<mainText><stats></stats><br><br><active>Active</active> (2 charges)<br>Restores <healing>100 Health</healing> over 12 seconds. <br>Refills upon visiting the shop.</mainText>",
+    "gold": 150,
+    "tags": [
+      "HealthRegen",
+      "Consumable",
+      "Active",
+      "Lane",
+      "Jungle"
+    ]
+  },
+  "2033": {
+    "id": "2033",
+    "name": "Corrupting Potion",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2033.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Consumes a charge to restore <healing>100 Health</healing> and <scaleMana>75 Mana</scaleMana> over 12 seconds. During this time, damaging Abilities and Attacks burn enemy champions for <magicDamage>15 (20 if you cannot gain Mana) magic damage</magicDamage> over 3 seconds. Holds up to 3 charges and refills upon visiting the shop.<br><br><rules>Corrupting damage is reduced to 50% when triggered by area of effect or periodic damage.</rules></mainText>",
+    "gold": 500,
+    "tags": [
+      "Active",
+      "Consumable",
+      "HealthRegen",
+      "Lane",
+      "ManaRegen"
+    ]
+  },
+  "2052": {
+    "id": "2052",
+    "name": "Poro-Snax",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2052.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Serves a scrumptious scoop to a nearby Poro, causing it to grow in size.<br><br><flavorText>This savory blend of free-range, grass-fed Avarosan game hens and organic, non-ZMO Freljordian herbs contains the essential nutrients necessary to keep your Poro purring with pleasure.<br><br>All proceeds will be donated towards fighting Noxian animal cruelty. </flavorText></mainText>",
+    "gold": 0,
+    "tags": []
+  },
+  "2055": {
+    "id": "2055",
+    "name": "Control Ward",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2055.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Places a Control Ward that grants vision and reveals enemy Stealth Wards, traps and <keywordStealth>Camouflaged</keywordStealth> enemies.</mainText>",
+    "gold": 75,
+    "tags": [
+      "Consumable",
+      "Lane",
+      "Stealth",
+      "Vision"
+    ]
+  },
+  "2065": {
+    "id": "2065",
+    "name": "Shurelya's Battlesong",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2065.png",
+    "description": "<mainText><stats><attention>50</attention> Ability Power<br><attention>15</attention> Ability Haste<br><attention>4%</attention> Move Speed<br><attention>125%</attention> Base Mana Regen</stats><br><br><active>Inspiring Speech</active><br>Grant nearby allies <speed>30% Move Speed</speed> for 4 seconds.</mainText>",
+    "gold": 2200,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "Active",
+      "CooldownReduction",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "2138": {
+    "id": "2138",
+    "name": "Elixir of Iron",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2138.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Grants <scaleHealth>300 Health</scaleHealth>, 25% Tenacity and increased size for 3 minutes. While active, you leave a path behind that boosts allied champions' <speed>Move Speed by 15%</speed>.</mainText>",
+    "gold": 500,
+    "tags": [
+      "Health",
+      "Consumable",
+      "NonbootsMovement",
+      "Tenacity"
+    ]
+  },
+  "2139": {
+    "id": "2139",
+    "name": "Elixir of Sorcery",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2139.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Grants <scaleAP>50 Ability Power</scaleAP> and <scaleMana>15% Mana Regen</scaleMana> for 3 minutes. While active, damaging a champion or turret deals <trueDamage>25 bonus true damage</trueDamage> (5s against champions).</mainText>",
+    "gold": 500,
+    "tags": [
+      "Consumable",
+      "ManaRegen",
+      "SpellDamage"
+    ]
+  },
+  "2140": {
+    "id": "2140",
+    "name": "Elixir of Wrath",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2140.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Grants <scaleAD>30 Attack Damage</scaleAD> and <lifeSteal>12% Physical Vamp</lifeSteal> against champions for 3 minutes.</mainText>",
+    "gold": 500,
+    "tags": [
+      "Consumable",
+      "Damage",
+      "LifeSteal",
+      "SpellVamp"
+    ]
+  },
+  "2141": {
+    "id": "2141",
+    "name": "Cappa Juice",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2141.png",
+    "description": "<mainText><stats></stats><br><br><rules>Helps you get on a head.</rules><active>Active - Consume:</active> This juice does nothing.<br></mainText>",
+    "gold": 300,
+    "tags": [
+      "Damage",
+      "Consumable"
+    ]
+  },
+  "2150": {
+    "id": "2150",
+    "name": "Elixir of Skill",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2150.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Grants 1 Skill Point.<br><br><rules>This item does not increase your level or allow allocating skill points past the normal maximum in a skill</rules></mainText>",
+    "gold": 0,
+    "tags": [
+      "Consumable"
+    ]
+  },
+  "2151": {
+    "id": "2151",
+    "name": "Elixir of Avarice",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2151.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Grants <trueDamage>5 true damage</trueDamage> on hit against minions for 60 seconds. When this effect expires, gain 40 gold. </mainText>",
+    "gold": 50,
+    "tags": [
+      "Health",
+      "Consumable",
+      "Tenacity"
+    ]
+  },
+  "2152": {
+    "id": "2152",
+    "name": "Elixir of Force",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2152.png",
+    "description": "<mainText><stats></stats><br><br><active>Consume</active><br>Grants 20 Adaptive Force for 60 seconds. </mainText>",
+    "gold": 50,
+    "tags": [
+      "Consumable",
+      "Tenacity"
+    ]
+  },
+  "2403": {
+    "id": "2403",
+    "name": "Minion Dematerializer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2403.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Kill target lane minion. (0s)</mainText>",
+    "gold": 0,
+    "tags": []
+  },
+  "2420": {
+    "id": "2420",
+    "name": "Seeker's Armguard",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2420.png",
+    "description": "<mainText><stats><attention>40</attention> Ability Power<br><attention>25</attention> Armor</stats><br><br><active>Time Stop</active> (Single use)<br>Enter <keyword>Stasis</keyword> for 2.5 seconds.</mainText>",
+    "gold": 1600,
+    "tags": [
+      "Armor",
+      "SpellDamage",
+      "Active"
+    ]
+  },
+  "2421": {
+    "id": "2421",
+    "name": "Shattered Armguard",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2421.png",
+    "description": "<mainText><stats><attention>40</attention> Ability Power<br><attention>25</attention> Armor</stats><br><br><passive>Shattered Time</passive><br>Armguard is broken, but can still be upgraded.<br><br><rules>After breaking one Armguard, the shopkeeper will only sell you <rarityGeneric>Shattered Armguard.</rarityGeneric></rules><br><br></mainText>",
+    "gold": 1600,
+    "tags": []
+  },
+  "2422": {
+    "id": "2422",
+    "name": "Slightly Magical Footwear",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2422.png",
+    "description": "<mainText><stats><attention>25</attention> Move Speed</stats><br><br>Grants an additional <speed>10 Move Speed</speed>. Boots that build from Slightly Magical Footwear retain this bonus Move Speed.</mainText>",
+    "gold": 300,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "2501": {
+    "id": "2501",
+    "name": "Overlord's Bloodmail",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2501.png",
+    "description": "<mainText><stats><attention>30</attention> Attack Damage<br><attention>550</attention> Health</stats><br><br><passive>Tyranny</passive><br>Gain 2.5% of your <healing>bonus Health</healing> as <scaleAD>Attack Damage</scaleAD>. <br><br><passive>Retribution</passive><br>Gain up to 12% increased <scaleAD>Attack Damage</scaleAD> based on your percent missing Health. </mainText>",
+    "gold": 3300,
+    "tags": [
+      "Health",
+      "Damage"
+    ]
+  },
+  "2502": {
+    "id": "2502",
+    "name": "Unending Despair",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2502.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>25</attention> Armor<br><attention>25</attention> Magic Resist<br><attention>10</attention> Ability Haste</stats><br><br><passive>Anguish</passive><br>Every 4 seconds while in combat with champions, deal <magicDamage>magic damage</magicDamage> to nearby enemy champions and <healing>heal for 250%</healing> of the damage dealt.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "2503": {
+    "id": "2503",
+    "name": "Blackfire Torch",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2503.png",
+    "description": "<mainText><stats><attention>80</attention> Ability Power<br><attention>600</attention> Mana<br><attention>20</attention> Ability Haste</stats><br><br><passive>Baleful Blaze</passive><br>Damaging Abilities deals <magicDamage>bonus magic damage</magicDamage> for 3 seconds.<br><br><passive>Blackfire</passive><br>For each enemy champion, epic and large monster affected by your <passive>Baleful Blaze</passive>, gain <scaleAP>4% Ability Power</scaleAP>. </mainText>",
+    "gold": 2800,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "2504": {
+    "id": "2504",
+    "name": "Kaenic Rookern",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2504.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>80</attention> Magic Resist<br><attention>100%</attention> Base Health Regen</stats><br><br><passive>Magebane</passive><br>After not taking magic damage for 15 seconds, gain a <shield>magic shield</shield>. </mainText>",
+    "gold": 2900,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "HealthRegen"
+    ]
+  },
+  "2508": {
+    "id": "2508",
+    "name": "Fated Ashes",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/2508.png",
+    "description": "<mainText><stats><attention>30</attention> Ability Power</stats><br><br><passive>Inflame</passive><br>Damaging Abilities deal <magicDamage>15 bonus magic damage</magicDamage> over 3 seconds.<br>Deals an additional <magicDamage>45 magic damage</magicDamage> to monsters.</mainText>",
+    "gold": 900,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "3002": {
+    "id": "3002",
+    "name": "Trailblazer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3002.png",
+    "description": "<mainText><stats><attention>250</attention> Health<br><attention>40</attention> Armor<br><attention>4%</attention> Move Speed</stats><br><br><passive>Lead the Way</passive><br>While moving, build up to <speed>20 bonus Move Speed</speed>. <br>At max speed:<li>Create a trail that grants allied champions <speed>Move Speed equal to 15%</speed> of yours. <li>If you are Melee, your next Attack <keyword>Slows</keyword> the target by 50% for 1 second.<br><br></mainText>",
+    "gold": 2400,
+    "tags": [
+      "Health",
+      "Armor",
+      "NonbootsMovement"
+    ]
+  },
+  "3003": {
+    "id": "3003",
+    "name": "Archangel's Staff",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3003.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>600</attention> Mana<br><attention>25</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain Ability Power equal to <scaleMana>1% bonus Mana.</scaleMana><br><br><passive>Manaflow</passive> (8s, max 5 charges)<br>Landing Abilities grants <scaleMana>5 max Mana</scaleMana> (doubled vs. champions).<br>Transforms into <rarityLegendary>Seraph's Embrace</rarityLegendary> at <scaleMana>360 max Mana</scaleMana>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "3004": {
+    "id": "3004",
+    "name": "Manamune",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3004.png",
+    "description": "<mainText><stats><attention>35</attention> Attack Damage<br><attention>500</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleAD> bonus Attack Damage</scaleAD>.<br><br><passive>Manaflow</passive> (8s, max 4 charges)<br>Landing Attacks and Abilities grants <scaleMana>3 max Mana</scaleMana> (doubled vs. champions).<br>Transforms into <rarityLegendary>Muramana</rarityLegendary> at <scaleMana>360 max Mana</scaleMana>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Damage",
+      "Mana",
+      "CooldownReduction",
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "3006": {
+    "id": "3006",
+    "name": "Berserker's Greaves",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3006.png",
+    "description": "<mainText><stats><attention>25%</attention> Attack Speed<br><attention>45</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 1100,
+    "tags": [
+      "AttackSpeed",
+      "Boots"
+    ]
+  },
+  "3009": {
+    "id": "3009",
+    "name": "Boots of Swiftness",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3009.png",
+    "description": "<mainText><stats><attention>55</attention> Move Speed</stats><br><br><passive>Fleetfooted</passive><br>Reduce the effectiveness of <keyword>Slows</keyword> by 25%.</mainText>",
+    "gold": 1000,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "3010": {
+    "id": "3010",
+    "name": "Symbiotic Soles",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3010.png",
+    "description": "<mainText><stats><attention>40</attention> Move Speed</stats><br><br><passive>Synchrony</passive><br>Gain <speed>10 Move Speed</speed> when out of combat.<br><br><passive>Symbiosis</passive><br>After traveling 150000 units of distance, transform into <rarityLegendary>Synchronized Souls</rarityLegendary>.</mainText>",
+    "gold": 900,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "3011": {
+    "id": "3011",
+    "name": "Chemtech Putrifier",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3011.png",
+    "description": "<mainText><stats><attention>35</attention> Ability Power<br><attention>10%</attention> Heal and Shield Power<br><attention>75%</attention> Base Mana Regen<br><attention>15</attention> Ability Haste</stats><br><br><br><li><passive>Puffcap Toxin:</passive> Dealing damage applies <status>40% Grievous Wounds</status> to champions for 3 seconds.<br><br><rules><status>Grievous Wounds</status> reduces the effectiveness of Healing and Regeneration effects.</rules></mainText>",
+    "gold": 1900,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "AbilityHaste"
+    ]
+  },
+  "3013": {
+    "id": "3013",
+    "name": "Synchronized Souls",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3013.png",
+    "description": "<mainText><stats><attention>45</attention> Move Speed</stats><br><br><passive>Voidborn</passive><br>Gain Empowered Recall.<br><br><passive>Synchrony</passive><br>Gain <speed>45 Move Speed</speed> when out of combat.</mainText>",
+    "gold": 900,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "3020": {
+    "id": "3020",
+    "name": "Sorcerer's Shoes",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3020.png",
+    "description": "<mainText><stats><attention>12</attention> Magic Penetration<br><attention>45</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 1100,
+    "tags": [
+      "Boots",
+      "MagicPenetration"
+    ]
+  },
+  "3024": {
+    "id": "3024",
+    "name": "Glacial Buckler",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3024.png",
+    "description": "<mainText><stats><attention>25</attention> Armor<br><attention>300</attention> Mana<br><attention>10</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 900,
+    "tags": [
+      "Armor",
+      "Mana",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3026": {
+    "id": "3026",
+    "name": "Guardian Angel",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3026.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>45</attention> Armor</stats><br><br><passive>Rebirth</passive><br>Upon taking lethal damage, restores <healing>50% base Health</healing> and <scaleMana>100% max Mana</scaleMana> after 4 seconds of <keyword>Stasis</keyword>.</mainText>",
+    "gold": 3200,
+    "tags": [
+      "Armor",
+      "Damage"
+    ]
+  },
+  "3031": {
+    "id": "3031",
+    "name": "Infinity Edge",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3031.png",
+    "description": "<mainText><stats><attention>65</attention> Attack Damage<br><attention>25%</attention> Critical Strike Chance<br><attention>40%</attention> Critical Strike Damage</stats><br><br></mainText>",
+    "gold": 3450,
+    "tags": [
+      "CriticalStrike",
+      "Damage"
+    ]
+  },
+  "3032": {
+    "id": "3032",
+    "name": "Yun Tal Wildarrows",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3032.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>35%</attention> Attack Speed<br><attention>0%</attention> Critical Strike Chance</stats><br><br><passive>Practice Makes Lethal</passive><br>On-Attack, gain Critical Strike Chance permanently up to 25%.<br><br><passive>Flurry</passive><br>On-Attacking an enemy champion, gain 30% Attack Speed for 6 seconds (30 second cooldown). <br>Attacks reduce this cooldown by 1 second, increased to 2 seconds for Critical Strikes.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "CriticalStrike",
+      "AttackSpeed"
+    ]
+  },
+  "3033": {
+    "id": "3033",
+    "name": "Mortal Reminder",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3033.png",
+    "description": "<mainText><stats><attention>35</attention> Attack Damage<br><attention>35%</attention> Armor Penetration<br><attention>25%</attention> Critical Strike Chance</stats><br><br><passive>Grievous Wounds</passive><br>Dealing physical damage applies <keyword>40% Wounds</keyword> to enemy champions for 3 seconds.</mainText>",
+    "gold": 3300,
+    "tags": [
+      "Damage",
+      "CriticalStrike",
+      "ArmorPenetration"
+    ]
+  },
+  "3035": {
+    "id": "3035",
+    "name": "Last Whisper",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3035.png",
+    "description": "<mainText><stats><attention>20</attention> Attack Damage<br><attention>18%</attention> Armor Penetration</stats><br><br></mainText>",
+    "gold": 1450,
+    "tags": [
+      "ArmorPenetration",
+      "Damage"
+    ]
+  },
+  "3036": {
+    "id": "3036",
+    "name": "Lord Dominik's Regards",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3036.png",
+    "description": "<mainText><stats><attention>35</attention> Attack Damage<br><attention>40%</attention> Armor Penetration<br><attention>25%</attention> Critical Strike Chance</stats><br><br></mainText>",
+    "gold": 3100,
+    "tags": [
+      "Damage",
+      "CriticalStrike",
+      "ArmorPenetration"
+    ]
+  },
+  "3040": {
+    "id": "3040",
+    "name": "Seraph's Embrace",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3040.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>1000</attention> Mana<br><attention>25</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleAP> Ability Power</scaleAP>.<br><br><passive>Lifeline</passive> (0s)<br>Taking damage that would reduce your Health below 30% grants a <shield> Shield</shield> for 3 seconds.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "3041": {
+    "id": "3041",
+    "name": "Mejai's Soulstealer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3041.png",
+    "description": "<mainText><stats><attention>20</attention> Ability Power<br><attention>100</attention> Health</stats><br><br><passive>Glory</passive><br><keyword>Takedowns</keyword> grant <passive>Glory</passive>, up to 25. 10 <passive>Glory</passive> is lost on death.<br>Gain <scaleAP>5 Ability Power</scaleAP> per <passive>Glory</passive> and <speed>10% Move Speed</speed> at 10 or higher <passive>Glory</passive>.</mainText>",
+    "gold": 1500,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "NonbootsMovement"
+    ]
+  },
+  "3042": {
+    "id": "3042",
+    "name": "Muramana",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3042.png",
+    "description": "<mainText><stats><attention>35</attention> Attack Damage<br><attention>860</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleAD>2% max Mana as bonus Attack Damage</scaleAD>.<br><br><passive>Shock</passive><br>Attacks against champions deal <physicalDamage>1.2% max Mana as bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>. <br>Damaging Abilities against champions deal <physicalDamage>3% - 4% max Mana as bonus physical damage</physicalDamage>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Damage",
+      "Mana",
+      "CooldownReduction",
+      "OnHit",
+      "ArmorPenetration"
+    ]
+  },
+  "3044": {
+    "id": "3044",
+    "name": "Phage",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3044.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage<br><attention>200</attention> Health</stats><br><br><passive>Rage</passive><br>Attacking grants <speed>Move Speed</speed> for 2 seconds.</mainText>",
+    "gold": 1100,
+    "tags": [
+      "Health",
+      "Damage",
+      "NonbootsMovement"
+    ]
+  },
+  "3046": {
+    "id": "3046",
+    "name": "Phantom Dancer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3046.png",
+    "description": "<mainText><stats><attention>65%</attention> Attack Speed<br><attention>25%</attention> Critical Strike Chance<br><attention>10%</attention> Move Speed</stats><br><br><passive>Spectral Waltz</passive><br>Become <keyword>Ghosted</keyword>.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "CriticalStrike",
+      "AttackSpeed",
+      "NonbootsMovement"
+    ]
+  },
+  "3047": {
+    "id": "3047",
+    "name": "Plated Steelcaps",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3047.png",
+    "description": "<mainText><stats><attention>25</attention> Armor<br><attention>45</attention> Move Speed</stats><br><br><passive>Plating</passive><br>Reduces incoming damage from Attacks by 10%.</mainText>",
+    "gold": 1200,
+    "tags": [
+      "Armor",
+      "Boots"
+    ]
+  },
+  "3050": {
+    "id": "3050",
+    "name": "Zeke's Convergence",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3050.png",
+    "description": "<mainText><stats><attention>300</attention> Health<br><attention>25</attention> Armor<br><attention>25</attention> Magic Resist<br><attention>10</attention> Ability Haste</stats><br><br><passive>Frostfire Tempest</passive><br>Casting your Ultimate summons a storm around you for 5 seconds. The storm deals <magicDamage>30 magic damage</magicDamage> per second to enemy champions and <keyword>Slows</keyword> them by 30%.</mainText>",
+    "gold": 2200,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "AbilityHaste"
+    ]
+  },
+  "3051": {
+    "id": "3051",
+    "name": "Hearthbound Axe",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3051.png",
+    "description": "<mainText><stats><attention>20</attention> Attack Damage<br><attention>20%</attention> Attack Speed</stats><br><br></mainText>",
+    "gold": 1200,
+    "tags": [
+      "Damage",
+      "AttackSpeed"
+    ]
+  },
+  "3053": {
+    "id": "3053",
+    "name": "Sterak's Gage",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3053.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>20%</attention> Tenacity</stats><br><br><passive>The Claws that Catch</passive><br>Gain <scaleAD>bonus Attack Damage</scaleAD>.<br><br><passive>Lifeline</passive><br>Taking damage that would reduce your Health below 30% grants a <shield>decaying Shield</shield> for 4.5 seconds.</mainText>",
+    "gold": 3200,
+    "tags": [
+      "Health",
+      "Damage",
+      "Tenacity"
+    ]
+  },
+  "3057": {
+    "id": "3057",
+    "name": "Sheen",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3057.png",
+    "description": "<mainText><stats><attention>10</attention> Ability Haste</stats><br><br><passive>Spellblade</passive><br>After using an Ability, your next Attack deals <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>.<br></mainText>",
+    "gold": 900,
+    "tags": [
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "3065": {
+    "id": "3065",
+    "name": "Spirit Visage",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3065.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>50</attention> Magic Resist<br><attention>10</attention> Ability Haste<br><attention>100%</attention> Base Health Regen</stats><br><br><passive>Boundless Vitality</passive><br>Heals and Shields on you are increased by 25%.</mainText>",
+    "gold": 2700,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "HealthRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3066": {
+    "id": "3066",
+    "name": "Winged Moonplate",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3066.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>4%</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 800,
+    "tags": [
+      "Health",
+      "NonbootsMovement"
+    ]
+  },
+  "3067": {
+    "id": "3067",
+    "name": "Kindlegem",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3067.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>10</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 800,
+    "tags": [
+      "Health",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3068": {
+    "id": "3068",
+    "name": "Sunfire Aegis",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3068.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>50</attention> Armor<br><attention>10</attention> Ability Haste</stats><br><br><passive>Immolate</passive><br>After taking or dealing damage, deal <magicDamage>magic damage</magicDamage> per second to nearby enemies for 3 seconds. </mainText>",
+    "gold": 2700,
+    "tags": [
+      "Health",
+      "Armor",
+      "Aura",
+      "AbilityHaste"
+    ]
+  },
+  "3070": {
+    "id": "3070",
+    "name": "Tear of the Goddess",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3070.png",
+    "description": "<mainText><stats><attention>240</attention> Mana</stats><br><br><passive>Manaflow</passive> (8s, max 4 charges)<br>Landing Abilities grants <scaleMana>3 max Mana</scaleMana> (doubled vs. champions), up to <scaleMana>360</scaleMana>.<br><br><passive>Helping Hand</passive><br>Attacks deal an additional <physicalDamage>5 physical damage</physicalDamage> to minions.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Mana",
+      "ManaRegen"
+    ]
+  },
+  "3071": {
+    "id": "3071",
+    "name": "Black Cleaver",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3071.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>400</attention> Health<br><attention>20</attention> Ability Haste</stats><br><br><passive>Carve</passive><br>Dealing <physicalDamage>physical damage</physicalDamage> to champions reduces their <scaleArmor>Armor by 6%</scaleArmor> for 6 seconds. (stacks 5 times).<br><br><passive>Fervor</passive><br>Dealing <physicalDamage>physical damage</physicalDamage> grants <speed>20 Move Speed</speed> for 2 seconds.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "Damage",
+      "CooldownReduction",
+      "OnHit",
+      "NonbootsMovement",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "3072": {
+    "id": "3072",
+    "name": "Bloodthirster",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3072.png",
+    "description": "<mainText><stats><attention>80</attention> Attack Damage<br><attention>15%</attention> Life Steal</stats><br><br><passive>Ichorshield</passive><br>Convert excess healing from your Lifesteal to a <shield>Shield</shield>.</mainText>",
+    "gold": 3400,
+    "tags": [
+      "Damage",
+      "LifeSteal"
+    ]
+  },
+  "3073": {
+    "id": "3073",
+    "name": "Experimental Hexplate",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3073.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>20%</attention> Attack Speed<br><attention>450</attention> Health</stats><br><br><passive>Hexcharged</passive><br>Gain 30 Ultimate Ability Haste.<br><br><passive>Overdrive</passive><br>After casting your Ultimate, gain <attackSpeed>30% Attack Speed</attackSpeed> and <speed>15% Move Speed</speed> for 8 seconds. </mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "Damage",
+      "AttackSpeed",
+      "CooldownReduction",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "3074": {
+    "id": "3074",
+    "name": "Ravenous Hydra",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3074.png",
+    "description": "<mainText><stats><attention>65</attention> Attack Damage<br><attention>15</attention> Ability Haste<br><attention>12%</attention> Life Steal</stats><br><br><passive>Cleave</passive><br>Attacks deal <physicalDamage>physical damage</physicalDamage> to nearby enemies.<active>Ravenous Crescent</active><br>Deal <physicalDamage>physical damage</physicalDamage> to enemies around you. <br>Your Life Steal applies to this damage.</mainText>",
+    "gold": 3300,
+    "tags": [
+      "Damage",
+      "LifeSteal",
+      "CooldownReduction",
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "3075": {
+    "id": "3075",
+    "name": "Thornmail",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3075.png",
+    "description": "<mainText><stats><attention>150</attention> Health<br><attention>75</attention> Armor</stats><br><br><passive>Thorns</passive><br>When struck by an Attack, deal <magicDamage>magic damage</magicDamage> to the attacker and apply 40% <keyword>Wounds</keyword> for 3 seconds if they are a champion.</mainText>",
+    "gold": 2450,
+    "tags": [
+      "Health",
+      "Armor"
+    ]
+  },
+  "3076": {
+    "id": "3076",
+    "name": "Bramble Vest",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3076.png",
+    "description": "<mainText><stats><attention>30</attention> Armor</stats><br><br><passive>Thorns</passive><br>When hit by an Attack, deal <magicDamage> magic damage</magicDamage> to the attacker and apply <keyword>40% Wounds</keyword> for 3 seconds if they are a champion.</mainText>",
+    "gold": 800,
+    "tags": [
+      "Armor"
+    ]
+  },
+  "3077": {
+    "id": "3077",
+    "name": "Tiamat",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3077.png",
+    "description": "<mainText><stats><attention>20</attention> Attack Damage</stats><br><br><passive>Cleave</passive><br>Attacks deal <physicalDamage>physical damage</physicalDamage> to nearby enemies.<br><active>Crescent</active><br>Deal <physicalDamage>physical damage</physicalDamage> to enemies around you.</mainText>",
+    "gold": 1200,
+    "tags": [
+      "Damage",
+      "OnHit"
+    ]
+  },
+  "3078": {
+    "id": "3078",
+    "name": "Trinity Force",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3078.png",
+    "description": "<mainText><stats><attention>36</attention> Attack Damage<br><attention>30%</attention> Attack Speed<br><attention>333</attention> Health<br><attention>15</attention> Ability Haste</stats><br><br><passive>Spellblade</passive><br>After using an Ability, your next Attack deals <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>.<br> <br><passive>Quicken</passive><br>Attacking grants <speed>20 Move Speed</speed> for 2 seconds.</mainText>",
+    "gold": 3333,
+    "tags": [
+      "Health",
+      "Damage",
+      "AttackSpeed",
+      "CooldownReduction",
+      "OnHit",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "3082": {
+    "id": "3082",
+    "name": "Warden's Mail",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3082.png",
+    "description": "<mainText><stats><attention>40</attention> Armor</stats><br><br><passive>Rock Solid</passive><br>Reduce incoming damage from Attacks.</mainText>",
+    "gold": 1000,
+    "tags": [
+      "Armor"
+    ]
+  },
+  "3083": {
+    "id": "3083",
+    "name": "Warmog's Armor",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3083.png",
+    "description": "<mainText><stats><attention>1000</attention> Health<br><attention>100%</attention> Base Health Regen</stats><br><br><passive>Warmog's Heart</passive> <br>If you have 2000 bonus Health and have not taken damage within 8 seconds, restore <healing></healing> Health per second.<br><br><passive>Warmog's Vitality</passive><br>Gain bonus Health equal to 12% of your Item Health (<healing>0</healing>).</mainText>",
+    "gold": 3100,
+    "tags": [
+      "Health",
+      "HealthRegen"
+    ]
+  },
+  "3084": {
+    "id": "3084",
+    "name": "Heartsteel",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3084.png",
+    "description": "<mainText><stats><attention>900</attention> Health<br><attention>100%</attention> Base Health Regen</stats><br><br><passive>Colossal Consumption</passive> (0s) per target<br>If an enemy champion is nearby for a few seconds, your next Attack against them deals <physicalDamage>70 plus 6%</physicalDamage> of your max Health as <physicalDamage>bonus physical damage</physicalDamage> and grants <scaleHealth>8%</scaleHealth> of the damage as <scaleHealth>max Health.</scaleHealth><br><br><passive>Goliath</passive><br>For each <scaleHealth>1000 max Health</scaleHealth>, gain 3% increased size, up to 30%. </mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "HealthRegen"
+    ]
+  },
+  "3085": {
+    "id": "3085",
+    "name": "Runaan's Hurricane",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3085.png",
+    "description": "<mainText><stats><attention>40%</attention> Attack Speed<br><attention>25%</attention> Critical Strike Chance<br><attention>4%</attention> Move Speed</stats><br><br><passive>Wind's Fury</passive><br>Attacks fire bolts at 2 additional enemies near the target.<br>Each bolt deals <physicalDamage>physical damage</physicalDamage> and applies <OnHit>On-Hit</OnHit> effects.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "CriticalStrike",
+      "AttackSpeed",
+      "OnHit",
+      "NonbootsMovement"
+    ]
+  },
+  "3086": {
+    "id": "3086",
+    "name": "Zeal",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3086.png",
+    "description": "<mainText><stats><attention>15%</attention> Attack Speed<br><attention>15%</attention> Critical Strike Chance<br><attention>4%</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 1200,
+    "tags": [
+      "CriticalStrike",
+      "AttackSpeed",
+      "NonbootsMovement"
+    ]
+  },
+  "3087": {
+    "id": "3087",
+    "name": "Statikk Shiv",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3087.png",
+    "description": "<mainText><stats><attention>45</attention> Attack Damage<br><attention>30%</attention> Attack Speed<br><attention>4%</attention> Move Speed</stats><br><br><passive>Electrospark</passive><br>Attacks trigger chain lightning <OnHit>On-Hit</OnHit>, dealing <magicDamage>magic damage</magicDamage> with a cooldown.<br><br><passive>Electroshock</passive> <br>Takedowns within 3 seconds of damaging the target reset Electrospark's cooldown.</mainText>",
+    "gold": 2700,
+    "tags": [
+      "Damage",
+      "AttackSpeed",
+      "OnHit",
+      "NonbootsMovement"
+    ]
+  },
+  "3089": {
+    "id": "3089",
+    "name": "Rabadon's Deathcap",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3089.png",
+    "description": "<mainText><stats><attention>130</attention> Ability Power</stats><br><br><passive>Magical Opus</passive><br>Increases your total <scaleAP>Ability Power by 30%</scaleAP>.</mainText>",
+    "gold": 3500,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "3091": {
+    "id": "3091",
+    "name": "Wit's End",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3091.png",
+    "description": "<mainText><stats><attention>50%</attention> Attack Speed<br><attention>45</attention> Magic Resist<br><attention>20%</attention> Tenacity</stats><br><br><passive>Fray</passive><br>Attacks deal <magicDamage>bonus magic damage</magicDamage> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "SpellBlock",
+      "AttackSpeed",
+      "OnHit",
+      "Tenacity"
+    ]
+  },
+  "3094": {
+    "id": "3094",
+    "name": "Rapid Firecannon",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3094.png",
+    "description": "<mainText><stats><attention>35%</attention> Attack Speed<br><attention>25%</attention> Critical Strike Chance<br><attention>4%</attention> Move Speed</stats><br><br><passive>Sharpshooter</passive><br>Your <keyword>Energized Attack</keyword> deals <magicDamage>40 bonus magic damage</magicDamage> and gains 35% bonus Attack Range.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "CriticalStrike",
+      "AttackSpeed",
+      "NonbootsMovement"
+    ]
+  },
+  "3100": {
+    "id": "3100",
+    "name": "Lich Bane",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3100.png",
+    "description": "<mainText><stats><attention>100</attention> Ability Power<br><attention>4%</attention> Move Speed<br><attention>10</attention> Ability Haste</stats><br><br><passive>Spellblade</passive><br>After using an Ability, your next Attack deals <magicDamage>bonus magic damage</magicDamage> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "SpellDamage",
+      "OnHit",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "3102": {
+    "id": "3102",
+    "name": "Banshee's Veil",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3102.png",
+    "description": "<mainText><stats><attention>105</attention> Ability Power<br><attention>40</attention> Magic Resist</stats><br><br><passive>Annul</passive><br>Grants a Spell Shield that blocks the next enemy Ability.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "SpellBlock",
+      "SpellDamage"
+    ]
+  },
+  "3105": {
+    "id": "3105",
+    "name": "Aegis of the Legion",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3105.png",
+    "description": "<mainText><stats><attention>25</attention> Armor<br><attention>25</attention> Magic Resist<br><attention>10</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 1100,
+    "tags": [
+      "SpellBlock",
+      "Armor",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3107": {
+    "id": "3107",
+    "name": "Redemption",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3107.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>15</attention> Ability Haste<br><attention>100%</attention> Base Mana Regen<br><attention>10%</attention> Heal and Shield Power</stats><br><br><active>Intervention</active><br>Restore <healing>200 - 400 Health</healing> to allied units and deal <trueDamage>10% max Health true damage</trueDamage> to enemy champions after 2.5 seconds.</mainText>",
+    "gold": 2300,
+    "tags": [
+      "Health",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3108": {
+    "id": "3108",
+    "name": "Fiendish Codex",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3108.png",
+    "description": "<mainText><stats><attention>25</attention> Ability Power<br><attention>10</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 850,
+    "tags": [
+      "SpellDamage",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3109": {
+    "id": "3109",
+    "name": "Knight's Vow",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3109.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>40</attention> Armor<br><attention>10</attention> Ability Haste<br><attention>100%</attention> Base Health Regen</stats><br><br><passive>Sacrifice</passive><br>While near your <attention>Worthy</attention> ally, take 12% of the damage they receive and <healing>heal for 10%</healing> of the damage they deal to champions.<active>Pledge</active> (0s)<br>Designate an ally as <attention>Worthy</attention>.</mainText>",
+    "gold": 2300,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "Armor",
+      "Aura",
+      "Active",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3110": {
+    "id": "3110",
+    "name": "Frozen Heart",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3110.png",
+    "description": "<mainText><stats><attention>75</attention> Armor<br><attention>400</attention> Mana<br><attention>20</attention> Ability Haste</stats><br><br><passive>Winter's Caress</passive><br>Reduce the <attackSpeed>Attack Speed</attackSpeed> of nearby champions by <attackSpeed>20%</attackSpeed>.</mainText>",
+    "gold": 2500,
+    "tags": [
+      "Armor",
+      "Mana",
+      "Aura",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3111": {
+    "id": "3111",
+    "name": "Mercury's Treads",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3111.png",
+    "description": "<mainText><stats><attention>20</attention> Magic Resist<br><attention>45</attention> Move Speed<br><attention>30%</attention> Tenacity</stats><br><br></mainText>",
+    "gold": 1250,
+    "tags": [
+      "Boots",
+      "SpellBlock",
+      "Tenacity"
+    ]
+  },
+  "3113": {
+    "id": "3113",
+    "name": "Aether Wisp",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3113.png",
+    "description": "<mainText><stats><attention>30</attention> Ability Power<br><attention>4%</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 900,
+    "tags": [
+      "NonbootsMovement",
+      "SpellDamage"
+    ]
+  },
+  "3114": {
+    "id": "3114",
+    "name": "Forbidden Idol",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3114.png",
+    "description": "<mainText><stats><attention>50%</attention> Base Mana Regen<br><attention>8%</attention> Heal and Shield Power</stats><br><br></mainText>",
+    "gold": 600,
+    "tags": [
+      "ManaRegen"
+    ]
+  },
+  "3115": {
+    "id": "3115",
+    "name": "Nashor's Tooth",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3115.png",
+    "description": "<mainText><stats><attention>80</attention> Ability Power<br><attention>50%</attention> Attack Speed<br><attention>15</attention> Ability Haste</stats><br><br><passive>Icathian Bite</passive><br>Attacks deal <magicDamage>bonus magic damage</magicDamage> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "AttackSpeed",
+      "SpellDamage",
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "3116": {
+    "id": "3116",
+    "name": "Rylai's Crystal Scepter",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3116.png",
+    "description": "<mainText><stats><attention>65</attention> Ability Power<br><attention>400</attention> Health</stats><br><br><passive>Rimefrost</passive><br>Damaging Abilities <keyword>Slow</keyword> enemies by 30% for 1 second.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "Slow"
+    ]
+  },
+  "3117": {
+    "id": "3117",
+    "name": "Mobility Boots",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3117.png",
+    "description": "<mainText><stats></stats><br><br><attention>25</attention> Move Speed <br>When out of combat for at least 5 seconds, increase this item's effect to <attention>45</attention>.</mainText>",
+    "gold": 1000,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "3118": {
+    "id": "3118",
+    "name": "Malignance",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3118.png",
+    "description": "<mainText><stats><attention>90</attention> Ability Power<br><attention>600</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Scorn</passive><br>Gain 20 Ultimate Ability Haste.<br><br><passive>Hatefog</passive><br>Damaging a champion with your Ultimate burns the ground beneath them for 3s, dealing <magicDamage>magic damage</magicDamage> per second and reducing their <scaleMR>Magic Resist</scaleMR>. <br></mainText>",
+    "gold": 2700,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "3119": {
+    "id": "3119",
+    "name": "Winter's Approach",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3119.png",
+    "description": "<mainText><stats><attention>550</attention> Health<br><attention>500</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleHealth> Health</scaleHealth>.<br><br><passive>Manaflow</passive> (8s, max 4 charges)<br>Landing Attacks and Abilities grant <scaleMana>3 max Mana</scaleMana> (doubled vs. champions).<br>Transforms into <rarityLegendary>Fimbulwinter</rarityLegendary> at <scaleMana>360 max Mana</scaleMana>.</mainText>",
+    "gold": 2400,
+    "tags": [
+      "Health",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "3121": {
+    "id": "3121",
+    "name": "Fimbulwinter",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3121.png",
+    "description": "<mainText><stats><attention>550</attention> Health<br><attention>860</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleHealth> Health</scaleHealth>.<br><br><passive>Everlasting</passive> (0s)<br><keyword>Immobilizing</keyword> or <keyword>Slowing</keyword> (Melee only) an enemy champion grants a <shield>Shield</shield> for 3 seconds. <br>The Shield is increased by 80% if more than one enemy is nearby.</mainText>",
+    "gold": 2400,
+    "tags": [
+      "Health",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "3123": {
+    "id": "3123",
+    "name": "Executioner's Calling",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3123.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage</stats><br><br><passive>Grievous Wounds</passive><br>Dealing physical damage to champions applies <keyword>40% Wounds</keyword> for 3 seconds.</mainText>",
+    "gold": 800,
+    "tags": [
+      "Damage"
+    ]
+  },
+  "3124": {
+    "id": "3124",
+    "name": "Guinsoo's Rageblade",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3124.png",
+    "description": "<mainText><stats><attention>30</attention> Attack Damage<br><attention>30</attention> Ability Power<br><attention>25%</attention> Attack Speed</stats><br><br><passive>Wrath</passive><br>Attacks deal <magicDamage>30 bonus magic damage <OnHit>On-Hit</OnHit></magicDamage>.<br><br><passive>Seething Strike</passive><br>Attacks grant <attackSpeed>8% Attack Speed</attackSpeed> for 3 seconds. (stacks 4 times). <br>While fully stacked, every third Attack applies <OnHit>On-Hit</OnHit> effects twice.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "AttackSpeed",
+      "SpellDamage",
+      "OnHit"
+    ]
+  },
+  "3133": {
+    "id": "3133",
+    "name": "Caulfield's Warhammer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3133.png",
+    "description": "<mainText><stats><attention>20</attention> Attack Damage<br><attention>10</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 1050,
+    "tags": [
+      "Damage",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3134": {
+    "id": "3134",
+    "name": "Serrated Dirk",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3134.png",
+    "description": "<mainText><stats><attention>20</attention> Attack Damage<br><attention>10</attention> Lethality</stats><br><br></mainText>",
+    "gold": 1000,
+    "tags": [
+      "Damage",
+      "ArmorPenetration"
+    ]
+  },
+  "3135": {
+    "id": "3135",
+    "name": "Void Staff",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3135.png",
+    "description": "<mainText><stats><attention>95</attention> Ability Power<br><attention>40%</attention> Magic Penetration</stats><br><br></mainText>",
+    "gold": 3000,
+    "tags": [
+      "MagicPenetration",
+      "SpellDamage"
+    ]
+  },
+  "3137": {
+    "id": "3137",
+    "name": "Cryptbloom",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3137.png",
+    "description": "<mainText><stats><attention>75</attention> Ability Power<br><attention>30%</attention> Magic Penetration<br><attention>20</attention> Ability Haste</stats><br><br><passive>Life from Death</passive><br>When a champion that you damaged within 3 seconds dies, a nova spreads from their corpse that <healing>heals</healing>.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "SpellDamage",
+      "MagicPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "3139": {
+    "id": "3139",
+    "name": "Mercurial Scimitar",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3139.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>40</attention> Magic Resist<br><attention>10%</attention> Life Steal</stats><br><br><br><br><active>ACTIVE</active><br><active>Quicksilver</active><br>Removes all crowd control debuffs (excluding <keyword>Airborne</keyword>) and grants Move Speed.</mainText>",
+    "gold": 3200,
+    "tags": [
+      "SpellBlock",
+      "Damage",
+      "LifeSteal",
+      "Active",
+      "NonbootsMovement",
+      "Tenacity"
+    ]
+  },
+  "3140": {
+    "id": "3140",
+    "name": "Quicksilver Sash",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3140.png",
+    "description": "<mainText><stats><attention>30</attention> Magic Resist</stats><br><br><active>Quicksilver</active><br>Remove all crowd control debuffs (excluding <keyword>Airborne</keyword>).</mainText>",
+    "gold": 1300,
+    "tags": [
+      "Active",
+      "SpellBlock"
+    ]
+  },
+  "3142": {
+    "id": "3142",
+    "name": "Youmuu's Ghostblade",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3142.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>18</attention> Lethality<br><attention>4%</attention> Move Speed</stats><br><br><passive>Haunt</passive> <br>Gain <speed> Move Speed</speed> while out of combat.<br><br><active>Wraith Step</active><br>Gain <speed>Move Speed</speed> and <keyword>Ghosting</keyword> for  seconds.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "Damage",
+      "Active",
+      "NonbootsMovement",
+      "ArmorPenetration"
+    ]
+  },
+  "3143": {
+    "id": "3143",
+    "name": "Randuin's Omen",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3143.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>75</attention> Armor</stats><br><br><passive>Resilience</passive><br>Receive 30% less damage from Critical Strikes.<br><active>Humility</active><br><keyword>Slow</keyword> nearby enemies by 70% for 2 seconds.</mainText>",
+    "gold": 2700,
+    "tags": [
+      "Health",
+      "Armor",
+      "Active",
+      "Slow"
+    ]
+  },
+  "3144": {
+    "id": "3144",
+    "name": "Scout's Slingshot",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3144.png",
+    "description": "<mainText><stats><attention>20%</attention> Attack Speed</stats><br><br><passive>Bullseye</passive><br>Damaging a champion deals <magicDamage>bonus magic damage</magicDamage>. <br>Attacks reduce this cooldown by 1 second.</mainText>",
+    "gold": 600,
+    "tags": [
+      "AttackSpeed"
+    ]
+  },
+  "3145": {
+    "id": "3145",
+    "name": "Hextech Alternator",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3145.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power</stats><br><br><passive>Revved</passive><br>Damaging a champion deals <magicDamage>bonus magic damage</magicDamage>.</mainText>",
+    "gold": 1100,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "3147": {
+    "id": "3147",
+    "name": "Haunting Guise",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3147.png",
+    "description": "<mainText><stats><attention>30</attention> Ability Power<br><attention>200</attention> Health</stats><br><br><passive>Madness</passive><br>For each second in combat with enemy champions, deal 2% bonus damage, up to 6%. </mainText>",
+    "gold": 1300,
+    "tags": [
+      "Health",
+      "SpellDamage"
+    ]
+  },
+  "3152": {
+    "id": "3152",
+    "name": "Hextech Rocketbelt",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3152.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>300</attention> Health<br><attention>20</attention> Ability Haste</stats><br><br><active>Supersonic</active><br>Dash in target direction, unleashing missiles that deal <magicDamage>magic damage</magicDamage>.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "Active",
+      "CooldownReduction",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "3153": {
+    "id": "3153",
+    "name": "Blade of The Ruined King",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3153.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>25%</attention> Attack Speed<br><attention>10%</attention> Life Steal</stats><br><br><passive>Mist's Edge</passive><br>Attacks deal <physicalDamage>a percentage</physicalDamage> of enemy's current Health as <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>.<br><br><passive>Clawing Shadows</passive><br>Attacking a champion 3 times <status>Slows</status> them by 30% for 1 second.</mainText>",
+    "gold": 3200,
+    "tags": [
+      "Damage",
+      "AttackSpeed",
+      "LifeSteal",
+      "Slow",
+      "OnHit"
+    ]
+  },
+  "3155": {
+    "id": "3155",
+    "name": "Hexdrinker",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3155.png",
+    "description": "<mainText><stats><attention>25</attention> Attack Damage<br><attention>25</attention> Magic Resist</stats><br><br><passive>Lifeline</passive><br>Taking magic damage that would reduce your Health below 30% grants a <shield>magic damage Shield</shield> for 2.5 seconds.</mainText>",
+    "gold": 1300,
+    "tags": [
+      "Damage",
+      "SpellBlock"
+    ]
+  },
+  "3156": {
+    "id": "3156",
+    "name": "Maw of Malmortius",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3156.png",
+    "description": "<mainText><stats><attention>60</attention> Attack Damage<br><attention>15</attention> Ability Haste<br><attention>40</attention> Magic Resist</stats><br><br><passive>Lifeline</passive><br>Taking magic damage that would reduce your Health below 30% grants a <shield>magic damage Shield</shield> for 3 seconds and <lifeSteal>10% Omnivamp</lifeSteal> until end of combat.</mainText>",
+    "gold": 3100,
+    "tags": [
+      "SpellBlock",
+      "Damage",
+      "LifeSteal",
+      "SpellVamp",
+      "AbilityHaste"
+    ]
+  },
+  "3157": {
+    "id": "3157",
+    "name": "Zhonya's Hourglass",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3157.png",
+    "description": "<mainText><stats><attention>105</attention> Ability Power<br><attention>50</attention> Armor</stats><br><br><br><br><active>Time Stop</active><br>Enter <keyword>Stasis</keyword> for 2.5 seconds.</mainText>",
+    "gold": 3250,
+    "tags": [
+      "Armor",
+      "SpellDamage",
+      "Active"
+    ]
+  },
+  "3158": {
+    "id": "3158",
+    "name": "Ionian Boots of Lucidity",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3158.png",
+    "description": "<mainText><stats><attention>10</attention> Ability Haste<br><attention>45</attention> Move Speed</stats><br><br><passive>Ionian Insight</passive><br>Gain 10 Summoner Spell Haste.<br><br></mainText>",
+    "gold": 900,
+    "tags": [
+      "Boots",
+      "CooldownReduction"
+    ]
+  },
+  "3161": {
+    "id": "3161",
+    "name": "Spear of Shojin",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3161.png",
+    "description": "<mainText><stats><attention>45</attention> Attack Damage<br><attention>450</attention> Health</stats><br><br><passive>Dragonforce</passive> <br>Gain 25 Basic Ability Haste.<br><br><passive>Focused Will</passive> <br>Dealing damage with Abilities increases your Champion's Ability and Passive damage by 3% for 6 seconds. (stacks 4 times).</mainText>",
+    "gold": 3100,
+    "tags": [
+      "Health",
+      "Damage",
+      "AbilityHaste"
+    ]
+  },
+  "3165": {
+    "id": "3165",
+    "name": "Morellonomicon",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3165.png",
+    "description": "<mainText><stats><attention>75</attention> Ability Power<br><attention>350</attention> Health<br><attention>15</attention> Ability Haste</stats><br><br><passive>Grievous Wounds</passive><br>Dealing <magicDamage>magic damage</magicDamage> to champions applies <keyword>40% Wounds</keyword> for 3 seconds.</mainText>",
+    "gold": 2850,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3170": {
+    "id": "3170",
+    "name": "Swiftmarch",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3170.png",
+    "description": "<mainText><stats><attention>65</attention> Move Speed</stats><br><br><passive>Fleetfooted</passive><br>Reduce the effectiveness of <keyword>Slows</keyword> by 25%.<br><br><passive>Noxian Fervor</passive><br>Gain 5% of your <speed>Move Speed</speed> as Adaptive Force. </mainText>",
+    "gold": 1500,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "3171": {
+    "id": "3171",
+    "name": "Crimson Lucidity",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3171.png",
+    "description": "<mainText><stats><attention>25</attention> Ability Haste<br><attention>50</attention> Move Speed</stats><br><br><passive>Ionian Insight</passive><br>Gain 10 Summoner Spell Haste.<br><br><passive>Noxian Haste</passive><br>Empowering or protecting allies with abilities, dealing damage to enemy Champions with abilities, or casting a Summoner Spell grants <speed> Move Speed</speed> for 4 seconds.<br><br><rules>Noxian Haste can only be triggered once per Ability cast.</rules></mainText>",
+    "gold": 1400,
+    "tags": [
+      "CooldownReduction",
+      "Boots"
+    ]
+  },
+  "3172": {
+    "id": "3172",
+    "name": "Gunmetal Greaves",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3172.png",
+    "description": "<mainText><stats><attention>40%</attention> Attack Speed<br><attention>50</attention> Move Speed</stats><br><br><passive>Noxian Gait</passive><br>Attacks against Champions grant <speed>Move Speed</speed> <OnHit>On-Hit</OnHit> decaying over 2 seconds.</mainText>",
+    "gold": 1600,
+    "tags": [
+      "AttackSpeed",
+      "NonbootsMovement"
+    ]
+  },
+  "3173": {
+    "id": "3173",
+    "name": "Chainlaced Crushers",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3173.png",
+    "description": "<mainText><stats><attention>35</attention> Magic Resist<br><attention>50</attention> Move Speed<br><attention>30%</attention> Tenacity</stats><br><br><passive>Noxian Persistence</passive> (0s)<br>After taking magic damage from a Champion, gain a <shield></shield> <magicDamage>magic</magicDamage> <shield>shield</shield> for 4 seconds.</mainText>",
+    "gold": 1750,
+    "tags": [
+      "SpellBlock",
+      "Boots",
+      "Tenacity",
+      "MagicResist"
+    ]
+  },
+  "3174": {
+    "id": "3174",
+    "name": "Armored Advance",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3174.png",
+    "description": "<mainText><stats><attention>40</attention> Armor<br><attention>50</attention> Move Speed</stats><br><br><passive>Plating</passive><br>Reduces incoming damage from Attacks by 10%.<br><br><passive>Noxian Endurance</passive> (0s)<br>After taking physical damage from a Champion, gain a <shield></shield> <physicalDamage>physical</physicalDamage> <shield>shield</shield> for 4 seconds.</mainText>",
+    "gold": 1700,
+    "tags": [
+      "Armor",
+      "Boots"
+    ]
+  },
+  "3175": {
+    "id": "3175",
+    "name": "Spellslinger's Shoes",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3175.png",
+    "description": "<mainText><stats><attention>18</attention> Magic Penetration<br><attention>7%</attention> Magic Penetration<br><attention>50</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 1600,
+    "tags": [
+      "Boots",
+      "MagicPenetration"
+    ]
+  },
+  "3176": {
+    "id": "3176",
+    "name": "Forever Forward",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3176.png",
+    "description": "<mainText><stats><attention>55</attention> Move Speed</stats><br><br><passive>Voidborn</passive><br>Gain Empowered Recall.<br><br><passive>Noxian Synchrony</passive><br>Gain <speed>45 Move Speed</speed> and <speed>8% total Move Speed</speed> when out of combat.</mainText>",
+    "gold": 1400,
+    "tags": [
+      "Boots"
+    ]
+  },
+  "3179": {
+    "id": "3179",
+    "name": "Umbral Glaive",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3179.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>15</attention> Lethality<br><attention>10</attention> Ability Haste</stats><br><br><passive>Blackout</passive><br>When you are near enemy Stealth Wards and traps, reveal them for 8 seconds.<br><br><passive>Extinguish</passive><br>Attacks do bonus damage to Wards.</mainText>",
+    "gold": 2500,
+    "tags": [
+      "Damage",
+      "Vision",
+      "CooldownReduction",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "3181": {
+    "id": "3181",
+    "name": "Hullbreaker",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3181.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>500</attention> Health<br><attention>4%</attention> Move Speed</stats><br><br><passive>Skipper</passive><br>Every fifth Attack against champions and epic monsters deals <physicalDamage>bonus physical damage</physicalDamage>, increased against Structures.<br><br><passive>Boarding Party</passive><br>Nearby allied siege and super minions gain <scaleArmor>Armor</scaleArmor> and <scaleMR>Magic Resist</scaleMR>.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "Damage",
+      "NonbootsMovement"
+    ]
+  },
+  "3190": {
+    "id": "3190",
+    "name": "Locket of the Iron Solari",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3190.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>25</attention> Armor<br><attention>25</attention> Magic Resist<br><attention>10</attention> Ability Haste</stats><br><br><active>Devotion</active><br>Grant nearby allies a <shield>200 - 360 Shield</shield> that decays over 2.5 seconds.</mainText>",
+    "gold": 2200,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "Aura",
+      "Active",
+      "MagicResist",
+      "AbilityHaste"
+    ]
+  },
+  "3211": {
+    "id": "3211",
+    "name": "Spectre's Cowl",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3211.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>35</attention> Magic Resist<br><attention>100%</attention> Base Health Regen</stats><br><br></mainText>",
+    "gold": 1250,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "SpellBlock"
+    ]
+  },
+  "3222": {
+    "id": "3222",
+    "name": "Mikael's Blessing",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3222.png",
+    "description": "<mainText><stats><attention>250</attention> Health<br><attention>100%</attention> Base Mana Regen<br><attention>12%</attention> Heal and Shield Power<br><attention>15</attention> Ability Haste</stats><br><br><active>Purify</active><br>Remove all crowd control debuffs (excluding <keyword>Airborne</keyword> and <keyword>Suppression</keyword>) from an ally champion and restore <healing>100 - 250 Health</healing>.</mainText>",
+    "gold": 2300,
+    "tags": [
+      "Health",
+      "ManaRegen",
+      "Active",
+      "CooldownReduction",
+      "Tenacity",
+      "AbilityHaste"
+    ]
+  },
+  "3302": {
+    "id": "3302",
+    "name": "Terminus",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3302.png",
+    "description": "<mainText><stats><attention>30</attention> Attack Damage<br><attention>35%</attention> Attack Speed</stats><br><br><passive>Shadow</passive><br>Attacks deal <magicDamage>30 bonus magic damage</magicDamage> <OnHit>On-Hit</OnHit>.<br><br><passive>Juxtaposition</passive><br>Alternate between <keywordMajor>Light</keywordMajor> and <keywordMajor>Dark</keywordMajor> Attacks against champions: <li><keywordMajor>Light</keywordMajor> Attacks grant <scaleArmor>Armor</scaleArmor> and <scaleMR>Magic Resist</scaleMR> for 5s. <li><keywordMajor>Dark</keywordMajor> Attacks grant 10% <scaleArmor>Armor Penetration</scaleArmor> and <scaleMR>Magic Penetration</scaleMR> for 5s. </mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "AttackSpeed",
+      "OnHit",
+      "MagicPenetration",
+      "ArmorPenetration"
+    ]
+  },
+  "3330": {
+    "id": "3330",
+    "name": "Scarecrow Effigy",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3330.png",
+    "description": "<mainText><stats></stats><br><br>Cannot be sold<br><br><active>Active - Trinket:</active> Places an effigy that lasts for  seconds and appears exactly as Fiddlesticks does to enemies. Stores one charge every  seconds, up to maximum 2 charges.<br><br>Enemy champions approaching an effigy will activate it, causing the effigy to fake a random action, after which the effigy will fall apart.</mainText>",
+    "gold": 0,
+    "tags": [
+      "Active",
+      "Jungle",
+      "Lane",
+      "Trinket",
+      "Vision"
+    ]
+  },
+  "3340": {
+    "id": "3340",
+    "name": "Stealth Ward",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3340.png",
+    "description": "<mainText><stats></stats><br><br><active>Active</active> (<scaleLevel>210 - 120</scaleLevel>s, max 2 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision for <scaleLevel>90-120</scaleLevel> seconds.</mainText>",
+    "gold": 0,
+    "tags": [
+      "Active",
+      "Jungle",
+      "Lane",
+      "Trinket",
+      "Vision"
+    ]
+  },
+  "3363": {
+    "id": "3363",
+    "name": "Farsight Alteration",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3363.png",
+    "description": "<mainText><stats></stats><br><br><active>Active</active> (<scaleLevel>198 - 99</scaleLevel>s)<br>Reveals a distant area for 2 seconds and leaves a Ward that expires upon spotting an enemy champion.</mainText>",
+    "gold": 0,
+    "tags": [
+      "Active",
+      "Trinket",
+      "Vision"
+    ]
+  },
+  "3364": {
+    "id": "3364",
+    "name": "Oracle Lens",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3364.png",
+    "description": "<mainText><stats></stats><br><br><active>Active</active> (<scaleLevel>160 - 100</scaleLevel>s, max 2 charges)<br>Reveals enemy Stealth Wards and traps around you for 6 seconds.</mainText>",
+    "gold": 0,
+    "tags": [
+      "Active",
+      "Trinket",
+      "Vision"
+    ]
+  },
+  "3400": {
+    "id": "3400",
+    "name": "Your Cut",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3400.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Gain 0 gold.<br><br><rules>Bonus gold given to an ally when Pyke executes an enemy champion using his Ultimate Ability. If no ally was involved in the kill, Pyke gets to keep the Cut!</rules></mainText>",
+    "gold": 0,
+    "tags": [
+      "Consumable",
+      "GoldPer"
+    ]
+  },
+  "3504": {
+    "id": "3504",
+    "name": "Ardent Censer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3504.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power<br><attention>10%</attention> Heal and Shield Power<br><attention>125%</attention> Base Mana Regen<br><attention>4%</attention> Move Speed</stats><br><br><passive>Sanctify</passive><br>Healing or Shielding an ally enhances you both for 6 seconds, granting <attackSpeed>25% Attack Speed</attackSpeed> and <magicDamage>20 magic damage</magicDamage> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 2200,
+    "tags": [
+      "AttackSpeed",
+      "SpellDamage",
+      "ManaRegen",
+      "NonbootsMovement"
+    ]
+  },
+  "3508": {
+    "id": "3508",
+    "name": "Essence Reaver",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3508.png",
+    "description": "<mainText><stats><attention>60</attention> Attack Damage<br><attention>15</attention> Ability Haste<br><attention>25%</attention> Critical Strike Chance</stats><br><br><passive>Essence Drain</passive><br>Attacks grant <scaleMana>Mana</scaleMana> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Damage",
+      "CriticalStrike",
+      "ManaRegen",
+      "CooldownReduction",
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "3599": {
+    "id": "3599",
+    "name": "Kalista's Black Spear",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3599.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Bind with an ally for the remainder of the game, becoming Oathsworn Allies. Oathsworn empowers you both while near one another.</mainText>",
+    "gold": 0,
+    "tags": [
+      "Consumable"
+    ]
+  },
+  "3600": {
+    "id": "3600",
+    "name": "Kalista's Black Spear",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3600.png",
+    "description": "<mainText><stats></stats><br><br><active>Active - Consume:</active> Bind with an ally for the remainder of the game, becoming Oathsworn Allies. Oathsworn empowers you both while near one another.<br><br><rules>Required to use <attention>Kalista's</attention> Ultimate Ability.</rules></mainText>",
+    "gold": 0,
+    "tags": [
+      "Consumable"
+    ]
+  },
+  "3742": {
+    "id": "3742",
+    "name": "Dead Man's Plate",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3742.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>55</attention> Armor<br><attention>4%</attention> Move Speed</stats><br><br><passive>Shipwrecker</passive><br>While moving, build up to <speed>20 bonus Move Speed</speed>. Your next Attack discharges built up Move Speed to deal <physicalDamage>bonus physical damage</physicalDamage>.<br><br><passive>Unsinkable</passive><br>Reduce the effectiveness of <keyword>Slows</keyword> by 15%.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Health",
+      "Armor",
+      "Slow",
+      "NonbootsMovement"
+    ]
+  },
+  "3748": {
+    "id": "3748",
+    "name": "Titanic Hydra",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3748.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>600</attention> Health</stats><br><br><passive>Cleave</passive><br>Attacks deal <physicalDamage>physical damage</physicalDamage> on-hit and to enemies behind the target.<br><active>Titanic Crescent</active><br>Empower your next <passive>Cleave</passive> to deal <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit> and deal <physicalDamage>bonus physical damage</physicalDamage> to enemies behind the target.</mainText>",
+    "gold": 3300,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "Damage",
+      "OnHit"
+    ]
+  },
+  "3801": {
+    "id": "3801",
+    "name": "Crystalline Bracer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3801.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>100%</attention> Base Health Regen</stats><br><br></mainText>",
+    "gold": 800,
+    "tags": [
+      "Health",
+      "HealthRegen"
+    ]
+  },
+  "3802": {
+    "id": "3802",
+    "name": "Lost Chapter",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3802.png",
+    "description": "<mainText><stats><attention>40</attention> Ability Power<br><attention>300</attention> Mana<br><attention>10</attention> Ability Haste</stats><br><br><passive>Enlighten</passive><br>Levelling up restores <scaleMana>20% max Mana</scaleMana> over 3 seconds.</mainText>",
+    "gold": 1200,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "3803": {
+    "id": "3803",
+    "name": "Catalyst of Aeons",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3803.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>375</attention> Mana</stats><br><br><passive>Eternity</passive><br>Restores <scaleMana>10% of the damage taken</scaleMana> from champions as <scaleMana>Mana</scaleMana>. <br>Casting an Ability <healing>heals for 25% of Mana</healing> spent.</mainText>",
+    "gold": 1300,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "Mana",
+      "ManaRegen"
+    ]
+  },
+  "3814": {
+    "id": "3814",
+    "name": "Edge of Night",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3814.png",
+    "description": "<mainText><stats><attention>50</attention> Attack Damage<br><attention>15</attention> Lethality<br><attention>250</attention> Health</stats><br><br><passive>Annul</passive><br>Grants a Spell Shield that blocks the next enemy Ability.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "Damage",
+      "ArmorPenetration"
+    ]
+  },
+  "3865": {
+    "id": "3865",
+    "name": "World Atlas",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3865.png",
+    "description": "",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3866": {
+    "id": "3866",
+    "name": "Runic Compass",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3866.png",
+    "description": "<mainText><stats><attention>100</attention> Health<br><attention>50%</attention> Base Health Regen<br><attention>50%</attention> Base Mana Regen<br><attention>5</attention> Gold Per 10 Seconds</stats><br><br><passive>Support Quest</passive><br>Earn <keywordMajor>0</keywordMajor> gold from this item to transform it into <rarityGeneric>Bounty of Worlds</rarityGeneric>. <br><br><passive>Shared Riches</passive> (0s, max 0 charges)<br>While near an ally champion, damage enemy champions or kill minions to gain gold.<active>Active</active> (3 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3867": {
+    "id": "3867",
+    "name": "Bounty of Worlds",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3867.png",
+    "description": "<mainText><stats><attention>5</attention> Gold Per 10 Seconds<br><attention>75%</attention> Base Health Regen<br><attention>75%</attention> Base Mana Regen<br><attention>200</attention> Health</stats><br><br><passive>Upgrade</passive> <br>This item can be upgraded into <rarityLegendary>Bloodsong</rarityLegendary>, <rarityLegendary>Celestial Opposition</rarityLegendary>, <rarityLegendary>Dream Maker</rarityLegendary>, <rarityLegendary>Zaz'Zak's Realmspike</rarityLegendary>, or <rarityLegendary>Solstice Sleigh</rarityLegendary> for free.<active>Active</active> (4 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3869": {
+    "id": "3869",
+    "name": "Celestial Opposition",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3869.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>75%</attention> Base Health Regen<br><attention>75%</attention> Base Mana Regen<br><attention>5</attention> Gold Per 10 Seconds</stats><br><br><passive>Blessing of the Mountain</passive><br>Reduce incoming champion damage for 2 seconds after taking damage from a champion. When the effect ends, slow nearby enemies by 50% for 1.5 seconds.<br><active>Active</active> (4 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3870": {
+    "id": "3870",
+    "name": "Dream Maker",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3870.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>75%</attention> Base Health Regen<br><attention>75%</attention> Base Mana Regen<br><attention>5</attention> Gold Per 10 Seconds</stats><br><br><passive>Dream Maker</passive><br>Healing or Shielding another ally blows Dream Bubbles to them for 3 seconds. Their next Attack deals <magicDamage>bonus magic damage</magicDamage> <OnHit>On-Hit</OnHit> and the next damage they take is reduced.<active>Active</active> (4 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3871": {
+    "id": "3871",
+    "name": "Zaz'Zak's Realmspike",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3871.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>75%</attention> Base Health Regen<br><attention>75%</attention> Base Mana Regen<br><attention>5</attention> Gold Per 10 Seconds</stats><br><br><passive>Void Explosion</passive><br>Dealing Ability damage to a champion causes an explosion that deals <magicDamage>magic damage</magicDamage>.<br><br><active>Active</active> (4 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3876": {
+    "id": "3876",
+    "name": "Solstice Sleigh",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3876.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>75%</attention> Base Health Regen<br><attention>75%</attention> Base Mana Regen<br><attention>5</attention> Gold Per 10 Seconds</stats><br><br><passive>Going Sledding</passive><br><keyword>Slowing</keyword> or <keyword>Immobilizing</keyword> an enemy champion near allies restores <healing>Health</healing> and grants <speed>20% decaying Move Speed</speed> for 2.5 seconds to you and a nearby ally. <active>Active</active> (4 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3877": {
+    "id": "3877",
+    "name": "Bloodsong",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3877.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>75%</attention> Base Health Regen<br><attention>75%</attention> Base Mana Regen<br><attention>5</attention> Gold Per 10 Seconds</stats><br><br><passive>Spellblade</passive><br>After using an Ability, your next Attack deals <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>. If the target is a champion, they take increased damage for 4 seconds.<active>Active</active> (4 charges)<br>Places an <keyword>Invisible</keyword> Stealth Ward that grants vision.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "ManaRegen",
+      "Vision",
+      "GoldPer",
+      "Lane"
+    ]
+  },
+  "3901": {
+    "id": "3901",
+    "name": "<rarityLegendary>Fire at Will</rarityLegendary><br><subtitleLeft><silver>500 Silver Serpents</silver></subtitleLeft>",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3901.png",
+    "description": "",
+    "gold": 0,
+    "tags": []
+  },
+  "3902": {
+    "id": "3902",
+    "name": "<rarityLegendary>Death's Daughter</rarityLegendary><br><subtitleLeft><silver>500 Silver Serpents</silver></subtitleLeft>",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3902.png",
+    "description": "<mainText><stats></stats><br><br><mainText>Cannon Barrage additionally fires a mega-cannonball at the center of the Barrage, dealing <trueDamage>bonus true damage</trueDamage> and <status>Slowing</status>.</mainText></mainText>",
+    "gold": 0,
+    "tags": []
+  },
+  "3903": {
+    "id": "3903",
+    "name": "<rarityLegendary>Raise Morale</rarityLegendary><br><subtitleLeft><silver>500 Silver Serpents</silver></subtitleLeft>",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3903.png",
+    "description": "<mainText><stats></stats><br><br>Allies in the Cannon Barrage gain <speed>bonus Move Speed</speed>.</mainText>",
+    "gold": 0,
+    "tags": []
+  },
+  "3916": {
+    "id": "3916",
+    "name": "Oblivion Orb",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/3916.png",
+    "description": "<mainText><stats><attention>25</attention> Ability Power</stats><br><br><passive>Grievous Wounds</passive><br>Dealing <magicDamage>magic damage</magicDamage> to champions applies <keyword>40% Wounds</keyword> for 3 seconds.</mainText>",
+    "gold": 800,
+    "tags": [
+      "SpellDamage"
+    ]
+  },
+  "4005": {
+    "id": "4005",
+    "name": "Imperial Mandate",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4005.png",
+    "description": "<mainText><stats><attention>60</attention> Ability Power<br><attention>20</attention> Ability Haste<br><attention>125%</attention> Base Mana Regen</stats><br><br><passive>Coordinated Fire</passive> (0s) per target<br><keyword>Slowing</keyword> or <keyword>Immobilizing</keyword> an enemy champion marks them for 5 seconds. Ally champion damage detonates the mark, dealing <magicDamage>magic damage equal to 10% of current health</magicDamage>. </mainText>",
+    "gold": 2250,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "4401": {
+    "id": "4401",
+    "name": "Force of Nature",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4401.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>55</attention> Magic Resist<br><attention>4%</attention> Move Speed</stats><br><br><passive>Steadfast</passive><br>Gain <scaleMR>70 Magic Resist</scaleMR> and <speed>6% bonus Move Speed</speed> after taking magic damage from Champions 8 times.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "NonbootsMovement"
+    ]
+  },
+  "4628": {
+    "id": "4628",
+    "name": "Horizon Focus",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4628.png",
+    "description": "<mainText><stats><attention>115</attention> Ability Power<br><attention>25</attention> Ability Haste</stats><br><br><passive>Hypershot</passive><br>Dealing Ability damage to champions at 600 range or greater <keywordStealth>Reveals</keywordStealth> them for 6 seconds. <br><br><passive>Focus</passive><br>When <passive>Hypershot</passive> is triggered, <keywordStealth>Reveal</keywordStealth> all other enemy champions within 1400 range of them for 3 seconds.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "SpellDamage",
+      "AbilityHaste"
+    ]
+  },
+  "4629": {
+    "id": "4629",
+    "name": "Cosmic Drive",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4629.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>350</attention> Health<br><attention>25</attention> Ability Haste<br><attention>4%</attention> Move Speed</stats><br><br><passive>Spelldance</passive><br>Dealing <magicDamage>magic</magicDamage> or <trueDamage>true damage</trueDamage> to champions grants <speed>Move Speed</speed> for 4 seconds. </mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "4630": {
+    "id": "4630",
+    "name": "Blighting Jewel",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4630.png",
+    "description": "<mainText><stats><attention>25</attention> Ability Power<br><attention>13%</attention> Magic Penetration</stats><br><br></mainText>",
+    "gold": 1100,
+    "tags": [
+      "MagicPenetration",
+      "SpellDamage"
+    ]
+  },
+  "4632": {
+    "id": "4632",
+    "name": "Verdant Barrier",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4632.png",
+    "description": "<mainText><stats><attention>40</attention> Ability Power<br><attention>25</attention> Magic Resist</stats><br><br><passive>Annul</passive><br>Grants a Spell Shield that blocks the next enemy Ability.</mainText>",
+    "gold": 1600,
+    "tags": [
+      "SpellBlock",
+      "SpellDamage"
+    ]
+  },
+  "4633": {
+    "id": "4633",
+    "name": "Riftmaker",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4633.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>350</attention> Health<br><attention>15</attention> Ability Haste</stats><br><br><passive>Void Corruption</passive><br>For each second in combat with enemy champions, deal 2% bonus damage, up to 8%. At maximum strength, gain <omnivamp>Omnivamp</omnivamp>.<br><br><passive>Void Infusion</passive><br>Gain 2% of your <scaleHealth>bonus Health</scaleHealth> as <scaleAP>Ability Power</scaleAP>.</mainText>",
+    "gold": 3100,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "CooldownReduction",
+      "SpellVamp"
+    ]
+  },
+  "4635": {
+    "id": "4635",
+    "name": "Leeching Leer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4635.png",
+    "description": "<mainText><stats><attention>20</attention> Ability Power<br><attention>250</attention> Health<br><attention>5%</attention> Omnivamp</stats><br><br></mainText>",
+    "gold": 1265,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "SpellVamp"
+    ]
+  },
+  "4636": {
+    "id": "4636",
+    "name": "Night Harvester",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4636.png",
+    "description": "<mainText><stats><attention>90</attention> Ability Power<br><attention>300</attention> Health<br><attention>25</attention> Ability Haste</stats><br><br><br><li><passive>Soulrend:</passive> Damaging a champion with Attacks or Abilities deals an additional <magicDamage> magic damage</magicDamage> and grants you <speed>25% Move Speed</speed> for 1.5 seconds (30(0s) per champion).<br><br><rarityMythic>Mythic Passive:</rarityMythic> Grants all other <rarityLegendary>Legendary</rarityLegendary> items <attention>5</attention> Ability Haste.<br><br><rules>Damaging a new champion will extend the duration of the Move Speed bonus.</rules></mainText>",
+    "gold": 2765,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "CooldownReduction",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "4637": {
+    "id": "4637",
+    "name": "Demonic Embrace",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4637.png",
+    "description": "<mainText><stats><attention>75</attention> Ability Power<br><attention>350</attention> Health</stats><br><br><br><li><passive>Azakana's Gaze:</passive> Dealing Ability damage burns enemies for {{ Item_Melee_Ranged_Split }} <magicDamage>max Health magic damage</magicDamage> every second for 4 seconds. <li><passive>Dark Pact:</passive> Gain 2% of your <scaleHealth>bonus Health</scaleHealth> as <scaleAP>Ability Power</scaleAP>. <br><br><rules><passive>Azakana's Gaze</passive> deals a maximum of 40 damage to monsters.</rules></mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "SpellDamage"
+    ]
+  },
+  "4638": {
+    "id": "4638",
+    "name": "Watchful Wardstone",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4638.png",
+    "description": "<mainText><stats><attention>150</attention> Health<br><attention>10</attention> Ability Haste<br><attention>10</attention> Armor<br><attention>15</attention> Magic Resist</stats><br><br><passive>Arcane Cache</passive><br>This item can store up to 3 purchased Control Wards.</mainText>",
+    "gold": 1100,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "Vision",
+      "Active",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "4641": {
+    "id": "4641",
+    "name": "Stirring Wardstone",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4641.png",
+    "description": "<mainText><stats><attention>80</attention> Health<br><attention>25%</attention> Base Mana Regen</stats><br><br><br><li><passive>Arcane Cache:</passive> This item can store up to 2 purchased Control Wards.<br><br></mainText>",
+    "gold": 350,
+    "tags": [
+      "Health",
+      "Damage",
+      "SpellDamage",
+      "ManaRegen",
+      "Vision",
+      "Active",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "4642": {
+    "id": "4642",
+    "name": "Bandleglass Mirror",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4642.png",
+    "description": "<mainText><stats><attention>20</attention> Ability Power<br><attention>100%</attention> Base Mana Regen<br><attention>10</attention> Ability Haste</stats><br><br></mainText>",
+    "gold": 900,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "4643": {
+    "id": "4643",
+    "name": "Vigilant Wardstone",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4643.png",
+    "description": "<mainText><stats><attention>250</attention> Health<br><attention>20</attention> Ability Haste<br><attention>25</attention> Armor<br><attention>30</attention> Magic Resist</stats><br><br><passive>Arcane Cache</passive><br>This item can store up to 3 purchased Control Wards.<br><br><passive>Behold</passive><br>Increase your Stealth Ward and Control Ward placement caps by 1.</mainText>",
+    "gold": 2300,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "Vision",
+      "Active",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "4645": {
+    "id": "4645",
+    "name": "Shadowflame",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4645.png",
+    "description": "<mainText><stats><attention>110</attention> Ability Power<br><attention>15</attention> Magic Penetration</stats><br><br><passive>Cinderbloom</passive><br><magicDamage>Magic</magicDamage> and <trueDamage>true damage</trueDamage> <attention>Critically Strikes</attention> enemies below 40% Health, dealing 20% increased damage. </mainText>",
+    "gold": 3200,
+    "tags": [
+      "SpellDamage",
+      "MagicPenetration"
+    ]
+  },
+  "4646": {
+    "id": "4646",
+    "name": "Stormsurge",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/4646.png",
+    "description": "<mainText><stats><attention>90</attention> Ability Power<br><attention>15</attention> Magic Penetration<br><attention>6%</attention> Move Speed</stats><br><br><passive>Stormraider</passive><br>Dealing 25% of a champion's maximum Health within 2.5s applies <passive>Squall</passive> to them.<br><br><passive>Squall</passive><br>After 2 seconds, deal <magicDamage>magic damage</magicDamage>. If the target dies before <passive>Squall</passive> triggers, it damages nearby enemies.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "SpellDamage",
+      "GoldPer",
+      "NonbootsMovement",
+      "MagicPenetration"
+    ]
+  },
+  "6333": {
+    "id": "6333",
+    "name": "Death's Dance",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6333.png",
+    "description": "<mainText><stats><attention>60</attention> Attack Damage<br><attention>50</attention> Armor<br><attention>15</attention> Ability Haste</stats><br><br><passive>Ignore Pain</passive><br>A percentage of damage taken is dealt to you over 3 seconds instead.<br><br><passive>Defy</passive><br>When a champion that you damaged within 3 seconds dies, cleanse <passive>Ignore Pain's</passive> remaining damage and restore <healing>Health</healing> over 2 seconds.</mainText>",
+    "gold": 3300,
+    "tags": [
+      "Armor",
+      "Damage",
+      "AbilityHaste"
+    ]
+  },
+  "6609": {
+    "id": "6609",
+    "name": "Chempunk Chainsword",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6609.png",
+    "description": "<mainText><stats><attention>45</attention> Attack Damage<br><attention>450</attention> Health<br><attention>15</attention> Ability Haste</stats><br><br><passive>Hackshorn</passive><br>Dealing physical damage applies <keyword>40% Wounds</keyword> to enemy champions for 3 seconds.</mainText>",
+    "gold": 3100,
+    "tags": [
+      "Health",
+      "Damage",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6610": {
+    "id": "6610",
+    "name": "Sundered Sky",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6610.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>400</attention> Health<br><attention>10</attention> Ability Haste</stats><br><br><passive>Lightshield Strike</passive><br>Your first Attack against a champion <attention>Critically Strikes</attention> and <healing>restores Health</healing>.</mainText>",
+    "gold": 3100,
+    "tags": [
+      "Health",
+      "Damage",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6616": {
+    "id": "6616",
+    "name": "Staff of Flowing Water",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6616.png",
+    "description": "<mainText><stats><attention>35</attention> Ability Power<br><attention>10%</attention> Heal and Shield Power<br><attention>125%</attention> Base Mana Regen<br><attention>15</attention> Ability Haste</stats><br><br><passive>Rapids</passive><br>Healing or Shielding an ally grants you both <magicDamage>45 Ability Power</magicDamage> for 6 seconds.</mainText>",
+    "gold": 2250,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6617": {
+    "id": "6617",
+    "name": "Moonstone Renewer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6617.png",
+    "description": "<mainText><stats><attention>25</attention> Ability Power<br><attention>200</attention> Health<br><attention>20</attention> Ability Haste<br><attention>125%</attention> Base Mana Regen</stats><br><br><passive>Starlit Grace</passive><br>Healing or shielding an ally chains the effect to another ally (excluding yourself), <healing>healing 30%</healing> or <shield>shielding 35%</shield> of the original amount.</mainText>",
+    "gold": 2200,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6620": {
+    "id": "6620",
+    "name": "Echoes of Helia",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6620.png",
+    "description": "<mainText><stats><attention>35</attention> Ability Power<br><attention>200</attention> Health<br><attention>20</attention> Ability Haste<br><attention>125%</attention> Base Mana Regen</stats><br><br><passive>Soul Siphon</passive><br>Damaging a champion grants a <passive>Soul Shard</passive>, up to 2. <br>Healing or Shielding an ally consumes all <passive>Soul Shards</passive> to restore <healing>Health</healing> and deal <magicDamage>magic damage</magicDamage> to the nearest enemy champion per Shard.</mainText>",
+    "gold": 2200,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6621": {
+    "id": "6621",
+    "name": "Dawncore",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6621.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power<br><attention>16%</attention> Heal and Shield Power<br><attention>100%</attention> Base Mana Regen</stats><br><br><passive>First Light</passive><br>Gain <healing>2% Heal and Shield Power</healing> and <scaleAP>10 Ability Power</scaleAP> per 100% Base Mana Regen.</mainText>",
+    "gold": 2500,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen"
+    ]
+  },
+  "6631": {
+    "id": "6631",
+    "name": "Stridebreaker",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6631.png",
+    "description": "<mainText><stats><attention>40</attention> Attack Damage<br><attention>25%</attention> Attack Speed<br><attention>450</attention> Health</stats><br><br><passive>Cleave</passive><br>Attacks deal <physicalDamage>physical damage</physicalDamage> to nearby enemies.<br><active>Breaking Shockwave</active><br>Deal <physicalDamage>physical damage</physicalDamage> and <status>Slow</status> nearby enemies by 35%.<br>Gain <speed>35% decaying Move Speed</speed> per champion hit for 3 seconds.</mainText>",
+    "gold": 3300,
+    "tags": [
+      "Health",
+      "Damage",
+      "AttackSpeed",
+      "Slow"
+    ]
+  },
+  "6653": {
+    "id": "6653",
+    "name": "Liandry's Torment",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6653.png",
+    "description": "<mainText><stats><attention>60</attention> Ability Power<br><attention>300</attention> Health</stats><br><br><passive>Torment</passive><br>Damaging Abilities burn enemies for <magicDamage>2% max Health magic damage</magicDamage> per second for 3 seconds.<br><br><passive>Suffering</passive><br>For each second in combat with enemy champions, deal 2% bonus damage, up to 6%.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Health",
+      "SpellDamage"
+    ]
+  },
+  "6655": {
+    "id": "6655",
+    "name": "Luden's Companion",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6655.png",
+    "description": "<mainText><stats><attention>100</attention> Ability Power<br><attention>600</attention> Mana<br><attention>10</attention> Ability Haste</stats><br><br><passive>Fire</passive><br>Damaging Abilities fire 6 Shots that deal <magicDamage>bonus magic damage</magicDamage> to the target and nearby enemies. Remaining Shots fire on the primary target, dealing 20% damage.<br></mainText>",
+    "gold": 2750,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6657": {
+    "id": "6657",
+    "name": "Rod of Ages",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6657.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power<br><attention>350</attention> Health<br><attention>500</attention> Mana</stats><br><br><passive>Timeless</passive><br>This item gains <scaleHealth>10 Health</scaleHealth>, <scaleMana>30 Mana</scaleMana> and <scaleAP>3 Ability Power</scaleAP> every 60 seconds up to 10 times. Upon reaching max stacks, gain a level.<br><br><passive>Eternity</passive><br>Taking damage from champions restores <scaleMana>10%</scaleMana> of the damage as <scaleMana>Mana</scaleMana>. <br>Casting an ability <healing>heals for 25%</healing> of Mana spent.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "SpellDamage",
+      "Mana",
+      "ManaRegen"
+    ]
+  },
+  "6660": {
+    "id": "6660",
+    "name": "Bami's Cinder",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6660.png",
+    "description": "<mainText><stats><attention>150</attention> Health<br><attention>5</attention> Ability Haste</stats><br><br><passive>Immolate</passive><br>After taking or dealing damage, deal <magicDamage>magic damage</magicDamage> to nearby enemies for 3 seconds.</mainText>",
+    "gold": 900,
+    "tags": [
+      "Health",
+      "AbilityHaste"
+    ]
+  },
+  "6662": {
+    "id": "6662",
+    "name": "Iceborn Gauntlet",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6662.png",
+    "description": "<mainText><stats><attention>300</attention> Health<br><attention>50</attention> Armor<br><attention>15</attention> Ability Haste</stats><br><br><passive>Spellblade</passive><br>After using an Ability, your next Attack deals <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit> and creates a frost field for 2s that <status>Slows</status>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Health",
+      "Armor",
+      "CooldownReduction",
+      "Slow",
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "6664": {
+    "id": "6664",
+    "name": "Hollow Radiance",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6664.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>40</attention> Magic Resist<br><attention>10</attention> Ability Haste<br><attention>100%</attention> Base Health Regen</stats><br><br><passive>Immolate</passive><br>After taking or dealing damage, deal <magicDamage>magic damage</magicDamage> per second to nearby enemies for 3 seconds. <br><br><passive>Desolate</passive><br>Killing an enemy deals <magicDamage>magic damage</magicDamage> around them.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "HealthRegen",
+      "Aura",
+      "MagicResist",
+      "AbilityHaste"
+    ]
+  },
+  "6665": {
+    "id": "6665",
+    "name": "Jak'Sho, The Protean",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6665.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>45</attention> Armor<br><attention>45</attention> Magic Resist</stats><br><br><passive>Voidborn Resilience</passive><br>After 5 seconds of champion combat, increase your bonus <scaleArmor>Armor</scaleArmor> and <scaleMR>Magic Resist</scaleMR> by 30% until end of combat.<br><br></mainText>",
+    "gold": 3200,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "MagicResist"
+    ]
+  },
+  "6670": {
+    "id": "6670",
+    "name": "Noonquiver",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6670.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage<br><attention>20%</attention> Critical Strike Chance</stats><br><br></mainText>",
+    "gold": 1300,
+    "tags": [
+      "Damage",
+      "CriticalStrike"
+    ]
+  },
+  "6672": {
+    "id": "6672",
+    "name": "Kraken Slayer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6672.png",
+    "description": "<mainText><stats><attention>45</attention> Attack Damage<br><attention>40%</attention> Attack Speed<br><attention>4%</attention> Move Speed</stats><br><br><passive>Bring It Down</passive><br>Every third Attack deals <physicalDamage>bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>, increased based on their missing Health.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "AttackSpeed",
+      "OnHit",
+      "NonbootsMovement"
+    ]
+  },
+  "6673": {
+    "id": "6673",
+    "name": "Immortal Shieldbow",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6673.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>25%</attention> Critical Strike Chance</stats><br><br><passive>Lifeline</passive><br>Taking damage that would reduce your Health below 30% grants a <shield>Shield</shield> for 3 seconds.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "CriticalStrike"
+    ]
+  },
+  "6675": {
+    "id": "6675",
+    "name": "Navori Flickerblade",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6675.png",
+    "description": "<mainText><stats><attention>40%</attention> Attack Speed<br><attention>25%</attention> Critical Strike Chance<br><attention>4%</attention> Move Speed</stats><br><br><passive>Transcendence</passive><br>Attacks reduce Basic Ability cooldowns by <attention>15%</attention> of their remaining cooldown.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "CriticalStrike",
+      "AttackSpeed",
+      "NonbootsMovement"
+    ]
+  },
+  "6676": {
+    "id": "6676",
+    "name": "The Collector",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6676.png",
+    "description": "<mainText><stats><attention>50</attention> Attack Damage<br><attention>10</attention> Lethality<br><attention>25%</attention> Critical Strike Chance</stats><br><br><passive>Death</passive><br>Your damage executes champions that are below 5% Health.<br><br><passive>Taxes</passive><br>Champion kills grant <gold>25 bonus gold</gold>.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "CriticalStrike",
+      "ArmorPenetration"
+    ]
+  },
+  "6690": {
+    "id": "6690",
+    "name": "Rectrix",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6690.png",
+    "description": "<mainText><stats><attention>15</attention> Attack Damage<br><attention>4%</attention> Move Speed</stats><br><br></mainText>",
+    "gold": 775,
+    "tags": [
+      "Damage",
+      "NonbootsMovement"
+    ]
+  },
+  "6692": {
+    "id": "6692",
+    "name": "Eclipse",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6692.png",
+    "description": "<mainText><stats><attention>60</attention> Attack Damage<br><attention>15</attention> Ability Haste</stats><br><br><passive>Ever Rising Moon</passive><br>Hitting a champion with 2 separate Attacks or Abilities within 2 seconds grants you a <shield>Shield</shield> for 2 seconds.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Damage",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "6693": {
+    "id": "6693",
+    "name": "Prowler's Claw",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6693.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>22</attention> Lethality<br><attention>15</attention> Ability Haste</stats><br><br><br><li><passive>Ambush Predator:</passive> After entering a bush your next damaging Attack or Ability on enemy champions deals <physicalDamage>10% of their current health</physicalDamage> over 4 seconds, revealing them and reducing their vision radius for the duration. (5(0s)).</mainText>",
+    "gold": 2850,
+    "tags": [
+      "Damage",
+      "CooldownReduction",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "6694": {
+    "id": "6694",
+    "name": "Serylda's Grudge",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6694.png",
+    "description": "<mainText><stats><attention>45</attention> Attack Damage<br><attention>35%</attention> Armor Penetration<br><attention>15</attention> Ability Haste</stats><br><br><passive>Bitter Cold</passive><br>Damaging Abilities <status>Slow</status> enemies below 50% Health by 30% for 1 second.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "CooldownReduction",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "6695": {
+    "id": "6695",
+    "name": "Serpent's Fang",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6695.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>15</attention> Lethality</stats><br><br><passive>Shield Reaver</passive><br>Damaging an enemy champion reduces Shields they gain by % for 3 seconds. <br>If they were not already affected by <passive>Shield Reaver</passive>, reduce Shields on them by %.</mainText>",
+    "gold": 2500,
+    "tags": [
+      "Damage",
+      "ArmorPenetration"
+    ]
+  },
+  "6696": {
+    "id": "6696",
+    "name": "Axiom Arc",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6696.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>18</attention> Lethality<br><attention>20</attention> Ability Haste</stats><br><br><passive>Flux</passive><br>When a champion that you damaged within 3 seconds dies, refund some of your Ultimate Ability's total cooldown.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "6697": {
+    "id": "6697",
+    "name": "Hubris",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6697.png",
+    "description": "<mainText><stats><attention>60</attention> Attack Damage<br><attention>18</attention> Lethality<br><attention>10</attention> Ability Haste</stats><br><br><passive>Eminence</passive><br>When a champion that you damaged within 3 seconds dies, gain <physicalDamage>15 Attack Damage plus 2 per champion killed</physicalDamage> for 90 seconds.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "Active",
+      "CooldownReduction",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "6698": {
+    "id": "6698",
+    "name": "Profane Hydra",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6698.png",
+    "description": "<mainText><stats><attention>60</attention> Attack Damage<br><attention>18</attention> Lethality<br><attention>10</attention> Ability Haste</stats><br><br><passive>Cleave</passive><br>Attacks deal <physicalDamage>physical damage</physicalDamage> to nearby enemies.<br><active>Heretical Cleave</active><br>Deal <physicalDamage>physical damage</physicalDamage> around you.</mainText>",
+    "gold": 3200,
+    "tags": [
+      "Damage",
+      "Active",
+      "CooldownReduction",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "6699": {
+    "id": "6699",
+    "name": "Voltaic Cyclosword",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6699.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>18</attention> Lethality<br><attention>10</attention> Ability Haste</stats><br><br><passive>Galvanize</passive><br>Dashes and Stealth stack <keyword>Energized</keyword> 75% faster.<br><br><passive>Firmament</passive><br>Your <keyword>Energized Attack</keyword> deals <physicalDamage>bonus physical damage</physicalDamage> and <keyword>Slows</keyword> for 0.75 seconds.</mainText>",
+    "gold": 3000,
+    "tags": [
+      "Damage",
+      "Active",
+      "CooldownReduction",
+      "ArmorPenetration",
+      "AbilityHaste"
+    ]
+  },
+  "6701": {
+    "id": "6701",
+    "name": "Opportunity",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/6701.png",
+    "description": "<mainText><stats><attention>55</attention> Attack Damage<br><attention>18</attention> Lethality</stats><br><br><passive>Preparation</passive><br>After being out of combat with Champions for 8 seconds gain <scaleLethality>Lethality</scaleLethality>. This Lethality lasts for 3 seconds after dealing damage to champions.<br><br><passive>Extraction</passive><br>When a champion that you damaged within 3 seconds dies, gain <speed>200 decaying Move Speed</speed> for 1.5 seconds.<br></mainText>",
+    "gold": 2700,
+    "tags": [
+      "Damage",
+      "Active",
+      "NonbootsMovement",
+      "ArmorPenetration"
+    ]
+  },
+  "7050": {
+    "id": "7050",
+    "name": "Gangplank Placeholder",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/7050.png",
+    "description": "",
+    "gold": 0,
+    "tags": []
+  },
+  "8001": {
+    "id": "8001",
+    "name": "Anathema's Chains",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/8001.png",
+    "description": "<mainText><stats><attention>650</attention> Health<br><attention>20</attention> Ability Haste</stats><br><br><passive>Vendetta</passive><br>You gain Vendetta stacks over time Each stack of Vendetta grants you 1% reduced damage from your Nemesis.<br><br><passive>Vengeance</passive><br>At maximum stacks, your Nemesis has reduced Tenacity while near you.<br><br><br><br><active>ACTIVE</active> (0s)<br><active>Vow</active><br>Choose a <attention>Nemesis</attention>.</mainText>",
+    "gold": 2500,
+    "tags": [
+      "Health",
+      "Active",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "8010": {
+    "id": "8010",
+    "name": "Bloodletter's Curse",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/8010.png",
+    "description": "<mainText><stats><attention>65</attention> Ability Power<br><attention>400</attention> Health<br><attention>15</attention> Ability Haste</stats><br><br><passive>Vile Decay</passive><br>Dealing <magicDamage>magic damage</magicDamage> with abilities or passives to champions reduces their <scaleMR>Magic Resist by 7.5%</scaleMR> for 6 seconds, up to 30%.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "CooldownReduction",
+      "MagicPenetration"
+    ]
+  },
+  "8020": {
+    "id": "8020",
+    "name": "Abyssal Mask",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/8020.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>45</attention> Magic Resist<br><attention>15</attention> Ability Haste</stats><br><br><passive>Unmake</passive><br>Nearby enemy champions take 12% more <magicDamage>magic damage</magicDamage>.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "CooldownReduction",
+      "MagicResist",
+      "AbilityHaste"
+    ]
+  },
+  "322065": {
+    "id": "322065",
+    "name": "Shurelya's Battlesong",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/322065.png",
+    "description": "<mainText><stats><attention>65</attention> Ability Power<br><attention>15</attention> Ability Haste<br><attention>6%</attention> Move Speed<br><attention>150%</attention> Base Mana Regen</stats><br><br><active>Inspiring Speech</active><br>Grant nearby allies <speed>30% Move Speed</speed> for 4 seconds.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "Active",
+      "CooldownReduction",
+      "NonbootsMovement",
+      "AbilityHaste"
+    ]
+  },
+  "323002": {
+    "id": "323002",
+    "name": "Trailblazer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323002.png",
+    "description": "<mainText><stats><attention>300</attention> Health<br><attention>45</attention> Armor<br><attention>6%</attention> Move Speed</stats><br><br><passive>Lead the Way</passive><br>While moving, build up to <speed>20 bonus Move Speed</speed>. <br>At max speed:<li>Create a trail that grants allied champions <speed>Move Speed equal to 15%</speed> of yours. <li>If you are Melee, your next Attack <keyword>Slows</keyword> the target by 50% for 1 second.<br><br></mainText>",
+    "gold": 2600,
+    "tags": [
+      "Health",
+      "Armor",
+      "NonbootsMovement"
+    ]
+  },
+  "323003": {
+    "id": "323003",
+    "name": "Archangel's Staff",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323003.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>600</attention> Mana<br><attention>25</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain Ability Power equal to <scaleMana>1% bonus Mana.</scaleMana><br><br><passive>Manaflow</passive> (8s, max 5 charges)<br>Landing Abilities grants <scaleMana>9.5 max Mana</scaleMana> (doubled vs. champions).<br>Transforms into <rarityLegendary>Seraph's Embrace</rarityLegendary> at <scaleMana>360 max Mana</scaleMana>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "323004": {
+    "id": "323004",
+    "name": "Manamune",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323004.png",
+    "description": "<mainText><stats><attention>35</attention> Attack Damage<br><attention>500</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleAD> bonus Attack Damage</scaleAD>.<br><br><passive>Manaflow</passive> (8s, max 4 charges)<br>Landing Attacks and Abilities grants <scaleMana>6.5 max Mana</scaleMana> (doubled vs. champions).<br>Transforms into <rarityLegendary>Muramana</rarityLegendary> at <scaleMana>360 max Mana</scaleMana>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Damage",
+      "Mana",
+      "CooldownReduction",
+      "OnHit",
+      "AbilityHaste"
+    ]
+  },
+  "323040": {
+    "id": "323040",
+    "name": "Seraph's Embrace",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323040.png",
+    "description": "<mainText><stats><attention>70</attention> Ability Power<br><attention>1000</attention> Mana<br><attention>25</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleAP> Ability Power</scaleAP>.<br><br><passive>Lifeline</passive> (0s)<br>Taking damage that would reduce your Health below 30% grants a <shield> Shield</shield> for 3 seconds.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "SpellDamage",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "323042": {
+    "id": "323042",
+    "name": "Muramana",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323042.png",
+    "description": "<mainText><stats><attention>35</attention> Attack Damage<br><attention>860</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleAD>2% max Mana as bonus Attack Damage</scaleAD>.<br><br><passive>Shock</passive><br>Attacks against champions deal <physicalDamage>1.2% max Mana as bonus physical damage</physicalDamage> <OnHit>On-Hit</OnHit>. <br>Damaging Abilities against champions deal <physicalDamage>3% - 4% max Mana as bonus physical damage</physicalDamage>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Damage",
+      "Mana",
+      "CooldownReduction",
+      "OnHit",
+      "ArmorPenetration"
+    ]
+  },
+  "323050": {
+    "id": "323050",
+    "name": "Zeke's Convergence",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323050.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>30</attention> Armor<br><attention>30</attention> Magic Resist<br><attention>10</attention> Ability Haste</stats><br><br><passive>Frostfire Tempest</passive><br>Casting your Ultimate summons a storm around you for 5 seconds. The storm deals <magicDamage>30 magic damage</magicDamage> per second to enemy champions and <keyword>Slows</keyword> them by 30%.</mainText>",
+    "gold": 2300,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "AbilityHaste"
+    ]
+  },
+  "323070": {
+    "id": "323070",
+    "name": "Tear of the Goddess",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323070.png",
+    "description": "<mainText><stats><attention>240</attention> Mana</stats><br><br><passive>Manaflow</passive> (8s, max 4 charges)<br>Landing Abilities grants <scaleMana>6.5 max Mana</scaleMana> (doubled vs. champions), up to <scaleMana>360</scaleMana>.<br><br><passive>Helping Hand</passive><br>Attacks deal an additional <physicalDamage>5 physical damage</physicalDamage> to minions.</mainText>",
+    "gold": 400,
+    "tags": [
+      "Mana",
+      "ManaRegen"
+    ]
+  },
+  "323075": {
+    "id": "323075",
+    "name": "Thornmail",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323075.png",
+    "description": "<mainText><stats><attention>200</attention> Health<br><attention>85</attention> Armor</stats><br><br><passive>Thorns</passive><br>When struck by an Attack, deal <magicDamage>magic damage</magicDamage> to the attacker and apply 40% <keyword>Wounds</keyword> for 3 seconds if they are a champion.</mainText>",
+    "gold": 2650,
+    "tags": [
+      "Health",
+      "Armor"
+    ]
+  },
+  "323107": {
+    "id": "323107",
+    "name": "Redemption",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323107.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>15</attention> Ability Haste<br><attention>100%</attention> Base Mana Regen<br><attention>10%</attention> Heal and Shield Power</stats><br><br><active>Intervention</active><br>Restore <healing>200 - 400 Health</healing> to allied units and deal <trueDamage>10% max Health true damage</trueDamage> to enemy champions after 2.5 seconds.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "Health",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "323109": {
+    "id": "323109",
+    "name": "Knight's Vow",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323109.png",
+    "description": "<mainText><stats><attention>300</attention> Health<br><attention>50</attention> Armor<br><attention>10</attention> Ability Haste<br><attention>150%</attention> Base Health Regen</stats><br><br><passive>Sacrifice</passive><br>While near your <attention>Worthy</attention> ally, take 12% of the damage they receive and <healing>heal for 10%</healing> of the damage they deal to champions.<active>Pledge</active> (0s)<br>Designate an ally as <attention>Worthy</attention>.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "Armor",
+      "Aura",
+      "Active",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "323110": {
+    "id": "323110",
+    "name": "Frozen Heart",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323110.png",
+    "description": "<mainText><stats><attention>75</attention> Armor<br><attention>500</attention> Mana<br><attention>25</attention> Ability Haste</stats><br><br><passive>Winter's Caress</passive><br>Reduce the <attackSpeed>Attack Speed</attackSpeed> of nearby champions by <attackSpeed>20%</attackSpeed>.</mainText>",
+    "gold": 2700,
+    "tags": [
+      "Armor",
+      "Mana",
+      "Aura",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "323119": {
+    "id": "323119",
+    "name": "Winter's Approach",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323119.png",
+    "description": "<mainText><stats><attention>550</attention> Health<br><attention>500</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleHealth> Health</scaleHealth>.<br><br><passive>Manaflow</passive> (8s, max 4 charges)<br>Landing Attacks and Abilities grant <scaleMana>6.5 max Mana</scaleMana> (doubled vs. champions).<br>Transforms into <rarityLegendary>Fimbulwinter</rarityLegendary> at <scaleMana>360 max Mana</scaleMana>.</mainText>",
+    "gold": 2400,
+    "tags": [
+      "Health",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "323121": {
+    "id": "323121",
+    "name": "Fimbulwinter",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323121.png",
+    "description": "<mainText><stats><attention>550</attention> Health<br><attention>860</attention> Mana<br><attention>15</attention> Ability Haste</stats><br><br><passive>Awe</passive><br>Gain <scaleHealth> Health</scaleHealth>.<br><br><passive>Everlasting</passive> (0s)<br><keyword>Immobilizing</keyword> or <keyword>Slowing</keyword> (Melee only) an enemy champion grants a <shield>Shield</shield> for 3 seconds. <br>The Shield is increased by 80% if more than one enemy is nearby.</mainText>",
+    "gold": 2400,
+    "tags": [
+      "Health",
+      "Mana",
+      "AbilityHaste"
+    ]
+  },
+  "323190": {
+    "id": "323190",
+    "name": "Locket of the Iron Solari",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323190.png",
+    "description": "<mainText><stats><attention>250</attention> Health<br><attention>30</attention> Armor<br><attention>30</attention> Magic Resist<br><attention>10</attention> Ability Haste</stats><br><br><active>Devotion</active><br>Grant nearby allies a <shield>200 - 360 Shield</shield> that decays over 2.5 seconds.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "Armor",
+      "Aura",
+      "Active",
+      "MagicResist",
+      "AbilityHaste"
+    ]
+  },
+  "323222": {
+    "id": "323222",
+    "name": "Mikael's Blessing",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323222.png",
+    "description": "<mainText><stats><attention>400</attention> Health<br><attention>100%</attention> Base Mana Regen<br><attention>15%</attention> Heal and Shield Power<br><attention>15</attention> Ability Haste</stats><br><br><active>Purify</active><br>Remove all crowd control debuffs (excluding <keyword>Airborne</keyword> and <keyword>Suppression</keyword>) from an ally champion and restore <healing>100 - 250 Health</healing>.</mainText>",
+    "gold": 2800,
+    "tags": [
+      "Health",
+      "ManaRegen",
+      "Active",
+      "CooldownReduction",
+      "Tenacity",
+      "AbilityHaste"
+    ]
+  },
+  "323504": {
+    "id": "323504",
+    "name": "Ardent Censer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/323504.png",
+    "description": "<mainText><stats><attention>55</attention> Ability Power<br><attention>10%</attention> Heal and Shield Power<br><attention>150%</attention> Base Mana Regen<br><attention>6%</attention> Move Speed</stats><br><br><passive>Sanctify</passive><br>Healing or Shielding an ally enhances you both for 6 seconds, granting <attackSpeed>25% Attack Speed</attackSpeed> and <magicDamage>20 magic damage</magicDamage> <OnHit>On-Hit</OnHit>.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "AttackSpeed",
+      "SpellDamage",
+      "ManaRegen",
+      "NonbootsMovement"
+    ]
+  },
+  "324005": {
+    "id": "324005",
+    "name": "Imperial Mandate",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/324005.png",
+    "description": "<mainText><stats><attention>65</attention> Ability Power<br><attention>20</attention> Ability Haste<br><attention>150%</attention> Base Mana Regen</stats><br><br><passive>Coordinated Fire</passive> (0s) per target<br><keyword>Slowing</keyword> or <keyword>Immobilizing</keyword> an enemy champion marks them for 5 seconds. Ally champion damage detonates the mark, dealing <magicDamage>magic damage equal to 10% of current health</magicDamage>. </mainText>",
+    "gold": 2750,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "326616": {
+    "id": "326616",
+    "name": "Staff of Flowing Water",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/326616.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power<br><attention>10%</attention> Heal and Shield Power<br><attention>150%</attention> Base Mana Regen<br><attention>15</attention> Ability Haste</stats><br><br><passive>Rapids</passive><br>Healing or Shielding an ally grants you both <magicDamage>45 Ability Power</magicDamage> for 6 seconds.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "326617": {
+    "id": "326617",
+    "name": "Moonstone Renewer",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/326617.png",
+    "description": "<mainText><stats><attention>35</attention> Ability Power<br><attention>400</attention> Health<br><attention>20</attention> Ability Haste<br><attention>150%</attention> Base Mana Regen</stats><br><br><passive>Starlit Grace</passive><br>Healing or shielding an ally chains the effect to another ally (excluding yourself), <healing>healing 30%</healing> or <shield>shielding 35%</shield> of the original amount.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "326620": {
+    "id": "326620",
+    "name": "Echoes of Helia",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/326620.png",
+    "description": "<mainText><stats><attention>35</attention> Ability Power<br><attention>250</attention> Health<br><attention>20</attention> Ability Haste<br><attention>150%</attention> Base Mana Regen</stats><br><br><passive>Soul Siphon</passive><br>Damaging a champion grants a <passive>Soul Shard</passive>, up to 2. <br>Healing or Shielding an ally consumes all <passive>Soul Shards</passive> to restore <healing>Health</healing> and deal <magicDamage>magic damage</magicDamage> to the nearest enemy champion per Shard.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "Health",
+      "SpellDamage",
+      "ManaRegen",
+      "CooldownReduction",
+      "AbilityHaste"
+    ]
+  },
+  "326621": {
+    "id": "326621",
+    "name": "Dawncore",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/326621.png",
+    "description": "<mainText><stats><attention>50</attention> Ability Power<br><attention>20%</attention> Heal and Shield Power<br><attention>150%</attention> Base Mana Regen</stats><br><br><passive>First Light</passive><br>Gain <healing>2% Heal and Shield Power</healing> and <scaleAP>10 Ability Power</scaleAP> per 100% Base Mana Regen.</mainText>",
+    "gold": 2900,
+    "tags": [
+      "SpellDamage",
+      "ManaRegen"
+    ]
+  },
+  "326657": {
+    "id": "326657",
+    "name": "Rod of Ages",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/326657.png",
+    "description": "<mainText><stats><attention>45</attention> Ability Power<br><attention>350</attention> Health<br><attention>500</attention> Mana</stats><br><br><passive>Timeless</passive><br>This item gains <scaleHealth>10 Health</scaleHealth>, <scaleMana>30 Mana</scaleMana> and <scaleAP>3 Ability Power</scaleAP> every 60 seconds up to 10 times. Upon reaching max stacks, gain a level.<br><br><passive>Eternity</passive><br>Taking damage from champions restores <scaleMana>10%</scaleMana> of the damage as <scaleMana>Mana</scaleMana>. <br>Casting an ability <healing>heals for 25%</healing> of Mana spent.</mainText>",
+    "gold": 2600,
+    "tags": [
+      "Health",
+      "HealthRegen",
+      "SpellDamage",
+      "Mana",
+      "ManaRegen"
+    ]
+  },
+  "328020": {
+    "id": "328020",
+    "name": "Abyssal Mask",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/item/328020.png",
+    "description": "<mainText><stats><attention>350</attention> Health<br><attention>50</attention> Magic Resist<br><attention>15</attention> Ability Haste</stats><br><br><passive>Unmake</passive><br>Nearby enemy champions take 12% more <magicDamage>magic damage</magicDamage>.</mainText>",
+    "gold": 2850,
+    "tags": [
+      "Health",
+      "SpellBlock",
+      "CooldownReduction",
+      "MagicResist",
+      "AbilityHaste"
+    ]
+  }
+}

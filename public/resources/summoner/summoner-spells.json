@@ -1,0 +1,218 @@
+{
+  "SummonerBarrier": {
+    "id": "SummonerBarrier",
+    "name": "Barrier",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerBarrier.png",
+    "description": "Gain a brief Shield.",
+    "cooldown": [
+      180
+    ],
+    "range": [
+      1200
+    ]
+  },
+  "SummonerBoost": {
+    "id": "SummonerBoost",
+    "name": "Cleanse",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerBoost.png",
+    "description": "Removes all disables (excluding suppression and airborne) and summoner spell debuffs affecting your champion and gives Tenacity.",
+    "cooldown": [
+      240
+    ],
+    "range": [
+      200
+    ]
+  },
+  "SummonerCherryFlash": {
+    "id": "SummonerCherryFlash",
+    "name": "Flash",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerCherryFlash.png",
+    "description": "Teleports your champion a short distance toward your cursor's location.",
+    "cooldown": [
+      0.25
+    ],
+    "range": [
+      425
+    ]
+  },
+  "SummonerCherryHold": {
+    "id": "SummonerCherryHold",
+    "name": "Flee",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerCherryHold.png",
+    "description": "Gain a short burst of Move Speed, increased while running away from enemy champions.",
+    "cooldown": [
+      45
+    ],
+    "range": [
+      25000
+    ]
+  },
+  "SummonerDot": {
+    "id": "SummonerDot",
+    "name": "Ignite",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerDot.png",
+    "description": "Deals true damage over time to target enemy champion and reduces healing effects on them for the duration.",
+    "cooldown": [
+      180
+    ],
+    "range": [
+      600
+    ]
+  },
+  "SummonerExhaust": {
+    "id": "SummonerExhaust",
+    "name": "Exhaust",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerExhaust.png",
+    "description": "Slows target enemy champion and reduces their damage dealt.",
+    "cooldown": [
+      240
+    ],
+    "range": [
+      650
+    ]
+  },
+  "SummonerFlash": {
+    "id": "SummonerFlash",
+    "name": "Flash",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerFlash.png",
+    "description": "Teleports you a short distance toward your cursor.",
+    "cooldown": [
+      300
+    ],
+    "range": [
+      425
+    ]
+  },
+  "SummonerHaste": {
+    "id": "SummonerHaste",
+    "name": "Ghost",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerHaste.png",
+    "description": "Gain Move Speed and ignore unit collision for the duration.",
+    "cooldown": [
+      240
+    ],
+    "range": [
+      200
+    ]
+  },
+  "SummonerHeal": {
+    "id": "SummonerHeal",
+    "name": "Heal",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerHeal.png",
+    "description": "Restores Health and grants Move Speed to you and target allied champion.",
+    "cooldown": [
+      240
+    ],
+    "range": [
+      875
+    ]
+  },
+  "SummonerMana": {
+    "id": "SummonerMana",
+    "name": "Clarity",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerMana.png",
+    "description": "Restores your and ally champion's Mana.",
+    "cooldown": [
+      240
+    ],
+    "range": [
+      600
+    ]
+  },
+  "SummonerPoroRecall": {
+    "id": "SummonerPoroRecall",
+    "name": "To the King!",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerPoroRecall.png",
+    "description": "Quickly travel to the Poro King's side.",
+    "cooldown": [
+      10
+    ],
+    "range": [
+      200
+    ]
+  },
+  "SummonerPoroThrow": {
+    "id": "SummonerPoroThrow",
+    "name": "Poro Toss",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerPoroThrow.png",
+    "description": "Toss a Poro at your enemies. If it hits, you can quickly travel to your target as a follow up.",
+    "cooldown": [
+      20
+    ],
+    "range": [
+      2500
+    ]
+  },
+  "SummonerSmite": {
+    "id": "SummonerSmite",
+    "name": "Smite",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerSmite.png",
+    "description": "Deals true damage to a monster or minion.",
+    "cooldown": [
+      15
+    ],
+    "range": [
+      500
+    ]
+  },
+  "SummonerSnowURFSnowball_Mark": {
+    "id": "SummonerSnowURFSnowball_Mark",
+    "name": "Mark",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerSnowURFSnowball_Mark.png",
+    "description": "Throw a snowball in a straight line at your enemies. If it hits an enemy, they become marked, granting True Sight, and your champion can quickly travel to the marked target as a follow up.",
+    "cooldown": [
+      80
+    ],
+    "range": [
+      8000
+    ]
+  },
+  "SummonerSnowball": {
+    "id": "SummonerSnowball",
+    "name": "Mark",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerSnowball.png",
+    "description": "Throw a snowball in a straight line at your enemies. If it hits an enemy, they become marked, granting True Sight, and your champion can quickly travel to the marked target as a follow up.",
+    "cooldown": [
+      80
+    ],
+    "range": [
+      1600
+    ]
+  },
+  "SummonerTeleport": {
+    "id": "SummonerTeleport",
+    "name": "Teleport",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/SummonerTeleport.png",
+    "description": "After a brief channel, become untargetable and travel to an allied unit. Upgrades into Unleashed Teleport, which significantly increases travel speed. ",
+    "cooldown": [
+      300
+    ],
+    "range": [
+      25000
+    ]
+  },
+  "Summoner_UltBookPlaceholder": {
+    "id": "Summoner_UltBookPlaceholder",
+    "name": "Placeholder",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/Summoner_UltBookPlaceholder.png",
+    "description": "This slot will be replaced by another champion's ultimate selected at the start of the game. There will be 30 seconds to select an ultimate. Be prepared!",
+    "cooldown": [
+      0
+    ],
+    "range": [
+      400
+    ]
+  },
+  "Summoner_UltBookSmitePlaceholder": {
+    "id": "Summoner_UltBookSmitePlaceholder",
+    "name": "Placeholder and Attack-Smite",
+    "image": "https://ddragon.leagueoflegends.com/cdn/15.15.1/img/spell/Summoner_UltBookSmitePlaceholder.png",
+    "description": "This slot will be replaced by another champion's ultimate and you will gain Attack-Smite. There will be 30 seconds to select an ultimate. Be prepared!",
+    "cooldown": [
+      0
+    ],
+    "range": [
+      400
+    ]
+  }
+}

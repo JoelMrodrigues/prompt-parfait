@@ -1,0 +1,1433 @@
+[
+  {
+    "id": "aatrox",
+    "name": "Aatrox",
+    "image": "/resources/bigchampions/aatrox.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "ahri",
+    "name": "Ahri",
+    "image": "/resources/bigchampions/ahri.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "akali",
+    "name": "Akali",
+    "image": "/resources/bigchampions/akali.jpg",
+    "roles": [
+      "Mid",
+      "Top"
+    ]
+  },
+  {
+    "id": "akshan",
+    "name": "Akshan",
+    "image": "/resources/bigchampions/akshan.jpg",
+    "roles": [
+      "Mid",
+      "ADC"
+    ]
+  },
+  {
+    "id": "alistar",
+    "name": "Alistar",
+    "image": "/resources/bigchampions/alistar.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "ambessa",
+    "name": "Ambessa",
+    "image": "/resources/bigchampions/ambessa.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "amumu",
+    "name": "Amumu",
+    "image": "/resources/bigchampions/amumu.jpg",
+    "roles": [
+      "Jungle",
+      "Support"
+    ]
+  },
+  {
+    "id": "anivia",
+    "name": "Anivia",
+    "image": "/resources/bigchampions/anivia.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "annie",
+    "name": "Annie",
+    "image": "/resources/bigchampions/annie.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "aphelios",
+    "name": "Aphelios",
+    "image": "/resources/bigchampions/aphelios.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "ashe",
+    "name": "Ashe",
+    "image": "/resources/bigchampions/ashe.jpg",
+    "roles": [
+      "ADC",
+      "Support"
+    ]
+  },
+  {
+    "id": "aurelion-sol",
+    "name": "Aurelion Sol",
+    "image": "/resources/bigchampions/aurelionsol.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "aurora",
+    "name": "Aurora",
+    "image": "/resources/bigchampions/aurora.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "azir",
+    "name": "Azir",
+    "image": "/resources/bigchampions/azir.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "bard",
+    "name": "Bard",
+    "image": "/resources/bigchampions/bard.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "belveth",
+    "name": "Bel'Veth",
+    "image": "/resources/bigchampions/belveth.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "blitzcrank",
+    "name": "Blitzcrank",
+    "image": "/resources/bigchampions/blitzcrank.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "brand",
+    "name": "Brand",
+    "image": "/resources/bigchampions/brand.jpg",
+    "roles": [
+      "Support",
+      "Mid"
+    ]
+  },
+  {
+    "id": "braum",
+    "name": "Braum",
+    "image": "/resources/bigchampions/braum.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "briar",
+    "name": "Briar",
+    "image": "/resources/bigchampions/briar.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "caitlyn",
+    "name": "Caitlyn",
+    "image": "/resources/bigchampions/caitlyn.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "camille",
+    "name": "Camille",
+    "image": "/resources/bigchampions/camille.jpg",
+    "roles": [
+      "Top",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "cassiopeia",
+    "name": "Cassiopeia",
+    "image": "/resources/bigchampions/cassiopeia.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "cho-gath",
+    "name": "Cho'Gath",
+    "image": "/resources/bigchampions/chogath.jpg",
+    "roles": [
+      "Top",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "corki",
+    "name": "Corki",
+    "image": "/resources/bigchampions/corki.jpg",
+    "roles": [
+      "Mid",
+      "ADC"
+    ]
+  },
+  {
+    "id": "darius",
+    "name": "Darius",
+    "image": "/resources/bigchampions/darius.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "diana",
+    "name": "Diana",
+    "image": "/resources/bigchampions/diana.jpg",
+    "roles": [
+      "Jungle",
+      "Mid"
+    ]
+  },
+  {
+    "id": "dr-mundo",
+    "name": "Dr. Mundo",
+    "image": "/resources/bigchampions/drmundo.jpg",
+    "roles": [
+      "Top",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "draven",
+    "name": "Draven",
+    "image": "/resources/bigchampions/draven.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "ekko",
+    "name": "Ekko",
+    "image": "/resources/bigchampions/ekko.jpg",
+    "roles": [
+      "Jungle",
+      "Mid"
+    ]
+  },
+  {
+    "id": "elise",
+    "name": "Elise",
+    "image": "/resources/bigchampions/elise.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "evelynn",
+    "name": "Evelynn",
+    "image": "/resources/bigchampions/evelynn.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "ezreal",
+    "name": "Ezreal",
+    "image": "/resources/bigchampions/ezreal.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "fiddlesticks",
+    "name": "Fiddlesticks",
+    "image": "/resources/bigchampions/fiddlesticks.jpg",
+    "roles": [
+      "Jungle",
+      "Support"
+    ]
+  },
+  {
+    "id": "fiora",
+    "name": "Fiora",
+    "image": "/resources/bigchampions/fiora.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "fizz",
+    "name": "Fizz",
+    "image": "/resources/bigchampions/fizz.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "galio",
+    "name": "Galio",
+    "image": "/resources/bigchampions/galio.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "gangplank",
+    "name": "Gangplank",
+    "image": "/resources/bigchampions/gangplank.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "garen",
+    "name": "Garen",
+    "image": "/resources/bigchampions/garen.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "gnar",
+    "name": "Gnar",
+    "image": "/resources/bigchampions/gnar.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "gragas",
+    "name": "Gragas",
+    "image": "/resources/bigchampions/gragas.jpg",
+    "roles": [
+      "Jungle",
+      "Top"
+    ]
+  },
+  {
+    "id": "graves",
+    "name": "Graves",
+    "image": "/resources/bigchampions/graves.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "gwen",
+    "name": "Gwen",
+    "image": "/resources/bigchampions/gwen.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "hecarim",
+    "name": "Hecarim",
+    "image": "/resources/bigchampions/hecarim.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "heimerdinger",
+    "name": "Heimerdinger",
+    "image": "/resources/bigchampions/heimerdinger.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "hwei",
+    "name": "Hwei",
+    "image": "/resources/bigchampions/hwei.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "illaoi",
+    "name": "Illaoi",
+    "image": "/resources/bigchampions/illaoi.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "irelia",
+    "name": "Irelia",
+    "image": "/resources/bigchampions/irelia.jpg",
+    "roles": [
+      "Top",
+      "Mid"
+    ]
+  },
+  {
+    "id": "ivern",
+    "name": "Ivern",
+    "image": "/resources/bigchampions/ivern.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "janna",
+    "name": "Janna",
+    "image": "/resources/bigchampions/janna.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "jarvan-iv",
+    "name": "Jarvan IV",
+    "image": "/resources/bigchampions/jarvaniv.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "jax",
+    "name": "Jax",
+    "image": "/resources/bigchampions/jax.jpg",
+    "roles": [
+      "Top",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "jayce",
+    "name": "Jayce",
+    "image": "/resources/bigchampions/jayce.jpg",
+    "roles": [
+      "Top",
+      "Mid"
+    ]
+  },
+  {
+    "id": "jhin",
+    "name": "Jhin",
+    "image": "/resources/bigchampions/jhin.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "jinx",
+    "name": "Jinx",
+    "image": "/resources/bigchampions/jinx.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "ksante",
+    "name": "K'Sante",
+    "image": "/resources/bigchampions/ksante.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "kaisa",
+    "name": "Kai'Sa",
+    "image": "/resources/bigchampions/kaisa.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "kalista",
+    "name": "Kalista",
+    "image": "/resources/bigchampions/kalista.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "karma",
+    "name": "Karma",
+    "image": "/resources/bigchampions/karma.jpg",
+    "roles": [
+      "Support",
+      "Mid"
+    ]
+  },
+  {
+    "id": "karthus",
+    "name": "Karthus",
+    "image": "/resources/bigchampions/karthus.jpg",
+    "roles": [
+      "Jungle",
+      "Mid"
+    ]
+  },
+  {
+    "id": "kassadin",
+    "name": "Kassadin",
+    "image": "/resources/bigchampions/kassadin.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "katarina",
+    "name": "Katarina",
+    "image": "/resources/bigchampions/katarina.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "kayle",
+    "name": "Kayle",
+    "image": "/resources/bigchampions/kayle.jpg",
+    "roles": [
+      "Top",
+      "Mid"
+    ]
+  },
+  {
+    "id": "kayn",
+    "name": "Kayn",
+    "image": "/resources/bigchampions/kayn.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "kennen",
+    "name": "Kennen",
+    "image": "/resources/bigchampions/kennen.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "kha-zix",
+    "name": "Kha'Zix",
+    "image": "/resources/bigchampions/khazix.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "kindred",
+    "name": "Kindred",
+    "image": "/resources/bigchampions/kindred.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "kled",
+    "name": "Kled",
+    "image": "/resources/bigchampions/kled.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "kog-maw",
+    "name": "Kog'Maw",
+    "image": "/resources/bigchampions/kogmaw.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "leblanc",
+    "name": "LeBlanc",
+    "image": "/resources/bigchampions/leblanc.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "lee-sin",
+    "name": "Lee Sin",
+    "image": "/resources/bigchampions/leesin.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "leona",
+    "name": "Leona",
+    "image": "/resources/bigchampions/leona.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "lillia",
+    "name": "Lillia",
+    "image": "/resources/bigchampions/lillia.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "lissandra",
+    "name": "Lissandra",
+    "image": "/resources/bigchampions/lissandra.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "lucian",
+    "name": "Lucian",
+    "image": "/resources/bigchampions/lucian.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "lulu",
+    "name": "Lulu",
+    "image": "/resources/bigchampions/lulu.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "lux",
+    "name": "Lux",
+    "image": "/resources/bigchampions/lux.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "malphite",
+    "name": "Malphite",
+    "image": "/resources/bigchampions/malphite.jpg",
+    "roles": [
+      "Top",
+      "Support"
+    ]
+  },
+  {
+    "id": "malzahar",
+    "name": "Malzahar",
+    "image": "/resources/bigchampions/malzahar.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "maokai",
+    "name": "Maokai",
+    "image": "/resources/bigchampions/maokai.jpg",
+    "roles": [
+      "Top",
+      "Support"
+    ]
+  },
+  {
+    "id": "master-yi",
+    "name": "Master Yi",
+    "image": "/resources/bigchampions/masteryi.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "mel",
+    "name": "Mel",
+    "image": "/resources/bigchampions/mel.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "milio",
+    "name": "Milio",
+    "image": "/resources/bigchampions/milio.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "miss-fortune",
+    "name": "Miss Fortune",
+    "image": "/resources/bigchampions/missfortune.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "mordekaiser",
+    "name": "Mordekaiser",
+    "image": "/resources/bigchampions/mordekaiser.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "morgana",
+    "name": "Morgana",
+    "image": "/resources/bigchampions/morgana.jpg",
+    "roles": [
+      "Support",
+      "Mid"
+    ]
+  },
+  {
+    "id": "naafiri",
+    "name": "Naafiri",
+    "image": "/resources/bigchampions/naafiri.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "nami",
+    "name": "Nami",
+    "image": "/resources/bigchampions/nami.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "nasus",
+    "name": "Nasus",
+    "image": "/resources/bigchampions/nasus.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "nautilus",
+    "name": "Nautilus",
+    "image": "/resources/bigchampions/nautilus.jpg",
+    "roles": [
+      "Support",
+      "Top"
+    ]
+  },
+  {
+    "id": "neeko",
+    "name": "Neeko",
+    "image": "/resources/bigchampions/neeko.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "nidalee",
+    "name": "Nidalee",
+    "image": "/resources/bigchampions/nidalee.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "nilah",
+    "name": "Nilah",
+    "image": "/resources/bigchampions/nilah.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "nocturne",
+    "name": "Nocturne",
+    "image": "/resources/bigchampions/nocturne.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "nunu",
+    "name": "Nunu & Willump",
+    "image": "/resources/bigchampions/nunu.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "olaf",
+    "name": "Olaf",
+    "image": "/resources/bigchampions/olaf.jpg",
+    "roles": [
+      "Jungle",
+      "Top"
+    ]
+  },
+  {
+    "id": "orianna",
+    "name": "Orianna",
+    "image": "/resources/bigchampions/orianna.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "ornn",
+    "name": "Ornn",
+    "image": "/resources/bigchampions/ornn.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "pantheon",
+    "name": "Pantheon",
+    "image": "/resources/bigchampions/pantheon.jpg",
+    "roles": [
+      "Top",
+      "Support",
+      "Mid"
+    ]
+  },
+  {
+    "id": "poppy",
+    "name": "Poppy",
+    "image": "/resources/bigchampions/poppy.jpg",
+    "roles": [
+      "Jungle",
+      "Support",
+      "Top"
+    ]
+  },
+  {
+    "id": "pyke",
+    "name": "Pyke",
+    "image": "/resources/bigchampions/pyke.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "qiyana",
+    "name": "Qiyana",
+    "image": "/resources/bigchampions/qiyana.jpg",
+    "roles": [
+      "Mid",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "quinn",
+    "name": "Quinn",
+    "image": "/resources/bigchampions/quinn.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "rakan",
+    "name": "Rakan",
+    "image": "/resources/bigchampions/rakan.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "rammus",
+    "name": "Rammus",
+    "image": "/resources/bigchampions/rammus.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "rek-sai",
+    "name": "Rek'Sai",
+    "image": "/resources/bigchampions/reksai.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "rell",
+    "name": "Rell",
+    "image": "/resources/bigchampions/rell.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "renata",
+    "name": "Renata Glasc",
+    "image": "/resources/bigchampions/renata.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "renekton",
+    "name": "Renekton",
+    "image": "/resources/bigchampions/renekton.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "rengar",
+    "name": "Rengar",
+    "image": "/resources/bigchampions/rengar.jpg",
+    "roles": [
+      "Jungle",
+      "Top"
+    ]
+  },
+  {
+    "id": "riven",
+    "name": "Riven",
+    "image": "/resources/bigchampions/riven.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "rumble",
+    "name": "Rumble",
+    "image": "/resources/bigchampions/rumble.jpg",
+    "roles": [
+      "Top",
+      "Mid"
+    ]
+  },
+  {
+    "id": "ryze",
+    "name": "Ryze",
+    "image": "/resources/bigchampions/ryze.jpg",
+    "roles": [
+      "Mid",
+      "Top"
+    ]
+  },
+  {
+    "id": "samira",
+    "name": "Samira",
+    "image": "/resources/bigchampions/samira.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "sejuani",
+    "name": "Sejuani",
+    "image": "/resources/bigchampions/sejuani.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "senna",
+    "name": "Senna",
+    "image": "/resources/bigchampions/senna.jpg",
+    "roles": [
+      "Support",
+      "ADC"
+    ]
+  },
+  {
+    "id": "seraphine",
+    "name": "Seraphine",
+    "image": "/resources/bigchampions/seraphine.jpg",
+    "roles": [
+      "Support",
+      "Mid"
+    ]
+  },
+  {
+    "id": "sett",
+    "name": "Sett",
+    "image": "/resources/bigchampions/sett.jpg",
+    "roles": [
+      "Top",
+      "Support"
+    ]
+  },
+  {
+    "id": "shaco",
+    "name": "Shaco",
+    "image": "/resources/bigchampions/shaco.jpg",
+    "roles": [
+      "Jungle",
+      "Support"
+    ]
+  },
+  {
+    "id": "shen",
+    "name": "Shen",
+    "image": "/resources/bigchampions/shen.jpg",
+    "roles": [
+      "Top",
+      "Support"
+    ]
+  },
+  {
+    "id": "shyvana",
+    "name": "Shyvana",
+    "image": "/resources/bigchampions/shyvana.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "singed",
+    "name": "Singed",
+    "image": "/resources/bigchampions/singed.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "sion",
+    "name": "Sion",
+    "image": "/resources/bigchampions/sion.jpg",
+    "roles": [
+      "Top",
+      "Support"
+    ]
+  },
+  {
+    "id": "sivir",
+    "name": "Sivir",
+    "image": "/resources/bigchampions/sivir.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "skarner",
+    "name": "Skarner",
+    "image": "/resources/bigchampions/skarner.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "smolder",
+    "name": "Smolder",
+    "image": "/resources/bigchampions/smolder.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "sona",
+    "name": "Sona",
+    "image": "/resources/bigchampions/sona.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "soraka",
+    "name": "Soraka",
+    "image": "/resources/bigchampions/soraka.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "swain",
+    "name": "Swain",
+    "image": "/resources/bigchampions/swain.jpg",
+    "roles": [
+      "Support",
+      "Mid",
+      "Top"
+    ]
+  },
+  {
+    "id": "sylas",
+    "name": "Sylas",
+    "image": "/resources/bigchampions/sylas.jpg",
+    "roles": [
+      "Mid",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "syndra",
+    "name": "Syndra",
+    "image": "/resources/bigchampions/syndra.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "tahm-kench",
+    "name": "Tahm Kench",
+    "image": "/resources/bigchampions/tahmkench.jpg",
+    "roles": [
+      "Top",
+      "Support"
+    ]
+  },
+  {
+    "id": "taliyah",
+    "name": "Taliyah",
+    "image": "/resources/bigchampions/taliyah.jpg",
+    "roles": [
+      "Jungle",
+      "Mid"
+    ]
+  },
+  {
+    "id": "talon",
+    "name": "Talon",
+    "image": "/resources/bigchampions/talon.jpg",
+    "roles": [
+      "Mid",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "taric",
+    "name": "Taric",
+    "image": "/resources/bigchampions/taric.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "teemo",
+    "name": "Teemo",
+    "image": "/resources/bigchampions/teemo.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "thresh",
+    "name": "Thresh",
+    "image": "/resources/bigchampions/thresh.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "tristana",
+    "name": "Tristana",
+    "image": "/resources/bigchampions/tristana.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "trundle",
+    "name": "Trundle",
+    "image": "/resources/bigchampions/trundle.jpg",
+    "roles": [
+      "Top",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "tryndamere",
+    "name": "Tryndamere",
+    "image": "/resources/bigchampions/tryndamere.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "twisted-fate",
+    "name": "Twisted Fate",
+    "image": "/resources/bigchampions/twistedfate.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "twitch",
+    "name": "Twitch",
+    "image": "/resources/bigchampions/twitch.jpg",
+    "roles": [
+      "ADC",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "udyr",
+    "name": "Udyr",
+    "image": "/resources/bigchampions/udyr.jpg",
+    "roles": [
+      "Jungle",
+      "Top"
+    ]
+  },
+  {
+    "id": "urgot",
+    "name": "Urgot",
+    "image": "/resources/bigchampions/urgot.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "varus",
+    "name": "Varus",
+    "image": "/resources/bigchampions/varus.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "vayne",
+    "name": "Vayne",
+    "image": "/resources/bigchampions/vayne.jpg",
+    "roles": [
+      "ADC",
+      "Top"
+    ]
+  },
+  {
+    "id": "veigar",
+    "name": "Veigar",
+    "image": "/resources/bigchampions/veigar.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "vel-koz",
+    "name": "Vel'Koz",
+    "image": "/resources/bigchampions/velkoz.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "vex",
+    "name": "Vex",
+    "image": "/resources/bigchampions/vex.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "vi",
+    "name": "Vi",
+    "image": "/resources/bigchampions/vi.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "viego",
+    "name": "Viego",
+    "image": "/resources/bigchampions/viego.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "viktor",
+    "name": "Viktor",
+    "image": "/resources/bigchampions/viktor.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "vladimir",
+    "name": "Vladimir",
+    "image": "/resources/bigchampions/vladimir.jpg",
+    "roles": [
+      "Mid",
+      "Top"
+    ]
+  },
+  {
+    "id": "volibear",
+    "name": "Volibear",
+    "image": "/resources/bigchampions/volibear.jpg",
+    "roles": [
+      "Jungle",
+      "Top"
+    ]
+  },
+  {
+    "id": "warwick",
+    "name": "Warwick",
+    "image": "/resources/bigchampions/warwick.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "monkey-king",
+    "name": "Wukong",
+    "image": "/resources/bigchampions/monkeyking.jpg",
+    "roles": [
+      "Top",
+      "Jungle"
+    ]
+  },
+  {
+    "id": "xayah",
+    "name": "Xayah",
+    "image": "/resources/bigchampions/xayah.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "xerath",
+    "name": "Xerath",
+    "image": "/resources/bigchampions/xerath.jpg",
+    "roles": [
+      "Mid",
+      "Support"
+    ]
+  },
+  {
+    "id": "xin-zhao",
+    "name": "Xin Zhao",
+    "image": "/resources/bigchampions/xinzhao.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "yasuo",
+    "name": "Yasuo",
+    "image": "/resources/bigchampions/yasuo.jpg",
+    "roles": [
+      "Mid",
+      "Top"
+    ]
+  },
+  {
+    "id": "yone",
+    "name": "Yone",
+    "image": "/resources/bigchampions/yone.jpg",
+    "roles": [
+      "Mid",
+      "Top"
+    ]
+  },
+  {
+    "id": "yorick",
+    "name": "Yorick",
+    "image": "/resources/bigchampions/yorick.jpg",
+    "roles": [
+      "Top"
+    ]
+  },
+  {
+    "id": "yunara",
+    "name": "Yunara",
+    "image": "/resources/bigchampions/yunara.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "yuumi",
+    "name": "Yuumi",
+    "image": "/resources/bigchampions/yuumi.jpg",
+    "roles": [
+      "Support"
+    ]
+  },
+  {
+    "id": "zac",
+    "name": "Zac",
+    "image": "/resources/bigchampions/zac.jpg",
+    "roles": [
+      "Jungle"
+    ]
+  },
+  {
+    "id": "zed",
+    "name": "Zed",
+    "image": "/resources/bigchampions/zed.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "zeri",
+    "name": "Zeri",
+    "image": "/resources/bigchampions/zeri.jpg",
+    "roles": [
+      "ADC"
+    ]
+  },
+  {
+    "id": "ziggs",
+    "name": "Ziggs",
+    "image": "/resources/bigchampions/ziggs.jpg",
+    "roles": [
+      "Mid",
+      "ADC"
+    ]
+  },
+  {
+    "id": "zilean",
+    "name": "Zilean",
+    "image": "/resources/bigchampions/zilean.jpg",
+    "roles": [
+      "Support",
+      "Mid"
+    ]
+  },
+  {
+    "id": "zoe",
+    "name": "Zoe",
+    "image": "/resources/bigchampions/zoe.jpg",
+    "roles": [
+      "Mid"
+    ]
+  },
+  {
+    "id": "zyra",
+    "name": "Zyra",
+    "image": "/resources/bigchampions/zyra.jpg",
+    "roles": [
+      "Support"
+    ]
+  }
+]
