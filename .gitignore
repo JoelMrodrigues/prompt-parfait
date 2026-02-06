@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+# Large CSV data (exceeds GitHub 100 MB limit)
+data/csv/*.csv
