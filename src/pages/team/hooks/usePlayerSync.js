@@ -5,13 +5,15 @@ import { fetchDpmData } from '../../../lib/dpmScraper'
 
 export const usePlayerSync = () => {
   const syncPlayerData = async (playerData) => {
+    // Préserver toutes les données du formulaire (dont secondary_account)
+    let result = { ...playerData }
     // Si un pseudo est disponible, récupérer depuis dpm.lol
     if (playerData.pseudo) {
       try {
         const dpmData = await fetchDpmData(playerData.pseudo)
         if (dpmData) {
-          return {
-            ...playerData,
+          result = {
+            ...result,
             rank: dpmData.rank || playerData.rank,
             top_champions: dpmData.topChampions || playerData.top_champions,
           }
@@ -20,7 +22,7 @@ export const usePlayerSync = () => {
         console.error('Erreur récupération dpm.lol:', error)
       }
     }
-    return playerData
+    return result
   }
 
   const syncExistingPlayer = async (player) => {

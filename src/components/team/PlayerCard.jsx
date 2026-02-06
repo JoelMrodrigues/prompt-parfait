@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { Edit2, Trash2, Plus, ExternalLink, RefreshCw } from 'lucide-react'
 import { getChampionImage } from '../../lib/championImages'
 import { useState } from 'react'
@@ -81,8 +82,17 @@ function getRankColor(rank) {
   return 'from-gray-500 to-gray-700'
 }
 
-export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
+export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg, onClick }) => {
   const [syncing, setSyncing] = useState(false)
+  const navigate = useNavigate()
+
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick(player)
+    } else {
+      navigate(`/team/joueurs/${player.id}`)
+    }
+  }
   const roleLabel = ROLE_LABELS[player.position] || player.position
   
   // Utiliser la couleur du rang si disponible, sinon la couleur du rôle
@@ -113,7 +123,8 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-dark-card border border-dark-border rounded-lg overflow-hidden hover:border-accent-blue/50 transition-all"
+      onClick={handleCardClick}
+      className="bg-dark-card border border-dark-border rounded-lg overflow-hidden hover:border-accent-blue/50 transition-all cursor-pointer"
     >
       {/* Header avec gradient selon le rang ou le rôle */}
       <div className={`p-5 bg-gradient-to-r ${cardColor} relative`}>
@@ -124,14 +135,14 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => onEdit(player)}
+              onClick={(e) => { e.stopPropagation(); onEdit?.(player) }}
               className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
               title="Modifier"
             >
               <Edit2 size={16} className="text-white" />
             </button>
             <button
-              onClick={() => onDelete(player.id)}
+              onClick={(e) => { e.stopPropagation(); onDelete?.(player.id) }}
               className="p-2 bg-white/20 rounded-lg hover:bg-red-500 transition-colors"
               title="Supprimer"
             >
@@ -162,6 +173,7 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
               href={player.opgg_link}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="flex-1 min-w-[100px] px-3 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue transition-colors flex items-center justify-center gap-2 text-sm"
             >
               <ExternalLink size={14} />
@@ -173,6 +185,7 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
               href={dpmLink}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="flex-1 min-w-[100px] px-3 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue transition-colors flex items-center justify-center gap-2 text-sm"
             >
               <ExternalLink size={14} />
@@ -184,6 +197,7 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
               href={player.lolpro_link}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="flex-1 min-w-[100px] px-3 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue transition-colors flex items-center justify-center gap-2 text-sm"
             >
               <ExternalLink size={14} />
@@ -192,7 +206,7 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg }) => {
           )}
           {player.pseudo && (
             <button
-              onClick={handleSync}
+              onClick={(e) => { e.stopPropagation(); handleSync() }}
               disabled={syncing}
               className="px-3 py-2 bg-accent-blue/20 border border-accent-blue rounded-lg hover:bg-accent-blue/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title="Synchroniser les données depuis dpm.lol"

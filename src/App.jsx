@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { Layout } from './components/layout/Layout'
@@ -14,7 +14,10 @@ import { ProTeams } from './pages/stats/ProTeams'
 import { ProPlayers } from './pages/stats/ProPlayers'
 import { ProTournaments } from './pages/stats/ProTournaments'
 import { ChampionPoolPage } from './pages/team/champion-pool/ChampionPoolPage'
+import { JoueursPage } from './pages/team/joueurs/JoueursPage'
+import { PlayerDetailPage } from './pages/team/joueurs/PlayerDetailPage'
 import { TeamStatsPage } from './pages/team/stats/TeamStatsPage'
+import { MatchsPage } from './pages/team/matchs/MatchsPage'
 import { DraftsPage } from './pages/team/drafts/DraftsPage'
 import { CoachingPage } from './pages/team/coaching/CoachingPage'
 import { Login } from './pages/Login'
@@ -39,7 +42,11 @@ function App() {
             <Route path="team" element={isSupabaseConfigured ? <ProtectedRoute><TeamLayout /></ProtectedRoute> : <TeamLayout />}>
               <Route index element={<TeamOverviewPage />} />
               <Route path="overview" element={<TeamOverviewPage />} />
+              <Route path="joueurs" element={<JoueursPage />} />
+              <Route path="joueurs/:playerId" element={<PlayerDetailPage />} />
               <Route path="champion-pool" element={<ChampionPoolPage />} />
+              <Route path="matchs" element={<MatchsPage />} />
+              <Route path="import" element={<Navigate to="/team/matchs" replace />} />
               <Route path="stats" element={<TeamStatsPage />} />
               <Route path="drafts" element={<DraftsPage />} />
               <Route path="coaching" element={<CoachingPage />} />

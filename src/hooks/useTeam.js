@@ -74,8 +74,12 @@ export const useTeam = () => {
   }
 
   const createPlayer = async (playerData) => {
+    // Filtrer les valeurs undefined pour éviter les erreurs Supabase
+    const cleanData = Object.fromEntries(
+      Object.entries({ ...playerData, team_id: team.id }).filter(([, v]) => v !== undefined)
+    )
     // S'assurer que top_champions est bien formaté pour JSONB
-    const dataToInsert = { ...playerData, team_id: team.id }
+    const dataToInsert = cleanData
     
     if (dataToInsert.top_champions) {
       // Si c'est déjà un array, Supabase le convertira automatiquement en JSONB
@@ -100,17 +104,21 @@ export const useTeam = () => {
   }
 
   const updatePlayer = async (playerId, updates) => {
+    // Filtrer les valeurs undefined pour éviter les erreurs Supabase
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([, v]) => v !== undefined)
+    )
     // S'assurer que top_champions est bien formaté pour JSONB
-    if (updates.top_champions) {
-      if (Array.isArray(updates.top_champions)) {
-        console.log('💾 Mise à jour top_champions:', updates.top_champions)
+    if (cleanUpdates.top_champions) {
+      if (Array.isArray(cleanUpdates.top_champions)) {
+        console.log('💾 Mise à jour top_champions:', cleanUpdates.top_champions)
       }
     }
-    
+
     // Mise à jour sans .single() pour éviter l'erreur si aucune ligne n'est retournée
     const { data, error } = await supabase
       .from('players')
-      .update(updates)
+      .update(cleanUpdates)
       .eq('id', playerId)
       .select()
 

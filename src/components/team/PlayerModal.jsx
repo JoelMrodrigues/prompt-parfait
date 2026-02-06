@@ -7,6 +7,7 @@ const ROLES = ['TOP', 'JNG', 'MID', 'BOT', 'SUP']
 export const PlayerModal = ({ player, onSave, onClose }) => {
   const [playerName, setPlayerName] = useState(player?.player_name || '')
   const [pseudo, setPseudo] = useState(player?.pseudo || '')
+  const [secondaryAccount, setSecondaryAccount] = useState(player?.secondary_account || '')
   const [region, setRegion] = useState('euw') // Région par défaut
   const [role, setRole] = useState(player?.position || 'TOP')
   const [lolpro, setLolpro] = useState(player?.lolpro_link || '')
@@ -53,6 +54,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
     if (player) {
       setPlayerName(player.player_name || '')
       setPseudo(player.pseudo || '')
+      setSecondaryAccount(player.secondary_account || '')
       // Extraire la région depuis le lien OP.gg si disponible
       if (player.opgg_link) {
         const match = player.opgg_link.match(/summoners\/([^\/]+)\//)
@@ -120,6 +122,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
     onSave({
       player_name: playerName,
       pseudo: pseudo,
+      secondary_account: secondaryAccount.trim() || null,
       position: role,
       opgg_link: opggLink || null,
       lolpro_link: lolpro || null,
@@ -187,6 +190,20 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
               placeholder="Ex: SummonerName"
               className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded-lg focus:border-accent-blue focus:outline-none"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Compte secondaire <span className="text-gray-400 text-xs">(optionnel)</span>
+            </label>
+            <input
+              type="text"
+              value={secondaryAccount}
+              onChange={(e) => setSecondaryAccount(e.target.value)}
+              placeholder="Ex: AltAccount#EUW"
+              className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded-lg focus:border-accent-blue focus:outline-none"
+              title="Compte alternatif. Le compte le plus haut en LP sera le compte principal."
             />
           </div>
 

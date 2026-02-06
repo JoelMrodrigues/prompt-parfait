@@ -5,10 +5,12 @@ import { NavLink } from 'react-router-dom'
 import { 
   Home, 
   Users, 
+  UserCircle,
   BarChart3, 
   FileText, 
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  Gamepad2
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
@@ -19,10 +21,22 @@ const SIDEBAR_ITEMS = [
     path: '/team/overview',
   },
   {
+    id: 'joueurs',
+    label: 'Joueurs',
+    icon: UserCircle,
+    path: '/team/joueurs',
+  },
+  {
     id: 'champion-pool',
     label: 'Pool de Champions',
     icon: Users,
     path: '/team/champion-pool',
+  },
+  {
+    id: 'matchs',
+    label: 'Matchs',
+    icon: Gamepad2,
+    path: '/team/matchs',
   },
   {
     id: 'stats',

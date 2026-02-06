@@ -12,3 +12,15 @@ export function getChampionImage(championName) {
   // Retourner le chemin vers l'icône
   return `/resources/champions/icons/${normalized}.jpg`;
 }
+
+/**
+ * Récupère le chemin de l'image big champion (background)
+ * @param {string} championName - Nom du champion
+ * @returns {string|null} - Chemin ou null si invalide
+ */
+export function getBigChampionImage(championName) {
+  if (!championName || typeof championName !== 'string') return null;
+  const normalized = championName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!normalized) return null;
+  return `/resources/bigchampions/${normalized}.jpg`;
+}
