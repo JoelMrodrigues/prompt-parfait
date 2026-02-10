@@ -9,12 +9,18 @@ export const useTeam = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (user && supabase) {
       fetchTeam()
+    } else {
+      setLoading(false)
     }
   }, [user])
 
   const fetchTeam = async () => {
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
     try {
       // Récupérer l'équipe de l'utilisateur
       // Les policies RLS filtrent automatiquement par auth.uid()
@@ -25,7 +31,10 @@ export const useTeam = () => {
 
       if (teamError && teamError.code !== 'PGRST116') {
         console.error('Erreur récupération équipe:', teamError)
-        throw teamError
+        setTeam(null)
+        setPlayers([])
+        setLoading(false)
+        return
       }
 
       setTeam(teamData)
@@ -43,6 +52,8 @@ export const useTeam = () => {
       }
     } catch (error) {
       console.error('Error fetching team:', error)
+      setTeam(null)
+      setPlayers([])
     } finally {
       setLoading(false)
     }

@@ -2,11 +2,12 @@
  * Détail d'un match - Résumé (équipes), Stats globales, Stats timeline, Timeline global
  */
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, TrendingUp, Map } from 'lucide-react'
+import { ArrowLeft, BarChart3, TrendingUp, Map, Wrench } from 'lucide-react'
 import { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { getChampionImage } from '../../../lib/championImages'
 import { loadItems, getItemImageUrl, getItemName } from '../../../lib/items'
+import { computeEnemyRoleFixes } from '../../../lib/team/fixEnemyRolesFromDb'
 
 const TABS = [
   { id: 'resume', label: 'Résumé', icon: BarChart3 },
@@ -107,6 +108,8 @@ export const MatchDetailPage = () => {
   const [itemsLoaded, setItemsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('resume')
+  const [fixingRoles, setFixingRoles] = useState(false)
+  const [fixRolesMessage, setFixRolesMessage] = useState(null)
 
   useEffect(() => {
     if (!matchId) {
@@ -199,6 +202,41 @@ export const MatchDetailPage = () => {
   const ourTeam = participants.filter((p) => p.team_side === 'our' || !p.team_side)
   const enemyTeam = participants.filter((p) => p.team_side === 'enemy')
   const durationMin = match.game_duration ? Math.round(match.game_duration / 60) : null
+
+  const refetchParticipants = async () => {
+    const { data: parts, error } = await supabase.from('team_match_participants').select('*').eq('match_id', matchId)
+    if (error || !parts) return
+    const roleOrder = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']
+    const sortParts = (a, b) => {
+      const sideA = a.team_side === 'enemy' ? 1 : 0
+      const sideB = b.team_side === 'enemy' ? 1 : 0
+      if (sideA !== sideB) return sideA - sideB
+      return roleOrder.indexOf(a.role || '') - roleOrder.indexOf(b.role || '')
+    }
+    setParticipants([...parts].sort(sortParts))
+  }
+
+  const handleFixEnemyRoles = async () => {
+    setFixingRoles(true)
+    setFixRolesMessage(null)
+    try {
+      const updates = computeEnemyRoleFixes(enemyTeam)
+      if (updates.length === 0) {
+        setFixRolesMessage('Aucune correction nécessaire.')
+        setFixingRoles(false)
+        return
+      }
+      for (const u of updates) {
+        await supabase.from('team_match_participants').update({ role: u.role }).eq('id', u.id)
+      }
+      await refetchParticipants()
+      setFixRolesMessage(`${updates.length} rôle(s) corrigé(s).`)
+    } catch {
+      setFixRolesMessage('Erreur lors de la correction.')
+    } finally {
+      setFixingRoles(false)
+    }
+  }
 
   // Agrégats par équipe (stats globales)
   const ourGold = ourTeam.reduce((s, p) => s + (p.gold_earned ?? 0), 0)
@@ -295,9 +333,27 @@ export const MatchDetailPage = () => {
               )}
             </div>
             <div className="p-4">
-              <h3 className="font-display text-lg font-semibold text-red-400/90 mb-3">
-                Équipe adverse
-              </h3>
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <h3 className="font-display text-lg font-semibold text-red-400/90">
+                  Équipe adverse
+                </h3>
+                {enemyTeam.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleFixEnemyRoles}
+                    disabled={fixingRoles}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue/50 disabled:opacity-50 text-gray-300"
+                  >
+                    <Wrench size={14} />
+                    {fixingRoles ? 'Correction…' : 'Corriger les rôles'}
+                  </button>
+                )}
+              </div>
+              {fixRolesMessage && (
+                <p className={`text-sm mb-2 ${fixRolesMessage.startsWith('Erreur') ? 'text-red-400' : 'text-green-400'}`}>
+                  {fixRolesMessage}
+                </p>
+              )}
               {enemyTeam.length > 0 ? (
                 <ParticipantTable participants={enemyTeam} itemsLoaded={itemsLoaded} />
               ) : (

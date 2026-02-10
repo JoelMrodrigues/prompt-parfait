@@ -11,58 +11,20 @@ import {
   MessageSquare,
   ChevronRight,
   Gamepad2,
-  Upload
+  Upload,
+  CalendarDays
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
-  {
-    id: 'overview',
-    label: 'Vue d\'ensemble',
-    icon: Home,
-    path: '/team/overview',
-  },
-  {
-    id: 'joueurs',
-    label: 'Joueurs',
-    icon: UserCircle,
-    path: '/team/joueurs',
-  },
-  {
-    id: 'champion-pool',
-    label: 'Pool de Champions',
-    icon: Users,
-    path: '/team/champion-pool',
-  },
-  {
-    id: 'matchs',
-    label: 'Matchs',
-    icon: Gamepad2,
-    path: '/team/matchs',
-  },
-  {
-    id: 'import',
-    label: 'Import',
-    icon: Upload,
-    path: '/team/import',
-  },
-  {
-    id: 'stats',
-    label: 'Statistiques',
-    icon: BarChart3,
-    path: '/team/stats',
-  },
-  {
-    id: 'drafts',
-    label: 'Drafts',
-    icon: FileText,
-    path: '/team/drafts',
-  },
-  {
-    id: 'coaching',
-    label: 'Coaching',
-    icon: MessageSquare,
-    path: '/team/coaching',
-  },
+  { id: 'overview', label: 'Vue d\'ensemble', icon: Home, path: '/team/overview' },
+  { id: 'joueurs', label: 'Joueurs', icon: UserCircle, path: '/team/joueurs' },
+  { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
+  { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
+  { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
+  { id: 'champion-pool', label: 'Pool de Champions', icon: Users, path: '/team/champion-pool' },
+  { id: 'drafts', label: 'Drafts', icon: FileText, path: '/team/drafts' },
+  { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching' },
+  { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning' },
 ]
 
 export const TeamSidebar = () => {

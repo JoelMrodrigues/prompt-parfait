@@ -7,8 +7,19 @@ import { getChampionNameById } from './championsDatabase'
 
 const ROLE_ORDER = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']
 
-/** Jungler adverse = celui qui a le plus de neutralMinionsKilled (monstres jungle). L'autre JUNGLE → TOP. */
-function fixEnemyDuplicateRoles(enemyParticipants) {
+/** Compte les rôles parmi les 5 (TOP, JUNGLE, MID, ADC, SUPPORT). */
+function countRoles(participants) {
+  const count = { TOP: 0, JUNGLE: 0, MID: 0, ADC: 0, SUPPORT: 0, UNKNOWN: 0 }
+  for (const p of participants) {
+    const r = p.role === 'JNG' ? 'JUNGLE' : p.role === 'SUP' ? 'SUPPORT' : p.role
+    if (count[r] !== undefined) count[r]++
+    else count.UNKNOWN++
+  }
+  return count
+}
+
+/** Jungler adverse = celui qui a le plus de neutralMinionsKilled. Corrige 2 JUNGLE → 1 TOP. */
+function fixEnemyDuplicateJungle(enemyParticipants) {
   if (!enemyParticipants.length) return
   const jungler = enemyParticipants.reduce(
     (best, p) => {
@@ -20,7 +31,33 @@ function fixEnemyDuplicateRoles(enemyParticipants) {
   )
   jungler.role = 'JUNGLE'
   for (const p of enemyParticipants) {
-    if (p !== jungler && p.role === 'JUNGLE') p.role = 'TOP'
+    if (p !== jungler && (p.role === 'JUNGLE' || p.role === 'JNG')) p.role = 'TOP'
+  }
+}
+
+/** Corrige 2 TOP + 0 MID : on réattribue un TOP en MID (celui avec le plus de CS lane = mid farm plus). */
+function fixEnemyDuplicateTopNoMid(enemyParticipants) {
+  const count = countRoles(enemyParticipants)
+  if (count.TOP !== 2 || count.MID !== 0) return
+  const tops = enemyParticipants.filter((p) => p.role === 'TOP').sort((a, b) => {
+    const csA = (a.stats?.totalMinionsKilled ?? 0) + (a.stats?.neutralMinionsKilled ?? 0)
+    const csB = (b.stats?.totalMinionsKilled ?? 0) + (b.stats?.neutralMinionsKilled ?? 0)
+    return csB - csA
+  })
+  if (tops.length >= 2) tops[0].role = 'MID'
+}
+
+/** Réattribue les UNKNOWN aux rôles manquants (ordre participantId = ordre souvent Top→Jungle→Mid→ADC→Support). */
+function fixEnemyUnknownRoles(enemyParticipants) {
+  const count = countRoles(enemyParticipants)
+  if (count.UNKNOWN === 0) return
+  const missing = ROLE_ORDER.filter((r) => count[r] === 0)
+  if (missing.length === 0) return
+  const unknowns = enemyParticipants.filter((p) => p.role === 'UNKNOWN' || !ROLE_ORDER.includes(p.role))
+  const sorted = [...unknowns].sort((a, b) => (a.participantId ?? 0) - (b.participantId ?? 0))
+  const toAssign = Math.min(sorted.length, missing.length)
+  for (let i = 0; i < toAssign; i++) {
+    sorted[i].role = missing[i]
   }
 }
 
@@ -45,8 +82,28 @@ function nameMatches(aNoTag, bNoTag) {
   return false
 }
 
-/** Rôle adverse : lane = rôle sauf BOTTOM où on regarde role (CARRY → ADC, SUPPORT → SUPPORT) */
+/** Map teamPosition / individualPosition (Riot match-v5) vers notre rôle */
+function positionToRole(pos) {
+  if (!pos || typeof pos !== 'string') return null
+  const u = pos.toUpperCase()
+  if (u === 'TOP') return 'TOP'
+  if (u === 'JUNGLE' || u === 'JGL') return 'JUNGLE'
+  if (u === 'MIDDLE' || u === 'MID') return 'MID'
+  if (u === 'BOTTOM' || u === 'BOT') return 'ADC' // sera affiné avec duo_carry / support
+  if (u === 'UTILITY' || u === 'SUPPORT') return 'SUPPORT'
+  return null
+}
+
+/** Rôle adverse : teamPosition/individualPosition (v5) > timeline.lane/role (v4) */
 function inferRoleFromTimeline(p) {
+  const pos = (p.teamPosition || p.individualPosition || '').trim()
+  if (pos) {
+    const fromPos = positionToRole(pos)
+    if (fromPos) return fromPos
+    const u = pos.toUpperCase()
+    if (u.includes('CARRY') || u === 'DUO_CARRY') return 'ADC'
+    if (u.includes('SUPPORT') || u === 'UTILITY') return 'SUPPORT'
+  }
   const lane = (p.timeline?.lane || '').toUpperCase()
   const role = (p.timeline?.role || '').toUpperCase()
   if (lane === 'TOP') return 'TOP'
@@ -218,13 +275,36 @@ export function parseExaltyMatch(matchJson, teamPlayers) {
   }
 
   // Corriger les rôles adverses quand l’API renvoie 2x le même (ex. 2 JUNGLE) : on réattribue au rôle manquant
-  fixEnemyDuplicateRoles(enemyParticipants)
+  fixEnemyDuplicateJungle(enemyParticipants)
+  fixEnemyDuplicateTopNoMid(enemyParticipants)
+  fixEnemyUnknownRoles(enemyParticipants)
 
   ourParticipants.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role))
   enemyParticipants.sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role))
 
   const durationMin = Math.round((matchJson.gameDuration || 0) / 60)
   const ourWin = ourParticipants.some(p => p.stats.win)
+
+  const objectives = {}
+  const teams = matchJson.teams || matchJson.info?.teams || []
+  for (const t of teams) {
+    const tid = t.teamId ?? t.team_id
+    if (tid == null) continue
+    const key = String(tid)
+    objectives[key] = {
+      dragonKills: t.dragonKills ?? t.dragon_kills ?? 0,
+      baronKills: t.baronKills ?? t.baron_kills ?? 0,
+      riftHeraldKills: t.riftHeraldKills ?? t.rift_herald_kills ?? 0,
+      towerKills: t.towerKills ?? t.tower_kills ?? 0,
+      inhibitorKills: t.inhibitorKills ?? t.inhibitor_kills ?? 0,
+      hordeKills: t.hordeKills ?? t.horde_kills ?? 0,
+      firstBaron: Boolean(t.firstBaron ?? t.first_baron),
+      firstBlood: Boolean(t.firstBlood ?? t.first_blood),
+      firstDragon: Boolean(t.firstDargon ?? t.firstDragon ?? t.first_dragon),
+      firstInhibitor: Boolean(t.firstInhibitor ?? t.first_inhibitor),
+      firstTower: Boolean(t.firstTower ?? t.first_tower),
+    }
+  }
 
   return {
     match: {
@@ -236,6 +316,7 @@ export function parseExaltyMatch(matchJson, teamPlayers) {
       gameType: matchJson.gameType,
       ourTeamId: ourTeamId ?? 100,
       ourWin,
+      objectives: Object.keys(objectives).length ? objectives : null,
     },
     participants: [...ourParticipants, ...enemyParticipants],
   }

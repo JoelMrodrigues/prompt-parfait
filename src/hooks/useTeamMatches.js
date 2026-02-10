@@ -25,9 +25,11 @@ export const useTeamMatches = (teamId) => {
           team_match_participants (
             id,
             player_id,
+            participant_id,
             pseudo,
             champion_name,
             role,
+            team_side,
             kills,
             deaths,
             assists,

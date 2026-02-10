@@ -51,6 +51,7 @@ export async function importExaltyMatches(matchesJson, teamId, teamPlayers) {
             game_type: parsed.match.gameType,
             our_team_id: parsed.match.ourTeamId,
             our_win: parsed.match.ourWin,
+            objectives: parsed.match.objectives ?? null,
           })
           .eq('id', existing.id)
         if (updateErr) {
@@ -69,6 +70,7 @@ export async function importExaltyMatches(matchesJson, teamId, teamPlayers) {
             game_type: parsed.match.gameType,
             our_team_id: parsed.match.ourTeamId,
             our_win: parsed.match.ourWin,
+            objectives: parsed.match.objectives ?? null,
           })
           .select('id')
           .single()

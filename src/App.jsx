@@ -22,6 +22,7 @@ import { MatchDetailPage } from './pages/team/matchs/MatchDetailPage'
 import { ImportPage } from './pages/team/import/ImportPage'
 import { DraftsPage } from './pages/team/drafts/DraftsPage'
 import { CoachingPage } from './pages/team/coaching/CoachingPage'
+import { PlanningPage } from './pages/team/planning/PlanningPage'
 import { Login } from './pages/Login'
 import { useToast } from './hooks/useToast'
 import { ToastContainer } from './components/common/Toast'
@@ -49,6 +50,7 @@ function App() {
               <Route path="champion-pool" element={<ChampionPoolPage />} />
               <Route path="matchs" element={<MatchsPage />} />
               <Route path="matchs/:matchId" element={<MatchDetailPage />} />
+              <Route path="planning" element={<PlanningPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="stats" element={<TeamStatsPage />} />
               <Route path="drafts" element={<DraftsPage />} />

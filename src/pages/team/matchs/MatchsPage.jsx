@@ -8,6 +8,46 @@ import { useTeam } from '../../../hooks/useTeam'
 import { useTeamMatches } from '../../../hooks/useTeamMatches'
 import { getChampionImage } from '../../../lib/championImages'
 
+// Ordre d'affichage: Top, Jungle, Mid, ADC, Support (gauche → droite)
+const ROLE_SORT_KEY = { TOP: 0, JNG: 1, JUNGLE: 1, MID: 2, ADC: 3, BOT: 3, SUP: 4, SUPPORT: 4 }
+
+function sortByRole(participants) {
+  return [...participants].sort((a, b) => {
+    const rA = (a.role || '').toUpperCase().replace(/\s/g, '')
+    const rB = (b.role || '').toUpperCase().replace(/\s/g, '')
+    const idxA = ROLE_SORT_KEY[rA] ?? 99
+    const idxB = ROLE_SORT_KEY[rB] ?? 99
+    return idxA - idxB
+  })
+}
+
+function ChampionRow({ participants, sideLabel, sideColor }) {
+  const sorted = sortByRole(participants)
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`text-xs font-medium w-14 shrink-0 ${sideColor}`}>{sideLabel}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        {sorted.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg rounded-lg"
+          >
+            <img
+              src={getChampionImage(p.champion_name)}
+              alt={p.champion_name}
+              className="w-7 h-7 rounded object-cover"
+            />
+            <span className="text-sm">{p.champion_name}</span>
+            <span className="text-xs text-gray-500">
+              {p.kills}/{p.deaths}/{p.assists}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export const MatchsPage = () => {
   const { team } = useTeam()
   const { matches, loading, refetch } = useTeamMatches(team?.id)
@@ -55,7 +95,13 @@ export const MatchsPage = () => {
         <div className="space-y-4">
           {matches.map((m) => {
             const allParticipants = m.team_match_participants || []
-            const participants = allParticipants.filter((p) => p.team_side === 'our' || !p.team_side)
+            const ourTeam = allParticipants.filter((p) => p.team_side === 'our' || !p.team_side)
+            const enemyTeam = allParticipants.filter((p) => p.team_side === 'enemy')
+            // our_team_id 100 = blue, 200 = red → blue en haut, red en bas
+            const isOurBlue = m.our_team_id === 100
+            const blueSide = isOurBlue ? ourTeam : enemyTeam
+            const redSide = isOurBlue ? enemyTeam : ourTeam
+
             return (
               <Link
                 key={m.id}
@@ -82,23 +128,9 @@ export const MatchsPage = () => {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {participants.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-dark-bg rounded-lg"
-                    >
-                      <img
-                        src={getChampionImage(p.champion_name)}
-                        alt={p.champion_name}
-                        className="w-7 h-7 rounded object-cover"
-                      />
-                      <span className="text-sm">{p.champion_name}</span>
-                      <span className="text-xs text-gray-500">
-                        {p.kills}/{p.deaths}/{p.assists}
-                      </span>
-                    </div>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  <ChampionRow participants={blueSide} sideLabel="Blue" sideColor="text-blue-400" />
+                  <ChampionRow participants={redSide} sideLabel="Red" sideColor="text-red-400" />
                 </div>
               </Link>
             )
