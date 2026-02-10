@@ -37,6 +37,13 @@ CREATE TABLE IF NOT EXISTS team_match_participants (
   vision_wards_bought INTEGER DEFAULT 0,
   wards_placed INTEGER DEFAULT 0,
   wards_killed INTEGER DEFAULT 0,
+  team_side TEXT DEFAULT 'our',
+  item0 INTEGER DEFAULT 0,
+  item1 INTEGER DEFAULT 0,
+  item2 INTEGER DEFAULT 0,
+  item3 INTEGER DEFAULT 0,
+  item4 INTEGER DEFAULT 0,
+  item5 INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -59,6 +66,12 @@ CREATE POLICY "Users can manage their team matches"
 CREATE POLICY "Users can manage their team match participants"
   ON team_match_participants FOR ALL
   USING (
+    match_id IN (
+      SELECT id FROM team_matches
+      WHERE team_id IN (SELECT id FROM teams WHERE user_id = auth.uid())
+    )
+  )
+  WITH CHECK (
     match_id IN (
       SELECT id FROM team_matches
       WHERE team_id IN (SELECT id FROM teams WHERE user_id = auth.uid())

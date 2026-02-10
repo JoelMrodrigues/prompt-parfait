@@ -10,7 +10,8 @@ import {
   FileText, 
   MessageSquare,
   ChevronRight,
-  Gamepad2
+  Gamepad2,
+  Upload
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
@@ -37,6 +38,12 @@ const SIDEBAR_ITEMS = [
     label: 'Matchs',
     icon: Gamepad2,
     path: '/team/matchs',
+  },
+  {
+    id: 'import',
+    label: 'Import',
+    icon: Upload,
+    path: '/team/import',
   },
   {
     id: 'stats',

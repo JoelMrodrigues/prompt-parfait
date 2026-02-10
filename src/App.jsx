@@ -18,6 +18,8 @@ import { JoueursPage } from './pages/team/joueurs/JoueursPage'
 import { PlayerDetailPage } from './pages/team/joueurs/PlayerDetailPage'
 import { TeamStatsPage } from './pages/team/stats/TeamStatsPage'
 import { MatchsPage } from './pages/team/matchs/MatchsPage'
+import { MatchDetailPage } from './pages/team/matchs/MatchDetailPage'
+import { ImportPage } from './pages/team/import/ImportPage'
 import { DraftsPage } from './pages/team/drafts/DraftsPage'
 import { CoachingPage } from './pages/team/coaching/CoachingPage'
 import { Login } from './pages/Login'
@@ -46,7 +48,8 @@ function App() {
               <Route path="joueurs/:playerId" element={<PlayerDetailPage />} />
               <Route path="champion-pool" element={<ChampionPoolPage />} />
               <Route path="matchs" element={<MatchsPage />} />
-              <Route path="import" element={<Navigate to="/team/matchs" replace />} />
+              <Route path="matchs/:matchId" element={<MatchDetailPage />} />
+              <Route path="import" element={<ImportPage />} />
               <Route path="stats" element={<TeamStatsPage />} />
               <Route path="drafts" element={<DraftsPage />} />
               <Route path="coaching" element={<CoachingPage />} />
