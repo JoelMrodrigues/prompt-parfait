@@ -20,11 +20,17 @@ npm run dev
 
 Le serveur écoute sur **http://localhost:3001**.
 
-## Endpoint
+## Endpoints
 
 - **GET /api/dpm?pseudo=...**  
   Exemple : `?pseudo=Marcel%20le%20Zgeg-BACK`  
   Réponse : `{ success, rank, topChampions, scrapedAt }`
+
+- **GET /api/riot/soloq-top-champions?pseudo=...&region=euw1**  
+  Top 5 champions Solo Q **de la saison** (API Riot). Une requête par joueur : le backend fait tous les appels Riot (throttle + cache 15 min).  
+  Exemple : `?pseudo=GameName%23TagLine&region=euw1`  
+  Réponse : `{ success, topChampions: [{ name, games, wins, winrate, kda, ... }], cached? }`  
+  **Variable d'environnement** : `RIOT_API_KEY` (clé API Riot, côté serveur uniquement).
 
 - **GET /health**  
   Health check.
@@ -37,6 +43,9 @@ Le serveur écoute sur **http://localhost:3001**.
    ```env
    VITE_DPM_API_URL=http://localhost:3001
    ```
+
+   Pour le top 5 Solo Q via Riot, ajouter dans `server/.env` (ou env du process) :  
+   `RIOT_API_KEY=votre_cle_riot`
 
 3. Redémarrer le dev Vite. Le bouton « Synchroniser les données » utilisera l’API au lieu des proxies CORS.
 

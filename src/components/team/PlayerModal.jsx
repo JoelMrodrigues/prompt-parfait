@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { fetchSyncRank } from '../../lib/riotSync'
 
 const ROLES = ['TOP', 'JNG', 'MID', 'BOT', 'SUP']
 
@@ -69,34 +70,25 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
     }
   }, [player])
 
-  const handleSyncOpgg = async () => {
-    if (!pseudo || !region) {
-      alert('Veuillez d\'abord entrer un pseudo et une région')
+  const handleSyncRank = async () => {
+    const p = pseudo.trim()
+    if (!p || (!p.includes('#') && !p.includes('/'))) {
+      alert('Pseudo au format GameName#TagLine ou GameName/TagLine requis pour la sync')
       return
     }
-    
     setSyncing(true)
     try {
-      const { fetchDpmData } = await import('../../lib/dpmScraper')
-      const data = await fetchDpmData(pseudo)
-      
-      if (data) {
-        if (data.rank) setRank(data.rank)
-        if (data.topChampions && data.topChampions.length > 0) {
-          setTopChampions(data.topChampions.slice(0, 5))
-        }
-        alert('✅ Données récupérées depuis dpm.lol avec succès!')
-      } else {
-        alert('⚠️ Impossible de récupérer les données depuis dpm.lol. Tu peux les saisir manuellement ci-dessous.')
-      }
-    } catch (error) {
-      console.error('Erreur sync:', error)
-      alert('⚠️ Erreur lors de la récupération depuis dpm.lol. Tu peux saisir les données manuellement ci-dessous.')
+      const { rank: r } = await fetchSyncRank(p)
+      setRank(r || '')
+      if (r) alert('Rank synchronisé: ' + r)
+      else alert('Aucun rank Solo Q trouvé')
+    } catch (err) {
+      alert('Erreur sync: ' + (err.message || 'Erreur inconnue'))
     } finally {
       setSyncing(false)
     }
   }
-  
+
   const handleSubmit = (e) => {
     e.preventDefault()
     
@@ -252,18 +244,17 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
               </div>
               <button
                 type="button"
-                onClick={handleSyncOpgg}
-                disabled={syncing || !pseudo}
+                onClick={handleSyncRank}
+                disabled={syncing || !pseudo || (!pseudo.includes('#') && !pseudo.includes('/'))}
                 className="w-full mt-2 px-4 py-2 bg-accent-blue/20 border border-accent-blue rounded-lg hover:bg-accent-blue/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                title="Synchroniser les données (rank et top champions) depuis dpm.lol"
+                title="Sync rank via API Riot (GameName#TagLine requis)"
               >
                 {syncing ? (
                   <span className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                    Synchronisation...
+                    <span className="animate-spin">⟳</span> Sync rank...
                   </span>
                 ) : (
-                  '🔄 Synchroniser les données'
+                  '⟳ Synchroniser le rank'
                 )}
               </button>
             </div>

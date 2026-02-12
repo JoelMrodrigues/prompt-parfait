@@ -45,8 +45,8 @@ export const PlayerList = ({ players, onEdit, onDelete, onSync }) => {
                   key={player.id}
                   player={player}
                   onEdit={() => onEdit(player)}
-                  onDelete={() => onDelete(player.id)}
-                  onSyncOpgg={() => onSync(player)}
+                  onDelete={() => onDelete(player)}
+                  onSyncOpgg={onSync ? () => onSync(player) : undefined}
                 />
               ))}
               {playersByRole[role].length === 0 && (
@@ -72,8 +72,8 @@ export const PlayerList = ({ players, onEdit, onDelete, onSync }) => {
                   key={player.id}
                   player={player}
                   onEdit={() => onEdit(player)}
-                  onDelete={() => onDelete(player.id)}
-                  onSyncOpgg={() => onSync(player)}
+                  onDelete={() => onDelete(player)}
+                  onSyncOpgg={onSync ? () => onSync(player) : undefined}
                 />
               ))}
               {playersByRole[role].length === 0 && (

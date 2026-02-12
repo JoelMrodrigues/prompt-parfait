@@ -44,8 +44,8 @@ export const PlayerDetailPage = () => {
   const { players = [], updatePlayer, refetch } = useTeam()
   const { syncExistingPlayer } = usePlayerSync()
   const { stats: teamStats, teamTotalsByMatch, loading: teamStatsLoading } = usePlayerTeamStats(playerId)
-  const [syncing, setSyncing] = useState(false)
   const [selectedSection, setSelectedSection] = useState('general')
+  const [syncing, setSyncing] = useState(false)
 
   const player = players.find((p) => p.id === playerId)
 
@@ -57,6 +57,10 @@ export const PlayerDetailPage = () => {
 
   const handleSync = async () => {
     if (!player?.pseudo) return
+    if (!player.pseudo.includes('#') && !player.pseudo.includes('/')) {
+      alert('Pseudo au format GameName#TagLine ou GameName/TagLine requis')
+      return
+    }
     setSyncing(true)
     try {
       const updateData = await syncExistingPlayer(player)
@@ -66,6 +70,7 @@ export const PlayerDetailPage = () => {
       }
     } catch (e) {
       console.error(e)
+      alert('Erreur sync: ' + (e.message || 'Erreur inconnue'))
     } finally {
       setSyncing(false)
     }
@@ -171,7 +176,7 @@ export const PlayerDetailPage = () => {
                     className="px-4 py-2 bg-accent-blue/20 border border-accent-blue rounded-lg flex items-center gap-2 text-sm disabled:opacity-50"
                   >
                     <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-                    Sync
+                    Sync rank
                   </button>
                 </>
               )}

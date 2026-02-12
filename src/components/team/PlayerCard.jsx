@@ -204,12 +204,12 @@ export const PlayerCard = ({ player, onEdit, onDelete, onSyncOpgg, onClick }) =>
               <span>Lol Pro</span>
             </a>
           )}
-          {player.pseudo && (
+          {player.pseudo && onSyncOpgg && (
             <button
               onClick={(e) => { e.stopPropagation(); handleSync() }}
               disabled={syncing}
               className="px-3 py-2 bg-accent-blue/20 border border-accent-blue rounded-lg hover:bg-accent-blue/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Synchroniser les données depuis dpm.lol"
+              title="Synchroniser les données"
             >
               <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
             </button>

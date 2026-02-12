@@ -18,8 +18,7 @@ export const JoueursPage = () => {
     updatePlayer,
     deletePlayer,
   } = useTeam()
-
-  const { syncPlayerData, syncExistingPlayer } = usePlayerSync()
+  const { syncExistingPlayer } = usePlayerSync()
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState(null)
@@ -27,11 +26,10 @@ export const JoueursPage = () => {
 
   const handleSavePlayer = async (playerData) => {
     try {
-      const syncedData = await syncPlayerData(playerData)
       if (editingPlayer) {
-        await updatePlayer(editingPlayer.id, syncedData)
+        await updatePlayer(editingPlayer.id, playerData)
       } else {
-        await createPlayer(syncedData)
+        await createPlayer(playerData)
       }
       setShowPlayerModal(false)
       setEditingPlayer(null)
@@ -53,8 +51,8 @@ export const JoueursPage = () => {
       const updateData = await syncExistingPlayer(player)
       await updatePlayer(player.id, updateData)
     } catch (error) {
-      console.error('Erreur synchronisation:', error)
-      alert(`Erreur lors de la synchronisation: ${error.message}`)
+      console.error('Erreur sync:', error)
+      alert(`Erreur sync: ${error.message}`)
     }
   }
 

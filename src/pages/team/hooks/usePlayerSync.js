@@ -1,55 +1,27 @@
+import { fetchSyncRank } from '../../../lib/riotSync'
+
 /**
- * Hook pour synchroniser les données des joueurs depuis dpm.lol
+ * Sync rank uniquement via API Riot (PUUID + league by-puuid).
+ * Pseudo au format GameName#TagLine ou GameName/TagLine.
  */
-import { fetchDpmData } from '../../../lib/dpmScraper'
-
-export const usePlayerSync = () => {
-  const syncPlayerData = async (playerData) => {
-    // Préserver toutes les données du formulaire (dont secondary_account)
-    let result = { ...playerData }
-    // Si un pseudo est disponible, récupérer depuis dpm.lol
-    if (playerData.pseudo) {
-      try {
-        const dpmData = await fetchDpmData(playerData.pseudo)
-        if (dpmData) {
-          result = {
-            ...result,
-            rank: dpmData.rank || playerData.rank,
-            top_champions: dpmData.topChampions || playerData.top_champions,
-          }
-        }
-      } catch (error) {
-        console.error('Erreur récupération dpm.lol:', error)
-      }
-    }
-    return result
-  }
-
+export function usePlayerSync() {
   const syncExistingPlayer = async (player) => {
-    if (!player.pseudo) {
-      throw new Error('Pseudo requis pour synchroniser')
-    }
-
-    const dpmData = await fetchDpmData(player.pseudo)
-    if (!dpmData) {
-      throw new Error('Impossible de récupérer les données depuis dpm.lol')
-    }
-
-    const updateData = {}
-    
-    if (dpmData.rank) {
-      updateData.rank = dpmData.rank
-    }
-
-    if (dpmData.topChampions && dpmData.topChampions.length > 0) {
-      updateData.top_champions = dpmData.topChampions
-    }
-
-    return updateData
+    const pseudo = (player?.pseudo || '').trim()
+    if (!pseudo) throw new Error('Pseudo du joueur requis')
+    const { rank } = await fetchSyncRank(pseudo)
+    return { rank: rank ?? undefined }
   }
 
-  return {
-    syncPlayerData,
-    syncExistingPlayer,
+  const syncPlayerData = async (playerData) => {
+    const pseudo = (playerData?.pseudo || '').trim()
+    if (!pseudo) return playerData
+    try {
+      const { rank } = await fetchSyncRank(pseudo)
+      return { ...playerData, rank: rank ?? playerData.rank }
+    } catch {
+      return playerData
+    }
   }
+
+  return { syncExistingPlayer, syncPlayerData }
 }

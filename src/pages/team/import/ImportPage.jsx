@@ -20,22 +20,13 @@ export const ImportPage = () => {
   const [successGames, setSuccessGames] = useState(null)
   const fileInputGamesRef = useRef(null)
 
-  // Card 2: Import timeline
+  // Card 2: Import timeline — support multi-fichiers avec détection auto par nom (game_id) ou par ordre
   const [filesTimeline, setFilesTimeline] = useState([])
-  const [importingTimeline, setImportingTimeline] = useState(false)
-  const [parsedTimeline, setParsedTimeline] = useState(null)
-  const [timelineDemo, setTimelineDemo] = useState(null)
-  const [timelineMatchId, setTimelineMatchId] = useState('')
+  const [parsedTimelines, setParsedTimelines] = useState([]) // [{ file, parsed, demo, gameId, matchId, matchBy }]
+  const [timelineMatchId, setTimelineMatchId] = useState('') // pour le mode 1 seul fichier
   const [savingTimeline, setSavingTimeline] = useState(false)
   const [timelineSaveMsg, setTimelineSaveMsg] = useState(null)
   const fileInputTimelineRef = useRef(null)
-
-  // TEST UNIQUEMENT : timeline13 = timeline de la game 1 (premier match) pour valider le format
-  useEffect(() => {
-    if (timelineDemo?.gameId === '13' && matches?.length > 0 && !timelineMatchId) {
-      setTimelineMatchId(matches[0].id)
-    }
-  }, [timelineDemo?.gameId, matches, timelineMatchId])
 
   const handleFileChangeGames = (e) => {
     const items = Array.from(e.target?.files || [])
@@ -97,23 +88,59 @@ export const ImportPage = () => {
     }
   }
 
+  /** Parse un fichier timeline et retourne { parsed, demo, gameId } */
+  async function parseOneTimelineFile(file) {
+    if (!file) return null
+    try {
+      const text = await file.text()
+      const parsed = parseTimeline(text, { filename: file.name })
+      if (!parsed) return null
+      const demo = getTimelineDemoSummary(parsed)
+      const gameId = demo?.gameId != null ? String(demo.gameId) : null
+      return { parsed, demo, gameId }
+    } catch {
+      return null
+    }
+  }
+
+  /** Associe chaque timeline à un match : d'abord par game_id (nom/JSON), sinon par ordre (1er fichier = 1er match, etc.) */
+  function resolveTimelineMatches(items, matchesList) {
+    if (!items.length || !matchesList?.length) return items
+    return items.map((item, index) => {
+      let matchId = null
+      let matchBy = null
+      if (item.gameId) {
+        const m = matchesList.find((m) => String(m.game_id) === String(item.gameId))
+        if (m) {
+          matchId = m.id
+          matchBy = 'nom'
+        }
+      }
+      if (!matchId && index < matchesList.length) {
+        matchId = matchesList[index].id
+        matchBy = 'ordre'
+      }
+      return { ...item, matchId, matchBy }
+    })
+  }
+
   const handleFileChangeTimeline = (e) => {
     const items = Array.from(e.target?.files || [])
     if (items.length > 0) {
       setFilesTimeline(items)
       setTimelineSaveMsg(null)
-      parseFirstTimelineFile(items[0]).then((result) => {
-        if (result) {
-          setParsedTimeline(result.parsed)
-          setTimelineDemo(result.demo)
-        } else {
-          setParsedTimeline(null)
-          setTimelineDemo(null)
-        }
+      Promise.all(items.map((f) => parseOneTimelineFile(f))).then((results) => {
+        const withFile = results
+          .map((r, i) => (r ? { file: items[i], ...r } : null))
+          .filter(Boolean)
+        const resolved = resolveTimelineMatches(withFile, matches)
+        setParsedTimelines(resolved)
+        if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
+        else if (resolved.length === 1) setTimelineMatchId('')
       })
     } else {
-      setParsedTimeline(null)
-      setTimelineDemo(null)
+      setParsedTimelines([])
+      setTimelineMatchId('')
     }
     e.target.value = ''
   }
@@ -124,44 +151,69 @@ export const ImportPage = () => {
     if (items.length > 0) {
       setFilesTimeline(items)
       setTimelineSaveMsg(null)
-      parseFirstTimelineFile(items[0]).then((result) => {
-        if (result) {
-          setParsedTimeline(result.parsed)
-          setTimelineDemo(result.demo)
-        } else {
-          setParsedTimeline(null)
-          setTimelineDemo(null)
-        }
+      Promise.all(items.map((f) => parseOneTimelineFile(f))).then((results) => {
+        const withFile = results
+          .map((r, i) => (r ? { file: items[i], ...r } : null))
+          .filter(Boolean)
+        const resolved = resolveTimelineMatches(withFile, matches)
+        setParsedTimelines(resolved)
+        if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
+        else if (resolved.length === 1) setTimelineMatchId('')
       })
     } else {
-      setParsedTimeline(null)
-      setTimelineDemo(null)
+      setParsedTimelines([])
+      setTimelineMatchId('')
     }
-  }, [])
+  }, [matches])
 
-  async function parseFirstTimelineFile(file) {
-    if (!file) return null
-    try {
-      const text = await file.text()
-      const parsed = parseTimeline(text, { filename: file.name })
-      if (!parsed) return null
-      return { parsed, demo: getTimelineDemoSummary(parsed) }
-    } catch {
-      return null
-    }
-  }
+  // Re-résoudre les matchs quand la liste des matchs change (ex. après import de parties)
+  useEffect(() => {
+    if (parsedTimelines.length === 0 || !matches?.length) return
+    const resolved = resolveTimelineMatches(
+      parsedTimelines.map(({ file, parsed, demo, gameId }) => ({ file, parsed, demo, gameId })),
+      matches
+    )
+    setParsedTimelines(resolved)
+    if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
+  }, [matches?.length])
 
   const handleSaveTimelineForMatch = async () => {
-    if (!parsedTimeline || !timelineMatchId) return
+    const single = parsedTimelines[0]
+    if (!single?.parsed || !timelineMatchId) return
     setSavingTimeline(true)
     setTimelineSaveMsg(null)
     try {
-      const snapshot = getSnapshotsAtMinutes(parsedTimeline, [5, 10, 15, 20, 25])
+      const snapshot = getSnapshotsAtMinutes(single.parsed, [5, 10, 15, 20, 25])
       const { error } = await supabase
         .from('team_match_timeline')
         .upsert({ match_id: timelineMatchId, snapshot }, { onConflict: 'match_id' })
       if (error) throw error
       setTimelineSaveMsg({ ok: true, text: 'Timeline enregistrée pour ce match. Consultez l’onglet "Stats timeline" sur la page du match.' })
+      refetchMatches()
+    } catch (e) {
+      setTimelineSaveMsg({ ok: false, text: e.message || 'Erreur lors de l’enregistrement.' })
+    } finally {
+      setSavingTimeline(false)
+    }
+  }
+
+  const handleSaveAllTimelines = async () => {
+    const toSave = parsedTimelines.filter((t) => t.matchId)
+    if (toSave.length === 0) return
+    setSavingTimeline(true)
+    setTimelineSaveMsg(null)
+    try {
+      for (const t of toSave) {
+        const snapshot = getSnapshotsAtMinutes(t.parsed, [5, 10, 15, 20, 25])
+        const { error } = await supabase
+          .from('team_match_timeline')
+          .upsert({ match_id: t.matchId, snapshot }, { onConflict: 'match_id' })
+        if (error) throw error
+      }
+      setTimelineSaveMsg({
+        ok: true,
+        text: `${toSave.length} timeline(s) enregistrée(s) pour les matchs correspondants.`,
+      })
       refetchMatches()
     } catch (e) {
       setTimelineSaveMsg({ ok: false, text: e.message || 'Erreur lors de l’enregistrement.' })
@@ -306,63 +358,97 @@ export const ImportPage = () => {
               </div>
             )}
           </div>
-          {timelineDemo ? (
+          {parsedTimelines.length > 0 ? (
             <div className="rounded-lg border border-dark-border bg-dark-bg/50 p-4 text-sm space-y-4">
-              <h4 className="font-semibold text-purple-300">Démo — Stats extraites de la timeline</h4>
-              {timelineDemo.gameId != null && (
+              <h4 className="font-semibold text-purple-300">
+                {parsedTimelines.length === 1 ? 'Démo — Stats extraites de la timeline' : `${parsedTimelines.length} timelines — association automatique`}
+              </h4>
+              {parsedTimelines.length > 1 && (
+                <>
+                  <p className="text-gray-400 text-xs">Chaque fichier associé par nom (ex. timeline1.txt → Game #1) ou par ordre (1er fichier = match le plus récent).</p>
+                  <ul className="space-y-2">
+                    {parsedTimelines.map((t, i) => {
+                      const m = t.matchId && matches.find((x) => x.id === t.matchId)
+                      return (
+                        <li key={i} className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-gray-300">{t.file.name}</span>
+                          <span className="text-gray-500">→</span>
+                          {m ? (
+                            <span className="text-purple-200">Game #{m.game_id} {m.our_win ? '(V)' : '(D)'}
+                              <span className="text-gray-500 text-xs ml-1">({t.matchBy === 'nom' ? 'nom' : 'ordre'})</span>
+                            </span>
+                          ) : (
+                            <span className="text-amber-400 text-xs">Aucun match</span>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={handleSaveAllTimelines}
+                    disabled={savingTimeline || parsedTimelines.every((t) => !t.matchId)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {savingTimeline ? 'Enregistrement…' : `Enregistrer les ${parsedTimelines.filter((t) => t.matchId).length} timeline(s)`}
+                  </button>
+                </>
+              )}
+              {parsedTimelines.length === 1 && parsedTimelines[0].demo?.gameId != null && (
                 <p className="text-purple-200/90">
-                  <span className="text-gray-500">Game ID associé :</span> <code className="bg-dark-card px-1.5 py-0.5 rounded">{timelineDemo.gameId}</code>
-                  {typeof timelineDemo.gameId === 'string' && timelineDemo.gameId.match(/^\d+$/) && (
+                  <span className="text-gray-500">Game ID associé :</span> <code className="bg-dark-card px-1.5 py-0.5 rounded">{parsedTimelines[0]?.demo?.gameId}</code>
+                  {typeof parsedTimelines[0]?.demo?.gameId === 'string' && parsedTimelines[0].demo.gameId.match(/^\d+$/) && (
                     <span className="text-gray-500 text-xs ml-2">(détecté depuis le nom du fichier)</span>
                   )}
                 </p>
               )}
-              {timelineDemo.gameId === '13' && (
+              {parsedTimelines[0]?.demo?.gameId === '13' && (
                 <p className="text-amber-200/80 text-xs">Mode test : timeline13 = timeline de la game 1 (premier match). Le match est présélectionné pour valider le format.</p>
               )}
-              {timelineDemo.gameId != null && timelineDemo.gameId !== '13' && (
+              {parsedTimelines[0]?.demo?.gameId != null && parsedTimelines[0].demo.gameId !== '13' && (
                 <p className="text-gray-500 text-xs">Associer au match correspondant dans la liste ci-dessous.</p>
               )}
-              {timelineDemo.gameId == null && (
+              {parsedTimelines[0]?.demo?.gameId == null && (
                 <p className="text-amber-200/80 text-xs">Aucun game ID dans le JSON. Renommer le fichier avec l’ID (ex. timeline_7704801020.txt) pour lier la timeline à un match.</p>
               )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-gray-300">
-                <div><span className="text-gray-500">Durée</span><br />{timelineDemo.duree}</div>
-                <div><span className="text-gray-500">Frames</span><br />{timelineDemo.frames}</div>
-                <div><span className="text-gray-500">Événements</span><br />{timelineDemo.evenements}</div>
-                <div><span className="text-gray-500">Kills</span><br />{timelineDemo.kills}</div>
-                <div><span className="text-gray-500">Dragons</span><br />{timelineDemo.dragons} ({timelineDemo.typesDragons})</div>
-                <div><span className="text-gray-500">Baron</span><br />{timelineDemo.baron}</div>
-                <div><span className="text-gray-500">Heralds</span><br />{timelineDemo.heralds}</div>
-                <div><span className="text-gray-500">Tours</span><br />{timelineDemo.tours}</div>
-                <div><span className="text-gray-500">Inhibiteurs</span><br />{timelineDemo.inhibs}</div>
+                <div><span className="text-gray-500">Durée</span><br />{parsedTimelines[0]?.demo?.duree}</div>
+                <div><span className="text-gray-500">Frames</span><br />{parsedTimelines[0]?.demo?.frames}</div>
+                <div><span className="text-gray-500">Événements</span><br />{parsedTimelines[0]?.demo?.evenements}</div>
+                <div><span className="text-gray-500">Kills</span><br />{parsedTimelines[0]?.demo?.kills}</div>
+                <div><span className="text-gray-500">Dragons</span><br />{parsedTimelines[0]?.demo?.dragons} ({parsedTimelines[0]?.demo?.typesDragons})</div>
+                <div><span className="text-gray-500">Baron</span><br />{parsedTimelines[0]?.demo?.baron}</div>
+                <div><span className="text-gray-500">Heralds</span><br />{parsedTimelines[0]?.demo?.heralds}</div>
+                <div><span className="text-gray-500">Tours</span><br />{parsedTimelines[0]?.demo?.tours}</div>
+                <div><span className="text-gray-500">Inhibiteurs</span><br />{parsedTimelines[0]?.demo?.inhibs}</div>
               </div>
               <div>
                 <p className="text-gray-500 mb-1">Kills par joueur (participantId)</p>
-                <pre className="bg-dark-card p-2 rounded text-xs overflow-x-auto">{JSON.stringify(timelineDemo.killsParJoueur, null, 0)}</pre>
+                <pre className="bg-dark-card p-2 rounded text-xs overflow-x-auto">{JSON.stringify(parsedTimelines[0]?.demo?.killsParJoueur, null, 0)}</pre>
               </div>
-              {timelineDemo.objectifsDragons?.length > 0 && (
+              {parsedTimelines[0]?.demo?.objectifsDragons?.length > 0 && (
                 <div>
                   <p className="text-gray-500 mb-1">Objectifs dragons (ordre chrono)</p>
                   <ul className="list-disc list-inside text-gray-400">
-                    {timelineDemo.objectifsDragons.map((d, i) => (
+                    {parsedTimelines[0]?.demo?.objectifsDragons.map((d, i) => (
                       <li key={i}>{d.label} à {d.timeMin} min (joueur {d.killerId})</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {timelineDemo.toursDetruites?.length > 0 && (
+              {parsedTimelines[0]?.demo?.toursDetruites?.length > 0 && (
                 <div>
                   <p className="text-gray-500 mb-1">Tours détruites</p>
                   <ul className="list-disc list-inside text-gray-400">
-                    {timelineDemo.toursDetruites.map((t, i) => (
+                    {parsedTimelines[0]?.demo?.toursDetruites.map((t, i) => (
                       <li key={i}>{t.label} à {t.timeMin} min (équipe {t.teamId} perd la tour)</li>
                     ))}
                   </ul>
                 </div>
               )}
+              {parsedTimelines.length === 1 && (
               <div className="border-t border-dark-border pt-4 mt-4">
-                <p className="text-gray-500 text-sm mb-2">Associer cette timeline à un match (pour afficher les stats à 5/10/15/20/25 min sur la page du match) :</p>
+                <p className="text-gray-500 text-sm mb-2">Associer cette timeline à un match :</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
                     value={timelineMatchId}
@@ -385,12 +471,13 @@ export const ImportPage = () => {
                     {savingTimeline ? 'Enregistrement…' : 'Enregistrer la timeline pour ce match'}
                   </button>
                 </div>
-                {timelineSaveMsg && (
-                  <p className={`mt-2 text-sm ${timelineSaveMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
-                    {timelineSaveMsg.text}
-                  </p>
-                )}
               </div>
+              )}
+              {timelineSaveMsg && (
+                <p className={`mt-2 text-sm ${timelineSaveMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {timelineSaveMsg.text}
+                </p>
+              )}
               <p className="text-gray-500 text-xs border-t border-dark-border pt-2 mt-4">
                 Ce qu’on peut en faire : courbes or/XP par équipe, timeline des objectifs, kills/morts/assists par participant, CS/jungle par frame, position (heatmap).
               </p>
