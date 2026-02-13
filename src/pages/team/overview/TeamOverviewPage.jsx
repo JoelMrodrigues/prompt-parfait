@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { Plus, UserPlus, Copy, Check } from 'lucide-react'
 import { useTeam } from '../../../hooks/useTeam'
 import { usePlayerSync } from '../hooks/usePlayerSync'
 import { TeamForm } from '../components/TeamForm'
@@ -21,10 +21,15 @@ export const TeamOverviewPage = () => {
     createPlayer,
     updatePlayer,
     deletePlayer,
+    getInviteLink,
+    isTeamOwner,
   } = useTeam()
   const { syncExistingPlayer } = usePlayerSync()
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
+  const [inviteLink, setInviteLink] = useState(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
+  const [inviteLoading, setInviteLoading] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
@@ -78,12 +83,70 @@ export const TeamOverviewPage = () => {
     )
   }
 
+  const handleInviteClick = async () => {
+    setInviteLoading(true)
+    setInviteLink(null)
+    try {
+      const link = await getInviteLink()
+      setInviteLink(link)
+    } catch (e) {
+      console.error(e)
+      alert('Impossible de générer le lien')
+    } finally {
+      setInviteLoading(false)
+    }
+  }
+
+  const handleCopyInviteLink = async () => {
+    if (!inviteLink) return
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      setInviteCopied(true)
+      setTimeout(() => setInviteCopied(false), 2000)
+    } catch {
+      alert('Copie impossible')
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="font-display text-3xl font-bold mb-2">Vue d'ensemble</h2>
-        <p className="text-gray-400">Gérez votre équipe et vos joueurs</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl font-bold mb-2">Vue d'ensemble</h2>
+          <p className="text-gray-400">Gérez votre équipe et vos joueurs</p>
+        </div>
+        {team && isTeamOwner && (
+          <div className="flex flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={handleInviteClick}
+              disabled={inviteLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-dark-card border border-dark-border rounded-lg hover:border-accent-blue hover:text-accent-blue transition-colors disabled:opacity-50"
+            >
+              <UserPlus size={20} />
+              {inviteLoading ? 'Génération…' : 'Inviter à rejoindre l\'équipe'}
+            </button>
+            {inviteLink && (
+              <div className="flex items-center gap-2 w-full max-w-md">
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteLink}
+                  className="flex-1 px-3 py-2 bg-dark-card border border-dark-border rounded-lg text-sm text-gray-300"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyInviteLink}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-accent-blue/20 border border-accent-blue rounded-lg text-accent-blue hover:bg-accent-blue/30 transition-colors"
+                >
+                  {inviteCopied ? <Check size={18} /> : <Copy size={18} />}
+                  {inviteCopied ? 'Copié !' : 'Copier'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Team Form (si pas d'équipe) */}

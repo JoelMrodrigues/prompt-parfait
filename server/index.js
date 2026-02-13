@@ -66,7 +66,11 @@ loadServerEnv()
 const app = express()
 const PORT = process.env.PORT || 3001
 
-app.use(cors())
+// CORS : en production (FRONTEND_URL défini), limiter aux origines autorisées
+const corsOptions = process.env.FRONTEND_URL
+  ? { origin: process.env.FRONTEND_URL.split(',').map((u) => u.trim()), credentials: true }
+  : {}
+app.use(cors(corsOptions))
 app.use(express.json())
 
 const SOLOQ_CACHE_TTL_MS = 15 * 60 * 1000
@@ -351,6 +355,121 @@ app.get('/api/riot/sync-rank', async (req, res) => {
 })
 
 /**
+ * GET /api/riot/sync-rank-and-matches?pseudo=GameName%23TagLine
+ * Sync rank + récupère les 20 dernières games ranked (pour les sauvegarder en base).
+ * Retourne { success, rank, matches: [{ matchId, championName, win, kills, deaths, assists, gameDuration, gameCreation }] }
+ */
+const SYNC_MATCHES_LIMIT = 20
+const SYNC_MATCH_DELAY_MS = 150
+// Début saison 16 LoL : 8 janvier 2026 00:00 UTC
+const SEASON_16_START_SEC = 1767830400
+const SEASON_16_START_MS = 1767830400000
+
+app.get('/api/riot/sync-rank-and-matches', async (req, res) => {
+  const pseudo = (req.query.pseudo || '').trim()
+  if (!pseudo) {
+    return res.status(400).json({
+      success: false,
+      error: 'Paramètre pseudo requis (ex: ?pseudo=GameName%23TagLine)',
+    })
+  }
+  const apiKey = (process.env.RIOT_API_KEY || '').trim().replace(/\r/g, '')
+  if (!apiKey) {
+    return res.status(503).json({
+      success: false,
+      error: 'RIOT_API_KEY non configurée',
+    })
+  }
+  try {
+    const sep = pseudo.includes('#') ? '#' : (pseudo.includes('/') ? '/' : null)
+    const [gameName, tagLine] = sep ? pseudo.split(sep).map((s) => s.trim()) : [pseudo, null]
+    if (!gameName || !tagLine) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pseudo au format GameName#TagLine ou GameName/TagLine requis',
+      })
+    }
+    const accUrl = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?api_key=${apiKey}`
+    const accRes = await axios.get(accUrl, {
+      timeout: 15000,
+      validateStatus: () => true,
+    })
+    if (accRes.status !== 200) {
+      return res.status(accRes.status === 404 ? 404 : 400).json({
+        success: false,
+        error: accRes.data?.status?.message || `Joueur introuvable (${accRes.status})`,
+      })
+    }
+    const puuid = accRes.data?.puuid
+    if (!puuid) {
+      return res.status(400).json({ success: false, error: 'PUUID non trouvé' })
+    }
+
+    const leagueUrl = `https://euw1.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}?api_key=${apiKey}`
+    const idsUrl = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&start=0&count=100&startTime=${SEASON_16_START_SEC}&api_key=${apiKey}`
+
+    const [leagueRes, idsRes] = await Promise.all([
+      axios.get(leagueUrl, { timeout: 15000, validateStatus: () => true }),
+      axios.get(idsUrl, { timeout: 15000, validateStatus: () => true }),
+    ])
+
+    let rank = null
+    if (leagueRes.status === 200) {
+      const entries = leagueRes.data
+      const solo = Array.isArray(entries) ? entries.find((e) => e.queueType === 'RANKED_SOLO_5x5') : null
+      if (solo) {
+        const tier = (solo.tier || '').toLowerCase().replace(/^./, (c) => c.toUpperCase())
+        const lp = solo.leaguePoints ?? 0
+        const r = solo.rank || ''
+        rank = ['Master', 'Grandmaster', 'Challenger'].includes(tier)
+          ? `${tier} ${lp} LP`
+          : r ? `${tier} ${r} ${lp} LP` : `${tier} ${lp} LP`
+      }
+    }
+
+    const fullIds = idsRes.status === 200 && Array.isArray(idsRes.data) ? idsRes.data : []
+    const totalMatchIds = fullIds.length
+    const idsToFetch = fullIds.slice(0, SYNC_MATCHES_LIMIT)
+    const matches = []
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    for (const matchId of idsToFetch) {
+      await sleep(SYNC_MATCH_DELAY_MS)
+      try {
+        const matchUrl = `https://europe.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}?api_key=${apiKey}`
+        const matchRes = await axios.get(matchUrl, { timeout: 15000, validateStatus: () => true })
+        if (matchRes.status !== 200 || !matchRes.data?.info) continue
+        const info = matchRes.data.info
+        const gameCreation = info.gameCreation ?? 0
+        if (gameCreation < SEASON_16_START_MS) continue
+        const participant = info.participants?.find((p) => p.puuid === puuid)
+        if (!participant) continue
+        matches.push({
+          matchId,
+          championId: participant.championId,
+          championName: participant.championName || participant.championId,
+          win: !!participant.win,
+          kills: participant.kills ?? 0,
+          deaths: participant.deaths ?? 0,
+          assists: participant.assists ?? 0,
+          gameDuration: info.gameDuration ?? 0,
+          gameCreation,
+        })
+      } catch (e) {
+        console.warn('sync-rank-and-matches match fetch failed:', matchId, e.message)
+      }
+    }
+
+    res.json({ success: true, rank, matches, totalMatchIds })
+  } catch (err) {
+    console.error('sync-rank-and-matches error:', err.message)
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Erreur serveur',
+    })
+  }
+})
+
+/**
  * GET /api/riot/player-stats?pseudo=...&region=euw1
  * Rank + top 5 champions Solo Q via Riot uniquement (pas dpm.lol).
  * Même format que /api/dpm : { success, rank, topChampions } pour le sync joueur.
@@ -424,6 +543,112 @@ app.get('/api/riot/player-stats', async (req, res) => {
 })
 
 /**
+ * GET /api/riot/match-history?pseudo=GameName%23TagLine&start=0&limit=20
+ * Récupère une plage de games ranked (start = offset, limit = nombre). Permet de charger au-delà de 100
+ * (ex. start=100&limit=20 pour les games 101-120). Retourne { success, matches, hasMore }.
+ */
+const MATCH_HISTORY_LIMIT = 20
+const MATCH_DETAIL_DELAY_MS = 150
+
+app.get('/api/riot/match-history', async (req, res) => {
+  const pseudo = (req.query.pseudo || '').trim()
+  const start = Math.max(0, parseInt(req.query.start, 10) || 0)
+  const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || MATCH_HISTORY_LIMIT), 100)
+  if (!pseudo) {
+    return res.status(400).json({
+      success: false,
+      error: 'Paramètre pseudo requis (ex: ?pseudo=GameName%23TagLine)',
+    })
+  }
+  const apiKey = (process.env.RIOT_API_KEY || '').trim().replace(/\r/g, '')
+  if (!apiKey) {
+    return res.status(503).json({
+      success: false,
+      error: 'RIOT_API_KEY non configurée',
+    })
+  }
+  try {
+    const sep = pseudo.includes('#') ? '#' : (pseudo.includes('/') ? '/' : null)
+    const [gameName, tagLine] = sep ? pseudo.split(sep).map((s) => s.trim()) : [pseudo, null]
+    if (!gameName || !tagLine) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pseudo au format GameName#TagLine ou GameName/TagLine requis',
+      })
+    }
+    const accUrl = `https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?api_key=${apiKey}`
+    const accRes = await axios.get(accUrl, {
+      timeout: 15000,
+      validateStatus: () => true,
+    })
+    if (accRes.status !== 200) {
+      return res.status(accRes.status === 404 ? 404 : 400).json({
+        success: false,
+        error: accRes.data?.status?.message || `Joueur introuvable (${accRes.status})`,
+      })
+    }
+    const puuid = accRes.data?.puuid
+    if (!puuid) {
+      return res.status(400).json({ success: false, error: 'PUUID non trouvé' })
+    }
+
+    const idsUrl = `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&start=${start}&count=${limit}&startTime=${SEASON_16_START_SEC}&api_key=${apiKey}`
+    const idsRes = await axios.get(idsUrl, {
+      timeout: 15000,
+      validateStatus: () => true,
+    })
+    if (idsRes.status !== 200) {
+      return res.status(idsRes.status >= 500 ? 500 : 400).json({
+        success: false,
+        error: idsRes.data?.status?.message || `Erreur Match IDs (${idsRes.status})`,
+      })
+    }
+    const matchIds = Array.isArray(idsRes.data) ? idsRes.data : []
+    const hasMore = matchIds.length === limit
+
+    const matches = []
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+    for (const matchId of matchIds) {
+      await sleep(MATCH_DETAIL_DELAY_MS)
+      try {
+        const matchUrl = `https://europe.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}?api_key=${apiKey}`
+        const matchRes = await axios.get(matchUrl, {
+          timeout: 15000,
+          validateStatus: () => true,
+        })
+        if (matchRes.status !== 200 || !matchRes.data?.info) continue
+        const info = matchRes.data.info
+        const gameCreation = info.gameCreation ?? 0
+        if (gameCreation < SEASON_16_START_MS) continue
+        const participant = info.participants?.find((p) => p.puuid === puuid)
+        if (!participant) continue
+        matches.push({
+          matchId,
+          championId: participant.championId,
+          championName: participant.championName || participant.championId,
+          win: !!participant.win,
+          kills: participant.kills ?? 0,
+          deaths: participant.deaths ?? 0,
+          assists: participant.assists ?? 0,
+          gameDuration: info.gameDuration ?? 0,
+          gameCreation,
+        })
+      } catch (e) {
+        console.warn('match-history match fetch failed:', matchId, e.message)
+      }
+    }
+
+    res.json({ success: true, matches, hasMore })
+  } catch (err) {
+    console.error('match-history error:', err.message)
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Erreur serveur',
+    })
+  }
+})
+
+/**
  * GET /health
  */
 app.get('/health', (req, res) => {
@@ -466,5 +691,7 @@ app.listen(PORT, async () => {
   console.log(`   GET /api/dpm?pseudo=...  → rank + champions (dpm.lol, peut 403)`)
   console.log(`   GET /api/riot/player-stats?pseudo=...&region=euw1  → rank + top 5 Solo Q (Riot)`)
   console.log(`   GET /api/riot/soloq-top-champions?pseudo=...&region=euw1  → top 5 Solo Q saison`)
+  console.log(`   GET /api/riot/match-history?pseudo=...  → historique ranked Solo Q (cache mémoire)`)
+  console.log(`   GET /api/riot/sync-rank-and-matches?pseudo=...  → rang + 20 dernières games (pour sauvegarde Supabase)`)
   console.log(`   GET /health\n`)
 })

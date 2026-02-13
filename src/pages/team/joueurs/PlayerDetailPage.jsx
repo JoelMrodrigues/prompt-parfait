@@ -12,7 +12,27 @@ import { TierTable } from '../champion-pool/components/TierTable'
 import { PlayerDetailSidebar } from './components/PlayerDetailSidebar'
 import { PlayerTeamStatsSection } from './components/PlayerTeamStatsSection'
 import { usePlayerTeamStats } from '../hooks/usePlayerTeamStats'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { supabase } from '../../../lib/supabase'
+
+const getBackendUrl = () => (import.meta.env.VITE_DPM_API_URL || 'http://localhost:3001').replace(/\/$/, '')
+const PAGE_SIZE = 20
+// Début saison 16 LoL : 8 janvier 2026 00:00 UTC (millisecondes)
+const SEASON_16_START_MS = 1767830400000
+
+function rowToMatch(row) {
+  return {
+    matchId: row.riot_match_id,
+    championId: row.champion_id,
+    championName: row.champion_name,
+    win: !!row.win,
+    kills: row.kills ?? 0,
+    deaths: row.deaths ?? 0,
+    assists: row.assists ?? 0,
+    gameDuration: row.game_duration ?? 0,
+    gameCreation: row.game_creation ?? 0,
+  }
+}
 
 const ROLE_LABELS = {
   TOP: 'Top',
@@ -46,8 +66,235 @@ export const PlayerDetailPage = () => {
   const { stats: teamStats, teamTotalsByMatch, loading: teamStatsLoading } = usePlayerTeamStats(playerId)
   const [selectedSection, setSelectedSection] = useState('general')
   const [syncing, setSyncing] = useState(false)
+  const [matchHistory, setMatchHistory] = useState([])
+  const [matchHistoryLoading, setMatchHistoryLoading] = useState(false)
+  const [matchHistoryHasMore, setMatchHistoryHasMore] = useState(false)
+  const [matchHistoryLoadMoreLoading, setMatchHistoryLoadMoreLoading] = useState(false)
+  const [matchHistoryCountInDb, setMatchHistoryCountInDb] = useState(null)
+  const [loadOlderFromRiotLoading, setLoadOlderFromRiotLoading] = useState(false)
+  const [load20FromRiotLoading, setLoad20FromRiotLoading] = useState(false)
+  const [soloqTopChampionsFromDb, setSoloqTopChampionsFromDb] = useState([])
+  const [soloqTopChampionsLoading, setSoloqTopChampionsLoading] = useState(false)
+  const [selectedSoloqAccount, setSelectedSoloqAccount] = useState(1)
+  const matchHistoryPlayerIdRef = useRef(null)
 
   const player = players.find((p) => p.id === playerId)
+
+  const activeSoloqPseudo = selectedSoloqAccount === 1
+    ? (player?.pseudo ?? '')
+    : (player?.secondary_account ?? '')
+  const soloqAccountSource = selectedSoloqAccount === 1 ? 'primary' : 'secondary'
+
+  const totalFromRiot = selectedSoloqAccount === 1
+    ? (player?.soloq_total_match_ids ?? null)
+    : (player?.soloq_total_match_ids_secondary ?? null)
+  const countInDb = matchHistoryCountInDb
+  const toLoad = (totalFromRiot != null && countInDb != null && totalFromRiot > countInDb)
+    ? totalFromRiot - countInDb
+    : null
+
+  const loadMatchHistoryFromSupabase = async (offset, limit, append) => {
+    if (!player?.id || !supabase) return
+    const loading = offset === 0 ? setMatchHistoryLoading : setMatchHistoryLoadMoreLoading
+    loading(true)
+    try {
+      const query = supabase
+        .from('player_soloq_matches')
+        .select('*', { count: offset === 0 ? 'exact' : undefined })
+        .eq('player_id', player.id)
+        .eq('account_source', soloqAccountSource)
+        .gte('game_creation', SEASON_16_START_MS)
+        .order('game_creation', { ascending: false })
+        .range(offset, offset + limit - 1)
+      const { data: rows, error, count } = await query
+      if (error) throw error
+      if (offset === 0 && count != null) setMatchHistoryCountInDb(count)
+      const matches = (rows || []).map(rowToMatch).filter((m) => (m.gameCreation || 0) >= SEASON_16_START_MS)
+      if (append) {
+        setMatchHistory((prev) => [...prev, ...matches])
+      } else {
+        setMatchHistory(matches)
+        matchHistoryPlayerIdRef.current = `${player.id}:${soloqAccountSource}`
+      }
+      setMatchHistoryHasMore(matches.length === limit)
+    } catch (e) {
+      console.error('loadMatchHistoryFromSupabase', e)
+      if (!append) {
+        setMatchHistory([])
+        setMatchHistoryHasMore(false)
+        setMatchHistoryCountInDb(null)
+      }
+    } finally {
+      setMatchHistoryLoading(false)
+      setMatchHistoryLoadMoreLoading(false)
+    }
+  }
+
+  /** Charger les N games plus anciennes depuis Riot (au-delà de ce qu'on a en base) et les enregistrer */
+  const loadOlderGamesFromRiot = async () => {
+    if (!activeSoloqPseudo?.trim() || (!activeSoloqPseudo.includes('#') && !activeSoloqPseudo.includes('/'))) return
+    const start = countInDb ?? 0
+    const count = Math.min(PAGE_SIZE, toLoad != null && toLoad > 0 ? toLoad : PAGE_SIZE)
+    setLoadOlderFromRiotLoading(true)
+    try {
+      const res = await fetch(
+        `${getBackendUrl()}/api/riot/match-history?pseudo=${encodeURIComponent(activeSoloqPseudo.trim())}&start=${start}&limit=${count}`
+      )
+      const data = await res.json().catch(() => ({}))
+      if (!data.success || !Array.isArray(data.matches)) return
+      const s16Matches = data.matches.filter((m) => (m.gameCreation || 0) >= SEASON_16_START_MS)
+      if (s16Matches.length > 0 && supabase) {
+        const rows = s16Matches.map((m) => ({
+          player_id: player.id,
+          riot_match_id: m.matchId,
+          account_source: soloqAccountSource,
+          champion_id: m.championId ?? null,
+          champion_name: m.championName ?? null,
+          win: !!m.win,
+          kills: m.kills ?? 0,
+          deaths: m.deaths ?? 0,
+          assists: m.assists ?? 0,
+          game_duration: m.gameDuration ?? 0,
+          game_creation: m.gameCreation ?? 0,
+        }))
+        await supabase.from('player_soloq_matches').upsert(rows, {
+          onConflict: 'player_id,riot_match_id',
+        })
+        const s16Matches = data.matches.filter((m) => (m.gameCreation || 0) >= SEASON_16_START_MS)
+        const newCount = (countInDb ?? 0) + rows.length
+        setMatchHistoryCountInDb(newCount)
+        setMatchHistory((prev) => [...prev, ...s16Matches])
+        loadSoloqTopChampionsFromDb()
+        const knownTotal = selectedSoloqAccount === 1
+          ? (player?.soloq_total_match_ids ?? 0)
+          : (player?.soloq_total_match_ids_secondary ?? 0)
+        if (newCount > knownTotal) {
+          try {
+            const field = selectedSoloqAccount === 1 ? 'soloq_total_match_ids' : 'soloq_total_match_ids_secondary'
+            await updatePlayer(player.id, { [field]: newCount })
+            await refetch()
+          } catch (e) {
+            if (e?.code !== 'PGRST204') throw e
+          }
+        }
+      }
+    } catch (e) {
+      console.error('loadOlderGamesFromRiot', e)
+    } finally {
+      setLoadOlderFromRiotLoading(false)
+    }
+  }
+
+  /** Charger les 20 dernières parties depuis Riot (surtout pour compte 2, ou rafraîchir compte 1) */
+  const handleLoad20FromRiot = async () => {
+    if (!activeSoloqPseudo?.trim() || (!activeSoloqPseudo.includes('#') && !activeSoloqPseudo.includes('/'))) {
+      alert('Pseudo au format GameName#TagLine ou GameName/TagLine requis pour ce compte')
+      return
+    }
+    setLoad20FromRiotLoading(true)
+    try {
+      const res = await fetch(
+        `${getBackendUrl()}/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(activeSoloqPseudo.trim())}`
+      )
+      const data = await res.json().catch(() => ({}))
+      if (!data.success) throw new Error(data.error || 'Erreur API')
+      const field = selectedSoloqAccount === 1 ? 'soloq_total_match_ids' : 'soloq_total_match_ids_secondary'
+      if (typeof data.totalMatchIds === 'number') {
+        try {
+          await updatePlayer(player.id, { [field]: data.totalMatchIds })
+          await refetch()
+        } catch (e) {
+          if (e?.code !== 'PGRST204') throw e
+        }
+      }
+      const load20S16 = Array.isArray(data.matches) ? data.matches.filter((m) => (m.gameCreation || 0) >= SEASON_16_START_MS) : []
+      if (load20S16.length > 0 && supabase) {
+        const rows = load20S16.map((m) => ({
+          player_id: player.id,
+          riot_match_id: m.matchId,
+          account_source: soloqAccountSource,
+          champion_id: m.championId ?? null,
+          champion_name: m.championName ?? null,
+          win: !!m.win,
+          kills: m.kills ?? 0,
+          deaths: m.deaths ?? 0,
+          assists: m.assists ?? 0,
+          game_duration: m.gameDuration ?? 0,
+          game_creation: m.gameCreation ?? 0,
+        }))
+        await supabase.from('player_soloq_matches').upsert(rows, {
+          onConflict: 'player_id,riot_match_id',
+        })
+      }
+      matchHistoryPlayerIdRef.current = null
+      await loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
+      await loadSoloqTopChampionsFromDb()
+    } catch (e) {
+      console.error('handleLoad20FromRiot', e)
+      alert('Erreur: ' + (e.message || 'Impossible de charger les parties'))
+    } finally {
+      setLoad20FromRiotLoading(false)
+    }
+  }
+
+  /** Top 5 champions les plus joués + winrate, calculés à partir des games en base */
+  const loadSoloqTopChampionsFromDb = async () => {
+    if (!player?.id || !supabase) return
+    setSoloqTopChampionsLoading(true)
+    try {
+      const { data: rows, error } = await supabase
+        .from('player_soloq_matches')
+        .select('champion_name, win')
+        .eq('player_id', player.id)
+        .eq('account_source', soloqAccountSource)
+        .gte('game_creation', SEASON_16_START_MS)
+      if (error) throw error
+      const byChamp = new Map()
+      for (const row of rows || []) {
+        const name = row.champion_name || 'Unknown'
+        if (!byChamp.has(name)) byChamp.set(name, { games: 0, wins: 0 })
+        const stat = byChamp.get(name)
+        stat.games += 1
+        if (row.win) stat.wins += 1
+      }
+      const list = Array.from(byChamp.entries())
+        .map(([name, s]) => ({
+          name,
+          games: s.games,
+          wins: s.wins,
+          winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
+        }))
+        .sort((a, b) => b.games - a.games)
+        .slice(0, 5)
+      setSoloqTopChampionsFromDb(list)
+    } catch (e) {
+      console.error('loadSoloqTopChampionsFromDb', e)
+      setSoloqTopChampionsFromDb([])
+    } finally {
+      setSoloqTopChampionsLoading(false)
+    }
+  }
+
+  // Réinitialiser l’historique quand on change de joueur
+  useEffect(() => {
+    setMatchHistory([])
+    setMatchHistoryHasMore(false)
+    setMatchHistoryCountInDb(null)
+    setSoloqTopChampionsFromDb([])
+    matchHistoryPlayerIdRef.current = null
+  }, [player?.id, selectedSoloqAccount])
+
+  // Charger les 20 premières games depuis Supabase à l’affichage de l’onglet Solo Q
+  useEffect(() => {
+    if (selectedSection !== 'soloq' || !player?.id) return
+    const refKey = `${player.id}:${soloqAccountSource}`
+    if (matchHistoryPlayerIdRef.current === refKey) {
+      loadSoloqTopChampionsFromDb()
+      return
+    }
+    loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
+    loadSoloqTopChampionsFromDb()
+  }, [selectedSection, player?.id, selectedSoloqAccount])
 
   const generateDpmLink = (pseudo) => {
     if (!pseudo) return ''
@@ -71,6 +318,80 @@ export const PlayerDetailPage = () => {
     } catch (e) {
       console.error(e)
       alert('Erreur sync: ' + (e.message || 'Erreur inconnue'))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  /** Actualiser le rank + charger les 20 dernières games depuis Riot et les sauvegarder dans Supabase */
+  const handleRefreshData = async () => {
+    if (!player?.pseudo || (!player.pseudo.includes('#') && !player.pseudo.includes('/'))) {
+      alert('Pseudo au format GameName#TagLine ou GameName/TagLine requis')
+      return
+    }
+    setSyncing(true)
+    try {
+      const res = await fetch(
+        `${getBackendUrl()}/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(player.pseudo.trim())}`
+      )
+      const data = await res.json().catch(() => ({}))
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur API')
+      }
+      const updates = {}
+      if (data.rank != null) updates.rank = data.rank
+      if (typeof data.totalMatchIds === 'number') updates.soloq_total_match_ids = data.totalMatchIds
+      if (Object.keys(updates).length > 0) {
+        try {
+          await updatePlayer(player.id, updates)
+          await refetch()
+        } catch (err) {
+          if (err?.code === 'PGRST204' && updates.soloq_total_match_ids != null) {
+            const { soloq_total_match_ids: _, ...rest } = updates
+            if (Object.keys(rest).length > 0) {
+              await updatePlayer(player.id, rest)
+              await refetch()
+            }
+          } else {
+            throw err
+          }
+        }
+      }
+      const refreshS16Matches = Array.isArray(data.matches) ? data.matches.filter((m) => (m.gameCreation || 0) >= SEASON_16_START_MS) : []
+      if (refreshS16Matches.length > 0) {
+        if (supabase) {
+          const rows = refreshS16Matches.map((m) => ({
+            player_id: player.id,
+            riot_match_id: m.matchId,
+            account_source: 'primary',
+            champion_id: m.championId ?? null,
+            champion_name: m.championName ?? null,
+            win: !!m.win,
+            kills: m.kills ?? 0,
+            deaths: m.deaths ?? 0,
+            assists: m.assists ?? 0,
+            game_duration: m.gameDuration ?? 0,
+            game_creation: m.gameCreation ?? 0,
+          }))
+          await supabase.from('player_soloq_matches').upsert(rows, {
+            onConflict: 'player_id,riot_match_id',
+          })
+        }
+        if (selectedSection === 'soloq') {
+          if (supabase) {
+            matchHistoryPlayerIdRef.current = null
+            await loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
+            await loadSoloqTopChampionsFromDb()
+          } else {
+            setMatchHistory(refreshS16Matches)
+            setMatchHistoryHasMore(false)
+            matchHistoryPlayerIdRef.current = player.id
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      alert('Erreur actualisation: ' + (e.message || 'Erreur inconnue'))
     } finally {
       setSyncing(false)
     }
@@ -171,12 +492,12 @@ export const PlayerDetailPage = () => {
                     dpm.lol
                   </a>
                   <button
-                    onClick={handleSync}
+                    onClick={handleRefreshData}
                     disabled={syncing}
                     className="px-4 py-2 bg-accent-blue/20 border border-accent-blue rounded-lg flex items-center gap-2 text-sm disabled:opacity-50"
                   >
                     <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-                    Sync rank
+                    Actualiser les données (rang + 20 dernières games)
                   </button>
                 </>
               )}
@@ -196,36 +517,175 @@ export const PlayerDetailPage = () => {
         )
       case 'soloq':
         return (
-          <section>
-            <h2 className="font-display text-lg font-semibold text-white mb-4">
-              Solo Q — Champions les plus joués
-            </h2>
-            {topChampions.length > 0 ? (
-              <div className="flex flex-wrap gap-3">
-                {topChampions.slice(0, 5).map((champ, idx) => {
-                  const name = champ.name || champ
-                  if (!name || typeof name !== 'string') return null
-                  return (
-                    <div key={idx} className="flex flex-col items-center" title={name}>
-                      <div className="w-14 h-14 rounded-lg overflow-hidden border border-dark-border">
-                        <img src={getChampionImage(name)} alt={name} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-xs text-gray-400 mt-1 truncate max-w-[60px]">{name}</span>
-                      {(champ.games || champ.winrate) && (
+          <section className="space-y-8">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setSelectedSoloqAccount(1)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedSoloqAccount === 1
+                    ? 'bg-accent-blue text-white border border-accent-blue'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:border-accent-blue/50 hover:text-white'
+                }`}
+              >
+                Compte 1 · {player.pseudo || '—'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSoloqAccount(2)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedSoloqAccount === 2
+                    ? 'bg-accent-blue text-white border border-accent-blue'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:border-accent-blue/50 hover:text-white'
+                }`}
+              >
+                Compte 2 · {player.secondary_account || '—'}
+              </button>
+            </div>
+            <div>
+              <h2 className="font-display text-lg font-semibold text-white mb-4">
+                Solo Q — Champions les plus joués (saison 16)
+              </h2>
+              <p className="text-gray-500 text-xs mb-3">
+                Calculé à partir des parties enregistrées en base — nombre de games et winrate.
+              </p>
+              {soloqTopChampionsLoading ? (
+                <p className="text-gray-500 text-sm">Chargement…</p>
+              ) : soloqTopChampionsFromDb.length > 0 ? (
+                <div className="flex flex-wrap gap-3">
+                  {soloqTopChampionsFromDb.map((champ, idx) => {
+                    const name = champ.name
+                    if (!name) return null
+                    return (
+                      <div key={`${name}-${idx}`} className="flex flex-col items-center" title={`${name} — ${champ.games} games, ${champ.winrate}% victoires`}>
+                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-dark-border">
+                          <img src={getChampionImage(name)} alt={name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-xs text-gray-400 mt-1 truncate max-w-[60px]">{name}</span>
                         <span className="text-xs text-gray-500">
-                          {champ.games && `${champ.games} pts`}
-                          {champ.games && champ.winrate && ' · '}
-                          {champ.winrate && `${champ.winrate}%`}
+                          {champ.games} game{champ.games > 1 ? 's' : ''} · {champ.winrate}%
                         </span>
-                      )}
-                    </div>
-                  )
-                })}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">Aucune partie enregistrée. Utilisez « Actualiser les données » (onglet Général) pour charger des games.</p>
+              )}
+            </div>
+            <div>
+                <h3 className="font-display text-base font-semibold text-white mb-3">
+                  Historique des parties (Solo Q)
+                </h3>
+                {(totalFromRiot != null || countInDb != null) && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400 mb-2">
+                    {totalFromRiot != null && (
+                      <span>
+                        <span className="text-white font-medium">{totalFromRiot}</span> games jouées (Riot)
+                      </span>
+                    )}
+                    {countInDb != null && (
+                      <span>
+                        <span className="text-white font-medium">{countInDb}</span> enregistrées
+                      </span>
+                    )}
+                    {toLoad != null && toLoad > 0 && (
+                      <span className="text-amber-400">
+                        {toLoad} à charger
+                      </span>
+                    )}
+                  </div>
+                )}
+                {activeSoloqPseudo?.trim() && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={handleLoad20FromRiot}
+                      disabled={load20FromRiotLoading}
+                      className="px-4 py-2 rounded-lg bg-accent-blue/20 border border-accent-blue/50 text-accent-blue text-sm font-medium hover:bg-accent-blue/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {load20FromRiotLoading ? 'Chargement…' : 'Charger 20 parties depuis Riot'}
+                    </button>
+                    {((toLoad != null && toLoad > 0) || (countInDb != null && countInDb >= 100)) && (
+                      <button
+                        type="button"
+                        onClick={loadOlderGamesFromRiot}
+                        disabled={loadOlderFromRiotLoading}
+                        className="px-4 py-2 rounded-lg bg-amber-500/20 border border-amber-500/50 text-amber-400 text-sm font-medium hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {loadOlderFromRiotLoading
+                          ? 'Chargement…'
+                          : toLoad != null && toLoad > 0
+                            ? `Charger ${Math.min(PAGE_SIZE, toLoad)} games plus anciennes depuis Riot`
+                            : 'Charger 20 games encore plus anciennes (au-delà de 100)'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-gray-500 text-xs mb-2">
+                  Données enregistrées en base (saison 16 uniquement). Utilisez le bouton ci-dessus pour charger les 20 dernières parties depuis Riot.
+                </p>
+                {matchHistoryLoading ? (
+                  <p className="text-gray-500 text-sm">Chargement de l’historique…</p>
+                ) : matchHistory.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-dark-border">
+                          <th className="py-2 pr-4">Champion</th>
+                          <th className="py-2 pr-4">K/D/A</th>
+                          <th className="py-2 pr-4">Résultat</th>
+                          <th className="py-2 pr-4">Durée</th>
+                          <th className="py-2">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matchHistory.filter((m) => (m.gameCreation || 0) >= SEASON_16_START_MS).map((m, i) => (
+                          <tr key={m.matchId || i} className="border-b border-dark-border/50">
+                            <td className="py-3 pr-4">
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={getChampionImage(m.championName)}
+                                  alt={m.championName}
+                                  className="w-8 h-8 rounded object-cover"
+                                />
+                                <span>{m.championName}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 pr-4">{m.kills}/{m.deaths}/{m.assists}</td>
+                            <td className="py-3">
+                              <span className={m.win ? 'text-green-400' : 'text-red-400'}>
+                                {m.win ? 'Victoire' : 'Défaite'}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4">{m.gameDuration ? `${Math.round(m.gameDuration / 60)} min` : '—'}</td>
+                            <td className="py-3 text-gray-400">
+                              {m.gameCreation
+                                ? new Date(m.gameCreation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">Aucune partie enregistrée. Cliquez sur « Actualiser les données » (onglet Général).</p>
+                )}
+                {matchHistory.length > 0 && matchHistoryHasMore && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => loadMatchHistoryFromSupabase(matchHistory.length, PAGE_SIZE, true)}
+                      disabled={matchHistoryLoadMoreLoading}
+                      className="px-4 py-2 rounded-lg bg-dark-border hover:bg-dark-border/80 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {matchHistoryLoadMoreLoading ? 'Chargement…' : 'Charger plus (20 parties)'}
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="text-gray-500 text-sm">Aucune donnée. Cliquez sur Sync.</p>
-            )}
-          </section>
+            </section>
         )
       case 'team':
         return (

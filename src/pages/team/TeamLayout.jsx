@@ -12,9 +12,21 @@ export const TeamLayout = () => {
   const navigate = useNavigate()
   const { team, loading } = useTeam()
 
-  // Si pas d'équipe, rediriger vers overview pour en créer une
-  if (!loading && !team && location.pathname !== '/team/overview') {
+  // Si pas d'équipe, rediriger vers overview (sauf page d'invitation)
+  const isJoinPage = location.pathname.startsWith('/team/join/')
+  if (!loading && !team && !isJoinPage && location.pathname !== '/team/overview') {
     navigate('/team/overview', { replace: true })
+  }
+
+  // Page d'invitation : layout minimal sans sidebar
+  if (location.pathname.startsWith('/team/join/')) {
+    return (
+      <div className="min-h-screen bg-dark-bg">
+        <main className="min-h-screen flex items-center justify-center p-6">
+          <Outlet />
+        </main>
+      </div>
+    )
   }
 
   return (

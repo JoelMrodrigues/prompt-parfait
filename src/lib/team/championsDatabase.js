@@ -36,6 +36,7 @@ export const CHAMPIONS_DATABASE = {
   518: "Neeko", 523: "Aphelios", 526: "Rell", 555: "Pyke", 711: "Vex",
   777: "Yone", 799: "Ambessa", 800: "Mel", 804: "Yunara", 875: "Sett",
   876: "Lillia", 887: "Gwen", 888: "Renata Glasc", 895: "Nilah",
+  893: "Aurora",
   897: "K'Sante", 901: "Smolder", 902: "Milio", 904: "Zaahen", 910: "Hwei",
   950: "Naafiri",
 }

@@ -6,6 +6,7 @@ import { Home } from './pages/Home'
 import { Draft } from './pages/draft/DraftPage'
 import { TeamLayout } from './pages/team/TeamLayout'
 import { TeamOverviewPage } from './pages/team/overview/TeamOverviewPage'
+import { TeamJoinPage } from './pages/team/TeamJoinPage'
 import { Stats } from './pages/Stats'
 import { ProChampions } from './pages/stats/ProChampions'
 import { ChampionDetail } from './pages/stats/ChampionDetail'
@@ -45,6 +46,7 @@ function App() {
             <Route path="team" element={isSupabaseConfigured ? <ProtectedRoute><TeamLayout /></ProtectedRoute> : <TeamLayout />}>
               <Route index element={<TeamOverviewPage />} />
               <Route path="overview" element={<TeamOverviewPage />} />
+              <Route path="join/:token" element={<TeamJoinPage />} />
               <Route path="joueurs" element={<JoueursPage />} />
               <Route path="joueurs/:playerId" element={<PlayerDetailPage />} />
               <Route path="champion-pool" element={<ChampionPoolPage />} />

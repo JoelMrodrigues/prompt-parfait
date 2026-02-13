@@ -22,12 +22,12 @@ export const useTeam = () => {
       return
     }
     try {
-      // Récupérer l'équipe de l'utilisateur
-      // Les policies RLS filtrent automatiquement par auth.uid()
-      const { data: teamData, error: teamError } = await supabase
+      // Récupérer l'équipe : celle dont l'utilisateur est propriétaire OU membre invité
+      const { data: teamsData, error: teamError } = await supabase
         .from('teams')
         .select('*')
-        .maybeSingle() // Utiliser maybeSingle() au lieu de single() pour éviter les erreurs si aucune équipe
+        .order('created_at', { ascending: true })
+        .limit(1)
 
       if (teamError && teamError.code !== 'PGRST116') {
         console.error('Erreur récupération équipe:', teamError)
@@ -37,6 +37,7 @@ export const useTeam = () => {
         return
       }
 
+      const teamData = Array.isArray(teamsData) ? teamsData[0] : teamsData
       setTeam(teamData)
 
       if (teamData) {
@@ -180,6 +181,51 @@ export const useTeam = () => {
     await fetchTeam()
   }
 
+  /** Génère ou récupère le lien d'invitation pour rejoindre l'équipe */
+  const getInviteLink = async () => {
+    if (!team?.id || !supabase) return null
+    try {
+      const { data: teamRow } = await supabase
+        .from('teams')
+        .select('invite_token')
+        .eq('id', team.id)
+        .single()
+      let token = teamRow?.invite_token
+      if (!token) {
+        const { data: updated } = await supabase
+          .from('teams')
+          .update({ invite_token: crypto.randomUUID() })
+          .eq('id', team.id)
+          .select('invite_token')
+          .single()
+        token = updated?.invite_token
+      }
+      if (!token) return null
+      return `${window.location.origin}/team/join/${token}`
+    } catch (e) {
+      console.error('getInviteLink', e)
+      return null
+    }
+  }
+
+  /** Rejoindre une équipe via le token d'invitation (appelle la RPC Supabase) */
+  const joinTeamByToken = async (token) => {
+    if (!token || !user || !supabase) return { success: false, error: 'Token ou utilisateur invalide' }
+    try {
+      const { data, error } = await supabase.rpc('join_team_by_token', { p_token: token })
+      if (error) return { success: false, error: error.message }
+      const result = data || {}
+      if (!result.success) return { success: false, error: result.error || 'Lien invalide' }
+      await fetchTeam()
+      return { success: true, teamName: result.team_name }
+    } catch (e) {
+      console.error('joinTeamByToken', e)
+      return { success: false, error: e.message }
+    }
+  }
+
+  const isTeamOwner = team && user && team.user_id === user.id
+
   return {
     team,
     players,
@@ -192,5 +238,8 @@ export const useTeam = () => {
     addChampionToPool,
     removeChampionFromPool,
     refetch: fetchTeam,
+    getInviteLink,
+    joinTeamByToken,
+    isTeamOwner,
   }
 }

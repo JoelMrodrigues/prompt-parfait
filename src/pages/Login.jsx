@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export const Login = () => {
@@ -10,6 +10,8 @@ export const Login = () => {
   const [loading, setLoading] = useState(false)
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,7 +32,7 @@ export const Login = () => {
       if (error) {
         setError(error.message)
       } else {
-        navigate('/')
+        navigate(redirectTo || '/')
       }
     } catch (err) {
       setError('Une erreur est survenue')
