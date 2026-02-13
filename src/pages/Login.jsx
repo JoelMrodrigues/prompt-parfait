@@ -19,10 +19,10 @@ export const Login = () => {
     setLoading(true)
 
     try {
-      // Si l'utilisateur entre "test" comme email, le convertir en "test@test.com"
+      // Format email : "test" → test@test.com, "shayn" → shayn@prompt-parfait.local
       let emailToUse = email.trim()
-      if (emailToUse === 'test') {
-        emailToUse = 'test@test.com'
+      if (!emailToUse.includes('@')) {
+        emailToUse = emailToUse === 'test' ? 'test@test.com' : `${emailToUse}@prompt-parfait.local`
       }
 
       const { error } = isSignUp 

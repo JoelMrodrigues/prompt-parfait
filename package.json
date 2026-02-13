@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "update-s16": "node scripts/update-s16.js",
     "create-test-user": "node scripts/create-test-user.js",
+    "create-team-users": "node scripts/create-team-users.js",
     "test-team-tables": "node scripts/test-team-tables.js"
   },
   "dependencies": {
