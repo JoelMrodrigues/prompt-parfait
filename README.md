@@ -56,7 +56,7 @@ L'app sera disponible sur `http://localhost:5173`
 - 🗄️ [Setup Supabase](SUPABASE_SETUP.md) - Configuration de la base de données
 - 🎮 [Intégration Champions](CHAMPIONS.md) - Ajouter les données de champions
 - 📊 [Import CSV Stats](CSV_STATS.md) - Gérer les statistiques
-- 🏗️ [Structure du projet](PROJECT_STRUCTURE.md) - Architecture complète
+- 🏗️ [Structure du projet](documentation/PROJECT_STRUCTURE.md) - Architecture complète
 
 ## 🛠️ Stack Technique
 

@@ -168,7 +168,7 @@ git push -u origin main
 
 - [ ] Changer le nom/logo dans `Header.jsx`
 - [ ] Modifier les couleurs dans `tailwind.config.js`
-- [ ] Ajouter des features (voir `PROJECT_STRUCTURE.md`)
+- [ ] Ajouter des features (voir [PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md))
 
 ### Optimisations
 
@@ -205,7 +205,7 @@ git push -u origin main
 - [SUPABASE_SETUP.md](SUPABASE_SETUP.md) - Structure BDD complète
 - [CHAMPIONS.md](CHAMPIONS.md) - Intégration des champions
 - [CSV_STATS.md](CSV_STATS.md) - Gestion des statistiques
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Architecture du code
+- [PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md) - Architecture du code
 
 ---
 

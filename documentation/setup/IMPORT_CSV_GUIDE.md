@@ -13,7 +13,7 @@ Importer les gros fichiers CSV (75-105 Mo) dans Supabase pour éviter de charger
 1. Va sur [supabase.com](https://supabase.com)
 2. Ouvre ton projet
 3. Va dans **SQL Editor**
-4. Copie-colle le contenu de `supabase-schema.sql`
+4. Copie-colle le contenu de `supabase/supabase-schema.sql`
 5. Clique sur **Run**
 
 ✅ La table `pro_stats` est créée avec tous les index !

@@ -125,7 +125,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmd
 ### Étape 4.2 : Copier le SQL
 
 1. **RETOURNE DANS CURSOR** (ton éditeur de code)
-2. Ouvre le fichier **`supabase-schema.sql`** (il est à la racine du projet)
+2. Ouvre le fichier **`supabase/supabase-schema.sql`**
 3. **Sélectionne TOUT le contenu** du fichier (Ctrl+A ou Cmd+A)
 4. **Copie** (Ctrl+C ou Cmd+C)
 
@@ -133,7 +133,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmd
 
 1. **RETOURNE SUR SUPABASE** (dans ton navigateur)
 2. Dans le **SQL Editor**, tu vois une **grande zone de texte**
-3. **Colle** le contenu du fichier `supabase-schema.sql` (Ctrl+V ou Cmd+V)
+3. **Colle** le contenu du fichier `supabase/supabase-schema.sql` (Ctrl+V ou Cmd+V)
 4. En bas à droite, clique sur le bouton **"Run"** (ou appuie sur Ctrl+Enter)
 
 ⏳ **Attends 2-3 secondes...**

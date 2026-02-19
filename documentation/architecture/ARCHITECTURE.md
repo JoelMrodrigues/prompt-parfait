@@ -12,7 +12,8 @@
 ├── 📁 scripts/                 ← Script d'import
 ├── 📄 .env                     ← Clés Supabase (à configurer)
 ├── 📄 package.json
-└── 📄 supabase-schema.sql      ← À copier dans Supabase
+└── 📁 supabase/                ← Scripts SQL (schémas, migrations)
+    └── supabase-schema.sql    ← À copier dans Supabase
 ```
 
 **C'est ton code** = Tu l'ouvres dans **Cursor** (ton éditeur)

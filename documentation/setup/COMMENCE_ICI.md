@@ -35,7 +35,7 @@ Ce guide te prend par la main, étape par étape, avec des explications ultra d�
 ### Si tu as déjà utilisé Supabase :
 
 ```bash
-# 1. Crée la table avec supabase-schema.sql
+# 1. Crée la table avec supabase/supabase-schema.sql
 # 2. Configure .env
 VITE_SUPABASE_URL=https://ton-projet.supabase.co
 VITE_SUPABASE_ANON_KEY=ta-clé-anon
@@ -58,7 +58,7 @@ node scripts/import-csv-to-supabase.js
 | **`SUPABASE_GUIDE_COMPLET.md`** | 📘 **Guide ultra détaillé (commence ici !)** |
 | `IMPORT_CSV_GUIDE.md` | Guide technique (pour utilisateurs avancés) |
 | `CSV_SOLUTION.md` | Explication de la solution technique |
-| `supabase-schema.sql` | Schéma SQL de la table |
+| `supabase/supabase-schema.sql` | Schéma SQL de la table |
 | `data/csv/README.md` | Instructions pour placer les CSV |
 
 ---

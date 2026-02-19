@@ -44,7 +44,7 @@ Chaque CSV doit contenir les colonnes de stats professionnelles LoL :
 - champion, position (top/jng/mid/bot/sup)
 - kills, deaths, assists, gold, cs, damage, etc.
 
-Voir `supabase-schema.sql` pour la liste complète des colonnes.
+Voir `supabase/supabase-schema.sql` pour la liste complète des colonnes.
 
 ---
 

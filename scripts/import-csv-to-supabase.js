@@ -220,7 +220,7 @@ async function main() {
   
   // Demander confirmation
   console.log('\n⚠️  ATTENTION: Cette opération va insérer des milliers de lignes dans Supabase.');
-  console.log('   Assurez-vous que la table pro_stats est créée (voir supabase-schema.sql)\n');
+  console.log('   Assurez-vous que la table pro_stats est créée (voir supabase/supabase-schema.sql)\n');
   
   // Import de chaque saison
   for (const [season, filePath] of Object.entries(CSV_FILES)) {

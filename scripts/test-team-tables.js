@@ -35,7 +35,7 @@ async function testTables() {
     if (error) {
       if (error.code === 'PGRST205' || error.message.includes('schema cache')) {
         console.error('❌ La table "teams" n\'existe pas dans Supabase')
-        console.error('   Exécute le fichier supabase-team-schema.sql dans le SQL Editor de Supabase')
+        console.error('   Exécute le fichier supabase/supabase-team-schema.sql dans le SQL Editor de Supabase')
       } else {
         console.error('❌ Erreur:', error.message)
         console.error('   Code:', error.code)
@@ -94,7 +94,7 @@ async function testTables() {
   
   console.log('\n💡 Si les tables n\'existent pas:')
   console.log('   1. Va dans Supabase > SQL Editor')
-  console.log('   2. Copie-colle le contenu de supabase-team-schema.sql')
+  console.log('   2. Copie-colle le contenu de supabase/supabase-team-schema.sql')
   console.log('   3. Exécute le script')
 }
 

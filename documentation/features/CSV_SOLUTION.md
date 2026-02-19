@@ -29,7 +29,7 @@ Site web (100 lignes à la fois)
 
 ## 📁 Fichiers créés
 
-### 1. `supabase-schema.sql`
+### 1. `supabase/supabase-schema.sql`
 Schéma de la table `pro_stats` avec 172 colonnes + index optimisés.
 
 ### 2. `scripts/import-csv-to-supabase.js`
@@ -51,7 +51,7 @@ Guide étape par étape pour l'import.
 
 ### Étape 1 : Créer la table Supabase
 1. Va sur [supabase.com](https://supabase.com)
-2. SQL Editor → Copie `supabase-schema.sql` → Run
+2. SQL Editor → Copie `supabase/supabase-schema.sql` → Run
 
 ### Étape 2 : Préparer les CSV
 ```

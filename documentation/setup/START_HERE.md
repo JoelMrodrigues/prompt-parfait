@@ -85,7 +85,7 @@ http://localhost:5174
 
 ### Pour Comprendre
 - **IMPROVEMENTS.md** - Détails techniques
-- **PROJECT_STRUCTURE.md** - Architecture
+- **[PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md)** - Architecture
 - **STATUS.md** - État du projet
 
 ### Pour Déployer

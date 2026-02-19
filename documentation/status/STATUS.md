@@ -104,7 +104,7 @@ src/
 - `SUPABASE_SETUP.md` - Setup base de données
 - `CHAMPIONS.md` - Intégration des champions
 - `CSV_STATS.md` - Gestion des CSV
-- `PROJECT_STRUCTURE.md` - Architecture détaillée
+- `../PROJECT_STRUCTURE.md` - Architecture détaillée
 - `STATUS.md` - Ce fichier
 
 ---
@@ -258,7 +258,7 @@ Aucun bug critique détecté ! ✅
 - `GETTING_STARTED.md` - ⭐ Démarrage rapide
 - `DEPLOY.md` - Déploiement
 - `SUPABASE_SETUP.md` - Base de données
-- `PROJECT_STRUCTURE.md` - Architecture
+- `../PROJECT_STRUCTURE.md` - Architecture
 
 ### Ressources externes
 - [React Docs](https://react.dev)

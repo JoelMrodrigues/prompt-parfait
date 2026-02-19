@@ -4,6 +4,14 @@ Bienvenue dans la documentation du projet **Prompt Parfait** !
 
 ## 📁 Structure de la documentation
 
+Fichiers déplacés à la racine de `documentation/` (anciennement à la racine du projet) :
+- **PROJECT_STRUCTURE.md** - Structure et architecture du code
+- **DEPLOYMENT.md** - Guide de déploiement (Vercel, API, Supabase)
+- **REFACTORING_PLAN.md** - Plan de refactoring
+- **REFACTORING_STATUS.md** - État du refactoring
+- **TEAM_OVERVIEW_CODE_LOCATION.md** - Vue d’ensemble équipe et emplacement du code
+- **SUMMARY.txt** - Résumé du projet
+
 ### 🚀 [setup/](./setup/)
 Guides de configuration et démarrage du projet :
 - **COMMENCE_ICI.md** - Point de départ pour les nouveaux développeurs
