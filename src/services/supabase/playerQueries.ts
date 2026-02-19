@@ -61,7 +61,7 @@ export async function fetchSoloqChampionStats({
   playerId,
   accountSource,
   seasonStart,
-  minDuration,
+  minDuration = undefined,
 }) {
   let query = supabase
     .from('player_soloq_matches')

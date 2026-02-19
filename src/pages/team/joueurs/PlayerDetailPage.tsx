@@ -1223,8 +1223,8 @@ export const PlayerDetailPage = () => {
                   ))}
                 </div>
                 {teamStatsSubSub === 'general' && (
-                  <PlayerTeamStatsSection playerId={playerId} mode="stats" />
-                )}
+              <PlayerTeamStatsSection playerId={playerId} mode="stats" />
+            )}
                 {teamStatsSubSub === 'timeline' && (
                   <PlayerTimelineAdvantageSection
                     playerId={playerId}

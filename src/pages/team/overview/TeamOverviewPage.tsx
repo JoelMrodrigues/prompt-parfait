@@ -34,6 +34,7 @@ import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { supabase } from '../../../lib/supabase'
 import { getChampionImage } from '../../../lib/championImages'
 import { fetchWeeklyGames } from '../../../lib/riotSync'
+import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
 
 // ── Rank helpers ───────────────────────────────────────────────────────────────
 
@@ -81,16 +82,6 @@ function stripLP(rank: string | null | undefined): string {
 }
 
 // ── Role config ────────────────────────────────────────────────────────────────
-
-const ROLE_CONFIG: Record<string, { label: string; text: string; gradient: string }> = {
-  TOP: { label: 'Top', text: 'text-blue-400', gradient: 'from-blue-600/20 to-transparent' },
-  JNG: { label: 'Jungle', text: 'text-green-400', gradient: 'from-green-600/20 to-transparent' },
-  MID: { label: 'Mid', text: 'text-yellow-400', gradient: 'from-yellow-600/20 to-transparent' },
-  ADC: { label: 'ADC', text: 'text-red-400', gradient: 'from-red-600/20 to-transparent' },
-  SUP: { label: 'Support', text: 'text-purple-400', gradient: 'from-purple-600/20 to-transparent' },
-}
-
-const ROSTER_ROLES = ['TOP', 'JNG', 'MID', 'ADC', 'SUP'] as const
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -452,7 +443,7 @@ export const TeamOverviewPage = () => {
             </div>
 
             {/* Team name + meta */}
-            <div>
+        <div>
               <h1 className="font-display text-3xl font-bold text-white leading-tight">
                 {team.team_name}
               </h1>
@@ -462,30 +453,30 @@ export const TeamOverviewPage = () => {
                 {players.length} joueur{players.length > 1 ? 's' : ''}
               </p>
             </div>
-          </div>
+        </div>
 
           {/* Invite button */}
           {isTeamOwner && (
             <div className="flex flex-col items-end gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleInviteClick}
-                disabled={inviteLoading}
+            <button
+              type="button"
+              onClick={handleInviteClick}
+              disabled={inviteLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue hover:text-accent-blue transition-colors disabled:opacity-50 text-sm"
-              >
+            >
                 <UserPlus size={16} />
                 {inviteLoading ? 'Génération…' : 'Inviter'}
-              </button>
-              {inviteLink && (
+            </button>
+            {inviteLink && (
                 <div className="flex items-center gap-2 max-w-xs">
-                  <input
-                    type="text"
-                    readOnly
-                    value={inviteLink}
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteLink}
                     className="flex-1 min-w-0 px-3 py-1.5 bg-dark-card border border-dark-border rounded-lg text-xs text-gray-300"
-                  />
-                  <button
-                    type="button"
+                />
+                <button
+                  type="button"
                     onClick={async () => {
                       await navigator.clipboard.writeText(inviteLink)
                       setInviteCopied(true)
@@ -495,13 +486,13 @@ export const TeamOverviewPage = () => {
                     className="flex items-center gap-1 px-3 py-1.5 bg-accent-blue/20 border border-accent-blue rounded-lg text-accent-blue text-xs shrink-0"
                   >
                     {inviteCopied ? <Check size={14} /> : <Copy size={14} />}
-                    {inviteCopied ? 'Copié !' : 'Copier'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                  {inviteCopied ? 'Copié !' : 'Copier'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
         {/* ── Stats strip (1 ligne) ── */}
         {teamStats && (
@@ -1095,7 +1086,7 @@ export const TeamOverviewPage = () => {
                 <strong className="text-gray-400">Matchs</strong>.
               </p>
             )}
-          </motion.div>
+        </motion.div>
         </div>
       )}
 
@@ -1124,7 +1115,7 @@ export const TeamOverviewPage = () => {
               Ajouter
             </button>
           )}
-        </div>
+          </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {ROSTER_ROLES.map((role) => {

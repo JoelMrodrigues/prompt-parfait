@@ -1,90 +1,68 @@
 /**
- * Liste des joueurs de l'équipe
+ * Liste des joueurs de l'équipe — grille par rôle ou liste triée
  */
 import { PlayerCard } from './PlayerCard'
+import { ROSTER_ROLES, ROLE_LABELS } from '../constants/roles'
+import { Users } from 'lucide-react'
 
-export const PlayerList = ({ players, onEdit, onDelete, onSync }) => {
-  // Organiser les joueurs par rôle
-  const playersByRole = {
-    TOP: [],
-    JNG: [],
-    MID: [],
-    ADC: [],
-    SUP: [],
-  }
+function normalizeRole(position: string | null | undefined): string {
+  const r = (position || '').toUpperCase()
+  return r === 'BOT' ? 'ADC' : r
+}
 
-  players.forEach((player) => {
-    const role = player.position?.toUpperCase()
-    if (playersByRole[role]) {
-      playersByRole[role].push(player)
-    }
-  })
+export const PlayerList = ({
+  players,
+  onEdit,
+  onDelete,
+}: {
+  players: any[]
+  onEdit: (p: any) => void
+  onDelete: (p: any) => void
+}) => {
+  const byRole = (() => {
+    const map: Record<string, any[]> = { TOP: [], JNG: [], MID: [], ADC: [], SUP: [] }
+    players.forEach((p) => {
+      const role = normalizeRole(p.position)
+      if (map[role]) map[role].push(p)
+    })
+    ROSTER_ROLES.forEach((r) => map[r].sort((a, b) => (a.player_name || '').localeCompare(b.player_name || '')))
+    return map
+  })()
 
-  // Ordre d'affichage des rôles
-  const roleOrder = ['TOP', 'JNG', 'MID', 'ADC', 'SUP']
-  const roleLabels = {
-    TOP: 'Top',
-    JNG: 'Jungle',
-    MID: 'Mid',
-    ADC: 'ADC',
-    SUP: 'Support',
+  if (players.length === 0) {
+    return (
+      <div className="bg-dark-card border border-dark-border rounded-2xl p-12 text-center">
+        <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+        <p className="text-gray-400 mb-2">Aucun joueur</p>
+        <p className="text-gray-600 text-sm">Ajoutez votre premier joueur pour commencer.</p>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-8">
-      {/* Première ligne: TOP, JUNGLE, MID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {['TOP', 'JNG', 'MID'].map((role) => (
-          <div key={role}>
-            <h4 className="text-sm font-semibold text-gray-400 mb-3 uppercase">
-              {roleLabels[role]}
-            </h4>
-            <div className="space-y-4">
-              {playersByRole[role].map((player) => (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  onEdit={() => onEdit(player)}
-                  onDelete={() => onDelete(player)}
-                  onSyncOpgg={onSync ? () => onSync(player) : undefined}
-                />
-              ))}
-              {playersByRole[role].length === 0 && (
-                <div className="text-center text-gray-500 py-8 border border-dashed border-dark-border rounded-lg">
-                  Aucun joueur
-                </div>
-              )}
-            </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      {ROSTER_ROLES.map((role) => (
+        <div key={role}>
+          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            {ROLE_LABELS[role] || role}
+          </h4>
+          <div className="space-y-4">
+            {byRole[role].map((player) => (
+              <PlayerCard
+                key={player.id}
+                player={player}
+                onEdit={() => onEdit(player)}
+                onDelete={() => onDelete(player)}
+              />
+            ))}
+            {byRole[role].length === 0 && (
+              <div className="rounded-xl border border-dashed border-dark-border/50 p-6 text-center">
+                <p className="text-gray-600 text-sm">Aucun joueur</p>
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-
-      {/* Deuxième ligne: ADC et SUP (centrés) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        {['ADC', 'SUP'].map((role) => (
-          <div key={role}>
-            <h4 className="text-sm font-semibold text-gray-400 mb-3 uppercase">
-              {roleLabels[role]}
-            </h4>
-            <div className="space-y-4">
-              {playersByRole[role].map((player) => (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  onEdit={() => onEdit(player)}
-                  onDelete={() => onDelete(player)}
-                  onSyncOpgg={onSync ? () => onSync(player) : undefined}
-                />
-              ))}
-              {playersByRole[role].length === 0 && (
-                <div className="text-center text-gray-500 py-8 border border-dashed border-dark-border rounded-lg">
-                  Aucun joueur
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }
