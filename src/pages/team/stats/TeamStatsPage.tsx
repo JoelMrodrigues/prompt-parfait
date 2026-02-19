@@ -1,6 +1,6 @@
 /**
- * Page Team Stats - Statistiques de l'équipe
- * ALL = stats globales équipe + avantage en fonction du temps. Sinon (joueur sélectionné) = à venir.
+ * Page Team Stats — Statistiques de l'équipe
+ * Sous-menus Team : Général | Timeline | Champions (Plus joués / Stats détaillées)
  */
 import { useState, useMemo } from 'react'
 import { useTeam } from '../hooks/useTeam'
@@ -8,11 +8,10 @@ import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
-import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft } from 'lucide-react'
+import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles } from 'lucide-react'
+import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 
-const STATS_CATEGORY_JOUEURS = 'joueurs'
-const STATS_CATEGORY_COMPOS = 'compos'
-const STATS_CATEGORY_SIDE = 'side'
+// ─── Fonctions utilitaires ────────────────────────────────────────────────────
 
 function teamCsFromParticipants(participants, ourTeamId) {
   if (!participants || typeof participants !== 'object') return null
@@ -28,6 +27,212 @@ function teamCsFromParticipants(participants, ourTeamId) {
   }
   return ourCs - enemyCs
 }
+
+function computeTeamChampionStats(matches: any[]) {
+  const byChamp = new Map<string, any>()
+  for (const m of matches) {
+    const our = (m.team_match_participants || []).filter(
+      (p: any) => p.team_side === 'our' || !p.team_side
+    )
+    for (const p of our) {
+      const name = p.champion_name
+      if (!name) continue
+      if (!byChamp.has(name)) {
+        byChamp.set(name, { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, gold: 0, damage: 0 })
+      }
+      const s = byChamp.get(name)
+      s.games++
+      if (m.our_win) s.wins++
+      s.kills += p.kills ?? 0
+      s.deaths += p.deaths ?? 0
+      s.assists += p.assists ?? 0
+      s.gold += p.gold_earned ?? 0
+      s.damage += p.total_damage_dealt_to_champions ?? 0
+    }
+  }
+  return Array.from(byChamp.entries())
+    .map(([name, s]) => ({
+      name,
+      games: s.games,
+      wins: s.wins,
+      losses: s.games - s.wins,
+      winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
+      avgK: s.games > 0 ? s.kills / s.games : 0,
+      avgD: s.games > 0 ? s.deaths / s.games : 0,
+      avgA: s.games > 0 ? s.assists / s.games : 0,
+      kdaRatio: s.deaths > 0 ? (s.kills + s.assists) / s.deaths : s.kills + s.assists,
+      avgGold: s.games > 0 ? Math.round(s.gold / s.games) : 0,
+      avgDamage: s.games > 0 ? Math.round(s.damage / s.games) : 0,
+    }))
+    .sort((a, b) => b.games - a.games)
+}
+
+function computePlayerChampionStats(playerId: string, matches: any[]) {
+  const byChamp = new Map<string, any>()
+  for (const m of matches) {
+    const our = (m.team_match_participants || []).filter(
+      (p: any) => p.team_side === 'our' || !p.team_side
+    )
+    const p = our.find((x: any) => x.player_id === playerId)
+    if (!p || !p.champion_name) continue
+    const name = p.champion_name
+    if (!byChamp.has(name)) {
+      byChamp.set(name, { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, gold: 0, damage: 0 })
+    }
+    const s = byChamp.get(name)
+    s.games++
+    if (m.our_win) s.wins++
+    s.kills += p.kills ?? 0
+    s.deaths += p.deaths ?? 0
+    s.assists += p.assists ?? 0
+    s.gold += p.gold_earned ?? 0
+    s.damage += p.total_damage_dealt_to_champions ?? 0
+  }
+  return Array.from(byChamp.entries())
+    .map(([name, s]) => ({
+      name,
+      games: s.games,
+      wins: s.wins,
+      losses: s.games - s.wins,
+      winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
+      avgK: s.games > 0 ? s.kills / s.games : 0,
+      avgD: s.games > 0 ? s.deaths / s.games : 0,
+      avgA: s.games > 0 ? s.assists / s.games : 0,
+      kdaRatio: s.deaths > 0 ? (s.kills + s.assists) / s.deaths : s.kills + s.assists,
+      avgGold: s.games > 0 ? Math.round(s.gold / s.games) : 0,
+      avgDamage: s.games > 0 ? Math.round(s.damage / s.games) : 0,
+    }))
+    .sort((a, b) => b.games - a.games)
+}
+
+// ─── Composants champions ─────────────────────────────────────────────────────
+
+function ChampionStatsGrid({ champions }: { champions: any[] }) {
+  const top = champions.slice(0, 12)
+  if (!top.length) {
+    return (
+      <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
+        <p className="text-gray-500 text-sm">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
+      </div>
+    )
+  }
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      {top.map((c) => (
+        <div
+          key={c.name}
+          className="bg-dark-card border border-dark-border rounded-xl p-3 flex flex-col items-center gap-2 hover:border-accent-blue/40 transition-colors"
+        >
+          <div className="relative">
+            <img
+              src={getChampionImage(c.name)}
+              alt={getChampionDisplayName(c.name) || c.name}
+              className="w-14 h-14 rounded-xl object-cover border border-dark-border"
+            />
+            <span
+              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap ${
+                c.winrate >= 50 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+              }`}
+            >
+              {c.winrate}%
+            </span>
+          </div>
+          <p className="text-sm font-medium text-white text-center truncate w-full mt-1">
+            {getChampionDisplayName(c.name) || c.name}
+          </p>
+          <p className="text-xs text-gray-500">{c.games} partie{c.games > 1 ? 's' : ''}</p>
+          <p className="text-xs">
+            <span className="text-emerald-400">{c.wins}V</span>
+            <span className="text-gray-500 mx-1">/</span>
+            <span className="text-rose-400">{c.losses}D</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ChampionStatsDetailTable({ champions }: { champions: any[] }) {
+  if (!champions.length) {
+    return (
+      <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
+        <p className="text-gray-500 text-sm">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-xl border border-dark-border overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-dark-bg/80 text-gray-400 text-left">
+            <th className="px-4 py-3 w-8">#</th>
+            <th className="px-4 py-3">Champion</th>
+            <th className="px-4 py-3 text-center">Joué</th>
+            <th className="px-4 py-3 text-center">KDA</th>
+            <th className="px-4 py-3 text-center hidden md:table-cell">Or moy.</th>
+            <th className="px-4 py-3 text-center hidden lg:table-cell">DMG moy.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {champions.map((c, idx) => (
+            <tr
+              key={c.name}
+              className="border-t border-dark-border/50 hover:bg-dark-bg/40 transition-colors"
+            >
+              <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={getChampionImage(c.name)}
+                    alt=""
+                    className="w-8 h-8 rounded object-cover border border-dark-border shrink-0"
+                  />
+                  <span className="font-medium text-white">
+                    {getChampionDisplayName(c.name) || c.name}
+                  </span>
+                </div>
+              </td>
+              <td className="px-4 py-3 text-center">
+                <span className="text-emerald-400 font-medium">{c.wins}V</span>
+                <span className="text-gray-500 mx-1">/</span>
+                <span className="text-rose-400 font-medium">{c.losses}D</span>
+                <span
+                  className={`ml-1 text-xs font-medium ${c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}
+                >
+                  {c.winrate}%
+                </span>
+              </td>
+              <td className="px-4 py-3 text-center">
+                <span
+                  className={`font-semibold ${
+                    c.kdaRatio >= 3
+                      ? 'text-emerald-400'
+                      : c.kdaRatio >= 2
+                        ? 'text-white'
+                        : 'text-gray-400'
+                  }`}
+                >
+                  {c.kdaRatio.toFixed(2)}
+                </span>
+                <span className="text-gray-500 text-xs block">
+                  {c.avgK.toFixed(1)}/{c.avgD.toFixed(1)}/{c.avgA.toFixed(1)}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-center hidden md:table-cell text-amber-400">
+                {c.avgGold.toLocaleString()}
+              </td>
+              <td className="px-4 py-3 text-center hidden lg:table-cell text-white">
+                {c.avgDamage.toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Timeline ─────────────────────────────────────────────────────────────────
 
 function TeamTimelineAdvantage({ matches, timelines }: { matches: any[]; timelines: any[] }) {
   const advantageByMinute = useMemo(() => {
@@ -256,7 +461,9 @@ function PlayerTimelineAdvantage({ playerId, matches, timelines }) {
   )
 }
 
-function TeamGlobalStats({ matches, loading, timelines }: { matches: any[]; loading: boolean; timelines: any[] }) {
+// ─── Stats globales équipe ────────────────────────────────────────────────────
+
+function TeamGlobalStats({ matches, loading }: { matches: any[]; loading: boolean }) {
   const stats = useMemo(() => {
     if (!matches?.length) return null
     const n = matches.length
@@ -545,6 +752,7 @@ function TeamGlobalStats({ matches, loading, timelines }: { matches: any[]; load
           </div>
         </>
       )}
+
       <div className="bg-dark-card border border-dark-border rounded-lg overflow-hidden">
         <h3 className="font-display text-base font-semibold text-white px-4 py-3 border-b border-dark-border">
           Détail des stats globales
@@ -571,29 +779,29 @@ function TeamGlobalStats({ matches, loading, timelines }: { matches: any[]; load
           </table>
         </div>
       </div>
-
-      <TeamTimelineAdvantage matches={matches} timelines={timelines ?? []} />
     </div>
   )
 }
+
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const STATS_CATEGORY_JOUEURS = 'joueurs'
+const STATS_CATEGORY_COMPOS = 'compos'
+const STATS_CATEGORY_SIDE = 'side'
 
 const STATS_MODE_TEAM = 'team'
 const STATS_MODE_SOLOQ = 'soloq'
 
-function SoloQPlaceholder() {
-  return (
-    <div className="space-y-6">
-      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
-        <h3 className="font-display text-base font-semibold text-white mb-4">Stats globales</h3>
-        <p className="text-gray-500 text-sm">Remontée des données Solo Q à venir.</p>
-      </div>
-      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
-        <h3 className="font-display text-base font-semibold text-white mb-4">Best champions</h3>
-        <p className="text-gray-500 text-sm">Remontée des données Solo Q à venir.</p>
-      </div>
-    </div>
-  )
-}
+const TEAM_STAT_SUBS = [
+  { id: 'general', label: 'Général', icon: BarChart3 },
+  { id: 'timeline', label: 'Timeline', icon: TrendingUp },
+  { id: 'champions', label: 'Champions', icon: Sparkles },
+]
+
+const CHAMP_SUBS = [
+  { id: 'joues', label: 'Plus joués' },
+  { id: 'stats', label: 'Stats détaillées' },
+]
 
 const STATS_CARDS = [
   {
@@ -616,6 +824,21 @@ const STATS_CARDS = [
   },
 ]
 
+function SoloQPlaceholder() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
+        <h3 className="font-display text-base font-semibold text-white mb-4">Stats globales</h3>
+        <p className="text-gray-500 text-sm">Remontée des données Solo Q à venir.</p>
+      </div>
+      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
+        <h3 className="font-display text-base font-semibold text-white mb-4">Best champions</h3>
+        <p className="text-gray-500 text-sm">Remontée des données Solo Q à venir.</p>
+      </div>
+    </div>
+  )
+}
+
 function StatsCategoryPlaceholder({ categoryLabel, onBack }) {
   return (
     <div className="max-w-2xl">
@@ -635,6 +858,8 @@ function StatsCategoryPlaceholder({ categoryLabel, onBack }) {
   )
 }
 
+// ─── Page principale ──────────────────────────────────────────────────────────
+
 export const TeamStatsPage = () => {
   const { team, players = [] } = useTeam()
   const { matches, loading: matchesLoading } = useTeamMatches(team?.id)
@@ -643,6 +868,8 @@ export const TeamStatsPage = () => {
   const [statsCategory, setStatsCategory] = useState(null)
   const [selectedId, setSelectedId] = useState(ALL_ID)
   const [statsMode, setStatsMode] = useState(STATS_MODE_TEAM)
+  const [teamStatsSub, setTeamStatsSub] = useState('general')
+  const [champSub, setChampSub] = useState('joues')
 
   const selectedPlayer = players.find((p) => p.id === selectedId)
   const selectedLabel =
@@ -650,27 +877,43 @@ export const TeamStatsPage = () => {
       ? 'Équipe (tous les joueurs)'
       : ((selectedPlayer?.player_name || selectedPlayer?.pseudo) ?? 'Joueur')
 
+  // Champions stats (computed from team matches)
+  const teamChampStats = useMemo(() => {
+    if (!matches?.length) return []
+    return selectedId === ALL_ID
+      ? computeTeamChampionStats(matches)
+      : computePlayerChampionStats(selectedId, matches)
+  }, [matches, selectedId])
+
   const renderContent = () => {
-    if (statsMode === STATS_MODE_SOLOQ) {
-      return <SoloQPlaceholder />
+    if (statsMode === STATS_MODE_SOLOQ) return <SoloQPlaceholder />
+
+    if (teamStatsSub === 'timeline') {
+      if (selectedId === ALL_ID) {
+        return <TeamTimelineAdvantage matches={matches} timelines={timelines ?? []} />
+      }
+      return (
+        <PlayerTimelineAdvantage
+          playerId={selectedId}
+          matches={matches}
+          timelines={timelines ?? []}
+        />
+      )
     }
+
+    if (teamStatsSub === 'champions') {
+      return champSub === 'joues' ? (
+        <ChampionStatsGrid champions={teamChampStats} />
+      ) : (
+        <ChampionStatsDetailTable champions={teamChampStats} />
+      )
+    }
+
+    // Général (default)
     if (selectedId === ALL_ID) {
-      return <TeamGlobalStats matches={matches} loading={matchesLoading} timelines={timelines} />
+      return <TeamGlobalStats matches={matches} loading={matchesLoading} />
     }
-    return (
-      <>
-        <section className="space-y-6">
-          <PlayerTeamStatsSection playerId={selectedId} />
-        </section>
-        <div className="mt-6">
-          <PlayerTimelineAdvantage
-            playerId={selectedId}
-            matches={matches}
-            timelines={timelines ?? []}
-          />
-        </div>
-      </>
-    )
+    return <PlayerTeamStatsSection playerId={selectedId} mode="stats" />
   }
 
   if (statsCategory === null) {
@@ -719,15 +962,18 @@ export const TeamStatsPage = () => {
         showAllButton
       />
       <div className="flex-1 min-w-0">
+        {/* Retour */}
         <button
           type="button"
           onClick={() => setStatsCategory(null)}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-2 text-sm"
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-4 text-sm"
         >
           <ArrowLeft size={18} />
           Retour au choix
         </button>
-        <div className="flex flex-wrap items-center gap-2 mb-2">
+
+        {/* Mode Team / Solo Q */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <button
             type="button"
             onClick={() => setStatsMode(STATS_MODE_TEAM)}
@@ -751,11 +997,59 @@ export const TeamStatsPage = () => {
             Solo Q
           </button>
         </div>
+
+        {/* Sous-menus Team : Général | Timeline | Champions */}
+        {statsMode === STATS_MODE_TEAM && (
+          <div className="flex gap-0 mb-4 border-b border-dark-border">
+            {TEAM_STAT_SUBS.map((s) => {
+              const Icon = s.icon
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setTeamStatsSub(s.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    teamStatsSub === s.id
+                      ? 'border-accent-blue text-white'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-dark-border'
+                  }`}
+                >
+                  <Icon size={15} />
+                  {s.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Sous-menus Champions : Plus joués | Stats détaillées */}
+        {statsMode === STATS_MODE_TEAM && teamStatsSub === 'champions' && (
+          <div className="flex gap-2 mb-4">
+            {CHAMP_SUBS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setChampSub(s.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  champSub === s.id
+                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Titre */}
         <div className="mb-6">
-          <h2 className="font-display text-3xl font-bold mb-2">Statistiques · Joueurs</h2>
+          <h2 className="font-display text-3xl font-bold mb-1">Statistiques · Joueurs</h2>
           <p className="text-gray-400">
             Analysez les performances de votre équipe
-            {selectedId !== ALL_ID && <span className="text-gray-300 ml-1">· {selectedLabel}</span>}
+            {selectedId !== ALL_ID && (
+              <span className="text-gray-300 ml-1">· {selectedLabel}</span>
+            )}
           </p>
         </div>
 

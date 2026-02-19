@@ -10,6 +10,7 @@ import {
   fetchRankAndMatches,
   fetchMatchHistory,
   fetchMatchCount,
+  fetchWeeklyMatchCount,
 } from '../services/riotService.js'
 import { riotFetch } from '../lib/riotClient.js'
 
@@ -219,6 +220,27 @@ router.get('/match-count', requireApiKey, requirePseudo, async (req, res) => {
     res.json({ success: true, total: result.total })
   } catch (err) {
     console.error('match-count error:', err.message)
+    res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
+  }
+})
+
+// ─── GAMES SEMAINE (soloq ranked, 7 derniers jours) ─────────────────────────
+
+router.get('/weekly-games', requireApiKey, requirePseudo, async (req, res) => {
+  const parsed = parsePseudo(req.pseudo)
+  if (!parsed) {
+    return res.status(400).json({ success: false, error: 'Pseudo au format GameName#TagLine requis' })
+  }
+  try {
+    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
+    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+
+    const result = await fetchWeeklyMatchCount(puuidResult.puuid, getApiKey())
+    if (result.error) return res.status(result.status || 500).json({ success: false, error: result.error })
+
+    res.json({ success: true, count: result.count })
+  } catch (err) {
+    console.error('weekly-games error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
   }
 })

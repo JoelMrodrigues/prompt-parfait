@@ -16,6 +16,7 @@ import {
   History,
   Download,
   ChevronDown,
+  TrendingUp,
   X,
 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
@@ -29,8 +30,10 @@ import { TIER_KEYS } from '../champion-pool/constants/tiers'
 import { TierTable } from '../champion-pool/components/TierTable'
 import { PlayerTeamStatsSection } from './components/PlayerTeamStatsSection'
 import { usePlayerTeamStats } from '../hooks/usePlayerTeamStats'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useTeamMatches } from '../hooks/useTeamMatches'
+import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import {
   fetchSoloqMatches,
   fetchSoloqChampionStats,
@@ -103,11 +106,134 @@ function generateDpmLink(pseudo) {
   return `https://dpm.lol/${encodeURIComponent(pseudo.replace(/#/g, '-'))}?queue=solo`
 }
 
+// ─── Timeline helpers (Team) ──────────────────────────────────────────────────
+
+const ROLE_ORDER_TEAM = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']
+
+function getOurAndEnemySortedTeam(match: any) {
+  const parts = match?.team_match_participants || []
+  const our = parts.filter((p: any) => p.team_side === 'our' || !p.team_side)
+  const enemy = parts.filter((p: any) => p.team_side === 'enemy')
+  const sortByRole = (a: any, b: any) =>
+    ROLE_ORDER_TEAM.indexOf(a.role || '') - ROLE_ORDER_TEAM.indexOf(b.role || '')
+  return { our: [...our].sort(sortByRole), enemy: [...enemy].sort(sortByRole) }
+}
+
+function PlayerTimelineAdvantageSection({
+  playerId,
+  matches,
+  timelines,
+}: {
+  playerId: string
+  matches: any[]
+  timelines: any[]
+}) {
+  const advantageByMinute = useMemo(() => {
+    if (!playerId || !matches?.length || !timelines?.length) return null
+    const timelineByMatchId = new Map<string, any>(timelines.map((t: any) => [t.match_id, t]))
+    const getCs = (s: any) => (s?.minions ?? 0) + (s?.jungle ?? 0) || (s?.cs ?? 0)
+
+    return TIMELINE_MINUTES.map((min) => {
+      const goldDiffs: number[] = []
+      const xpDiffs: number[] = []
+      const csDiffs: number[] = []
+      for (const m of matches) {
+        const { our, enemy } = getOurAndEnemySortedTeam(m)
+        const playerIndex = our.findIndex((p: any) => p.player_id === playerId)
+        if (playerIndex < 0) continue
+        const ourPart = our[playerIndex]
+        const enemyPart = enemy[playerIndex]
+        if (!enemyPart) continue
+        const ourPid = ourPart?.participant_id ?? playerIndex + 1
+        const enemyPid = enemyPart?.participant_id ?? 6 + playerIndex
+        const t = timelineByMatchId.get(m.id)
+        const snapshot = t?.snapshot && typeof t.snapshot === 'object' ? t.snapshot : null
+        const snap = snapshot?.[String(min)]?.participants
+        if (!snap) continue
+        const ourSnap = snap[String(ourPid)]
+        const enemySnap = snap[String(enemyPid)]
+        goldDiffs.push((ourSnap?.gold ?? 0) - (enemySnap?.gold ?? 0))
+        xpDiffs.push((ourSnap?.xp ?? 0) - (enemySnap?.xp ?? 0))
+        csDiffs.push(getCs(ourSnap) - getCs(enemySnap))
+      }
+      const count = goldDiffs.length
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0)
+      return { min, avgGold: avg(goldDiffs), avgXp: avg(xpDiffs), avgCs: avg(csDiffs), count }
+    })
+  }, [playerId, matches, timelines])
+
+  if (!advantageByMinute?.length || advantageByMinute.every((r) => r.count === 0)) {
+    return (
+      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
+        <h3 className="font-display text-base font-semibold text-white mb-2">
+          Avantage vs vis-à-vis
+        </h3>
+        <p className="text-gray-500 text-sm">
+          Aucune timeline disponible. Importez des timelines depuis la page Import et associez-les à
+          vos matchs pour afficher l&apos;avantage or / XP / CS à 5, 10, 15, 20, 25 min.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-dark-card border border-dark-border rounded-lg overflow-hidden">
+      <h3 className="font-display text-base font-semibold text-white px-4 py-3 border-b border-dark-border">
+        Avantage vs vis-à-vis en fonction du temps
+      </h3>
+      <p className="text-gray-500 text-sm px-4 pt-2 pb-1">
+        Moyenne de l&apos;avantage or / XP / CS face au vis-à-vis à chaque palier.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-400 border-b border-dark-border bg-dark-bg/50">
+              <th className="py-3 px-4">Minute</th>
+              <th className="py-3 px-4 text-right">Or (moy.)</th>
+              <th className="py-3 px-4 text-right">XP (moy.)</th>
+              <th className="py-3 px-4 text-right">CS (moy.)</th>
+              <th className="py-3 px-4 text-right">Parties</th>
+            </tr>
+          </thead>
+          <tbody>
+            {advantageByMinute
+              .filter((r) => r.count > 0)
+              .map((r) => (
+                <tr key={r.min} className="border-b border-dark-border/50">
+                  <td className="py-3 px-4 font-medium text-gray-300">{r.min} min</td>
+                  <td
+                    className={`py-3 px-4 text-right font-medium ${r.avgGold >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    {r.avgGold >= 0 ? '+' : ''}
+                    {Math.round(r.avgGold).toLocaleString()}
+                  </td>
+                  <td
+                    className={`py-3 px-4 text-right font-medium ${r.avgXp >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    {r.avgXp >= 0 ? '+' : ''}
+                    {Math.round(r.avgXp).toLocaleString()}
+                  </td>
+                  <td
+                    className={`py-3 px-4 text-right font-medium ${r.avgCs >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                  >
+                    {r.avgCs >= 0 ? '+' : ''}
+                    {Math.round(r.avgCs).toFixed(1)}
+                  </td>
+                  <td className="py-3 px-4 text-right text-gray-400">{r.count}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export const PlayerDetailPage = () => {
   const { error: toastError, info: toastInfo } = useToast()
   const { playerId } = useParams()
   const navigate = useNavigate()
-  const { players = [], updatePlayer, refetch } = useTeam()
+  const { players = [], team, updatePlayer, refetch } = useTeam()
   const {
     stats: teamStats,
     teamTotalsByMatch,
@@ -116,6 +242,9 @@ export const PlayerDetailPage = () => {
   const [selectedCard, setSelectedCard] = useState('general')
   const [selectedSoloqSub, setSelectedSoloqSub] = useState('statistiques')
   const [selectedTeamSub, setSelectedTeamSub] = useState('statistiques')
+  const [teamStatsSubSub, setTeamStatsSubSub] = useState<'general' | 'timeline'>('general')
+  const [teamChampSubSub, setTeamChampSubSub] = useState<'general' | 'detaille'>('general')
+  const [expandedTeamChampion, setExpandedTeamChampion] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [matchHistory, setMatchHistory] = useState([])
   const [matchHistoryLoading, setMatchHistoryLoading] = useState(false)
@@ -134,6 +263,48 @@ export const PlayerDetailPage = () => {
   const [championModalMatchesLoading, setChampionModalMatchesLoading] = useState(false)
   const [gameDetailMatch, setGameDetailMatch] = useState(null)
   const matchHistoryPlayerIdRef = useRef(null)
+
+  // ─── Team timeline data ───────────────────────────────────────────────────
+  const { matches: allTeamMatches } = useTeamMatches(team?.id)
+  const allTeamMatchIds = useMemo(
+    () => (allTeamMatches || []).map((m: any) => m.id),
+    [allTeamMatches],
+  )
+  const { timelines: allTeamTimelines } = useTeamTimelines(allTeamMatchIds)
+
+  // ─── Champion stats from team matches (already loaded via usePlayerTeamStats) ──
+  const championStatsFromTeam = useMemo(() => {
+    if (!teamStats?.length) return []
+    const byChamp = new Map<string, any>()
+    for (const s of teamStats) {
+      const name = s.champion_name
+      if (!name) continue
+      if (!byChamp.has(name)) {
+        byChamp.set(name, { name, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, matchEntries: [] })
+      }
+      const c = byChamp.get(name)
+      c.games++
+      if (s.team_matches?.our_win) c.wins++
+      c.kills += s.kills ?? 0
+      c.deaths += s.deaths ?? 0
+      c.assists += s.assists ?? 0
+      c.matchEntries.push(s)
+    }
+    return Array.from(byChamp.values())
+      .map((c) => ({
+        ...c,
+        losses: c.games - c.wins,
+        winrate: c.games > 0 ? Math.round((c.wins / c.games) * 100) : 0,
+        avgK: c.games > 0 ? +(c.kills / c.games).toFixed(1) : 0,
+        avgD: c.games > 0 ? +(c.deaths / c.games).toFixed(1) : 0,
+        avgA: c.games > 0 ? +(c.assists / c.games).toFixed(1) : 0,
+        kdaRatio:
+          c.deaths > 0
+            ? +((c.kills + c.assists) / c.deaths).toFixed(2)
+            : +(c.kills + c.assists).toFixed(2),
+      }))
+      .sort((a, b) => b.games - a.games)
+  }, [teamStats])
 
   const player = players.find((p) => p.id === playerId)
   const activeSoloqPseudo =
@@ -1026,12 +1197,264 @@ export const PlayerDetailPage = () => {
 
         {selectedCard === 'team' && (
           <>
+            {/* ── Statistiques : Général | Timeline ── */}
             {selectedTeamSub === 'statistiques' && (
-              <PlayerTeamStatsSection playerId={playerId} mode="stats" />
+              <div>
+                <div className="flex gap-2 mb-5 border-b border-dark-border pb-4">
+                  {(
+                    [
+                      { id: 'general', label: 'Général', icon: BarChart3 },
+                      { id: 'timeline', label: 'Timeline', icon: TrendingUp },
+                    ] as const
+                  ).map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTeamStatsSubSub(id)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        teamStatsSubSub === id
+                          ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                          : 'text-gray-400 hover:text-white hover:bg-dark-bg/60'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {teamStatsSubSub === 'general' && (
+                  <PlayerTeamStatsSection playerId={playerId} mode="stats" />
+                )}
+                {teamStatsSubSub === 'timeline' && (
+                  <PlayerTimelineAdvantageSection
+                    playerId={playerId}
+                    matches={allTeamMatches}
+                    timelines={allTeamTimelines}
+                  />
+                )}
+              </div>
             )}
+
+            {/* ── Champions : Général | Détaillé ── */}
             {selectedTeamSub === 'champions' && (
-              <PlayerTeamStatsSection playerId={playerId} mode="champions" />
+              <div>
+                <div className="flex gap-2 mb-5 border-b border-dark-border pb-4">
+                  {(
+                    [
+                      { id: 'general', label: 'Général' },
+                      { id: 'detaille', label: 'Détaillé' },
+                    ] as const
+                  ).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setTeamChampSubSub(id)
+                        setExpandedTeamChampion(null)
+                      }}
+                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        teamChampSubSub === id
+                          ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                          : 'text-gray-400 hover:text-white hover:bg-dark-bg/60'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {teamStatsLoading ? (
+                  <p className="text-gray-500 text-sm py-4">Chargement…</p>
+                ) : championStatsFromTeam.length === 0 ? (
+                  <p className="text-gray-500 text-sm">
+                    Aucune donnée. Ajoutez des parties depuis Matchs.
+                  </p>
+                ) : teamChampSubSub === 'general' ? (
+                  /* ── Général : liste ordonnée, tous les champions ── */
+                  <div className="rounded-xl border border-dark-border overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-dark-bg/80 text-gray-400 text-left">
+                          <th className="px-4 py-3 font-medium w-10">#</th>
+                          <th className="px-4 py-3 font-medium">Champion</th>
+                          <th className="px-4 py-3 font-medium text-center">Parties</th>
+                          <th className="px-4 py-3 font-medium text-center">Winrate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {championStatsFromTeam.map((c, idx) => (
+                          <tr key={c.name} className="border-t border-dark-border/50">
+                            <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={getChampionImage(c.name)}
+                                  alt={c.name}
+                                  className="w-8 h-8 rounded object-cover border border-dark-border shrink-0"
+                                />
+                                <span className="font-medium text-white">
+                                  {getChampionDisplayName(c.name) || c.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-emerald-400">{c.wins}V</span>
+                              <span className="text-gray-500 mx-1">/</span>
+                              <span className="text-rose-400">{c.losses}D</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span
+                                className={
+                                  c.winrate >= 50
+                                    ? 'text-emerald-400 font-semibold'
+                                    : 'text-rose-400 font-semibold'
+                                }
+                              >
+                                {c.winrate}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  /* ── Détaillé : accordion avec stats moy + games ── */
+                  <div className="space-y-2">
+                    {championStatsFromTeam.map((c) => {
+                      const isOpen = expandedTeamChampion === c.name
+                      return (
+                        <div
+                          key={c.name}
+                          className="rounded-xl border border-dark-border overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedTeamChampion(isOpen ? null : c.name)
+                            }
+                            className="w-full flex items-center gap-3 p-4 bg-dark-bg/50 hover:bg-dark-bg/80 transition-colors text-left"
+                          >
+                            <img
+                              src={getChampionImage(c.name)}
+                              alt={c.name}
+                              className="w-10 h-10 rounded-lg object-cover border border-dark-border shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-white">
+                                {getChampionDisplayName(c.name) || c.name}
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                {c.games} partie{c.games > 1 ? 's' : ''} ·{' '}
+                                <span
+                                  className={
+                                    c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'
+                                  }
+                                >
+                                  {c.winrate}%
+                                </span>
+                                {' · '}KDA{' '}
+                                <span
+                                  className={
+                                    c.kdaRatio >= 3
+                                      ? 'text-emerald-400'
+                                      : c.kdaRatio >= 2
+                                        ? 'text-white'
+                                        : 'text-gray-400'
+                                  }
+                                >
+                                  {c.kdaRatio}
+                                </span>
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0 text-sm text-gray-400 hidden sm:block">
+                              <p className="font-mono">
+                                {c.avgK}/{c.avgD}/{c.avgA}
+                              </p>
+                              <p className="text-xs text-gray-500">Moy. K/D/A</p>
+                            </div>
+                            <ChevronDown
+                              className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            />
+                          </button>
+
+                          {isOpen && (
+                            <div className="border-t border-dark-border">
+                              {/* Stats moyennes du champion */}
+                              <div className="grid grid-cols-3 gap-px bg-dark-border">
+                                <div className="bg-dark-bg/80 p-3 text-center">
+                                  <p className="text-xs text-gray-500 mb-0.5">Winrate</p>
+                                  <p
+                                    className={`font-semibold ${c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}
+                                  >
+                                    {c.winrate}%
+                                  </p>
+                                </div>
+                                <div className="bg-dark-bg/80 p-3 text-center">
+                                  <p className="text-xs text-gray-500 mb-0.5">KDA ratio</p>
+                                  <p
+                                    className={`font-semibold ${c.kdaRatio >= 3 ? 'text-emerald-400' : c.kdaRatio >= 2 ? 'text-white' : 'text-gray-400'}`}
+                                  >
+                                    {c.kdaRatio}
+                                  </p>
+                                </div>
+                                <div className="bg-dark-bg/80 p-3 text-center">
+                                  <p className="text-xs text-gray-500 mb-0.5">Moy. K/D/A</p>
+                                  <p className="font-mono text-white text-sm">
+                                    {c.avgK}/{c.avgD}/{c.avgA}
+                                  </p>
+                                </div>
+                              </div>
+                              {/* Liste des games */}
+                              <div className="divide-y divide-dark-border/50">
+                                {c.matchEntries.map((s: any, i: number) => {
+                                  const m = s.team_matches
+                                  return (
+                                    <Link
+                                      key={s.id || i}
+                                      to={`/team/matchs/${s.match_id}`}
+                                      state={{ fromPlayer: playerId }}
+                                      className="flex items-center gap-3 px-4 py-3 hover:bg-dark-bg/60 transition-colors"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-gray-300">
+                                          {m?.created_at
+                                            ? new Date(m.created_at).toLocaleDateString('fr-FR', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                              })
+                                            : '—'}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {m?.game_duration
+                                            ? `${Math.round(m.game_duration / 60)} min`
+                                            : ''}
+                                        </p>
+                                      </div>
+                                      <p className="font-mono text-sm text-white shrink-0">
+                                        {s.kills}/{s.deaths}/{s.assists}
+                                      </p>
+                                      <span
+                                        className={`px-2 py-1 rounded-lg text-xs font-semibold shrink-0 ${m?.our_win ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}
+                                      >
+                                        {m?.our_win ? 'V' : 'D'}
+                                      </span>
+                                    </Link>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )}
+
+            {/* ── Historiques ── */}
             {selectedTeamSub === 'historiques' && (
               <div>
                 {teamStatsLoading ? (

@@ -39,3 +39,20 @@ export async function fetchSyncRank(pseudo) {
   }
   return { rank: data.rank ?? null }
 }
+
+/**
+ * Récupère le nombre de games ranked soloq jouées dans les 7 derniers jours.
+ * Retourne null en cas d'erreur (pas de pseudo, API down, etc.)
+ */
+export async function fetchWeeklyGames(pseudo: string): Promise<number | null> {
+  if (!pseudo || typeof pseudo !== 'string') return null
+  const base = getBackendUrl().replace(/\/$/, '')
+  try {
+    const res = await fetch(`${base}/api/riot/weekly-games?pseudo=${encodeURIComponent(pseudo.trim())}`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.success) return null
+    return typeof data.count === 'number' ? data.count : null
+  } catch {
+    return null
+  }
+}

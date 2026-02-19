@@ -328,3 +328,21 @@ export async function fetchMatchCount(puuid, apiKey) {
 
   return { total: allIds.length }
 }
+
+// ─── GAMES JOUÉES CETTE SEMAINE (ranked soloq) ────────────────────────────────
+
+export async function fetchWeeklyMatchCount(puuid, apiKey) {
+  const startOfWeek = Math.floor((Date.now() - 7 * 24 * 3600 * 1000) / 1000)
+  const res = await riotFetch(
+    `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start_time=${startOfWeek}&count=100`,
+    apiKey,
+  )
+  if (!res.ok) {
+    return {
+      error: res.data?.status?.message || `Erreur Match IDs (${res.status})`,
+      status: res.status >= 500 ? 500 : 400,
+    }
+  }
+  const ids = Array.isArray(res.data) ? res.data : []
+  return { count: ids.length }
+}
