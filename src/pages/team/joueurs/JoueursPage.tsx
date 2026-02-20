@@ -142,7 +142,10 @@ export const JoueursPage = () => {
           continue
         }
         const updates: Record<string, unknown> = {}
-        if (data.rank != null) updates.rank = data.rank
+        if (data.rank != null) {
+          updates.rank = data.rank
+          updates.rank_updated_at = new Date().toISOString()
+        }
         if (typeof data.totalMatchIds === 'number') updates.soloq_total_match_ids = data.totalMatchIds
         if (Object.keys(updates).length > 0) {
           await updatePlayer(player.id, updates)
@@ -252,6 +255,25 @@ export const JoueursPage = () => {
               </h1>
               <h2 className="font-display text-xl font-semibold text-gray-300 mt-0.5">Joueurs</h2>
               <p className="text-gray-500 text-sm mt-0.5">Gérez les joueurs de votre équipe</p>
+              {(() => {
+                const lastSync = players
+                  .map((p) => p.rank_updated_at)
+                  .filter(Boolean)
+                  .sort()
+                  .pop()
+                if (!lastSync) return null
+                return (
+                  <p className="text-gray-500 text-xs mt-1">
+                    Dernière MAJ rang :{' '}
+                    {new Date(lastSync).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                )
+              })()}
             </div>
           </div>
           <div className="flex items-center gap-2">

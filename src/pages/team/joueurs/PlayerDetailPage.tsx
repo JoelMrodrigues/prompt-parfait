@@ -6,7 +6,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft,
   ExternalLink,
-  RefreshCw,
   User,
   Swords,
   Users,
@@ -104,6 +103,159 @@ function getRankColor(rank) {
 function generateDpmLink(pseudo) {
   if (!pseudo) return ''
   return `https://dpm.lol/${encodeURIComponent(pseudo.replace(/#/g, '-'))}?queue=solo`
+}
+
+/** Extrait les LP du rang (ex. "Master 614 LP" → 614). Retourne null si non trouvé. */
+function parseLpFromRank(rank: string | null | undefined): number | null {
+  if (!rank || typeof rank !== 'string') return null
+  const m = rank.match(/(\d+)\s*LP/i)
+  return m ? parseInt(m[1], 10) : null
+}
+
+const LP_CHART_PADDING = { top: 32, right: 24, bottom: 40, left: 48 }
+const LP_LINE_COLOR = '#22d3ee' // cyan type lol pro
+
+function LpCurveChart({
+  points,
+}: {
+  points: { date: Date; lp: number; win?: boolean }[]
+}) {
+  if (points.length < 2) return null
+  const width = 640
+  const height = 280
+  const p = LP_CHART_PADDING
+  const innerW = width - p.left - p.right
+  const innerH = height - p.top - p.bottom
+  const minLp = Math.min(...points.map((x) => x.lp))
+  const maxLp = Math.max(...points.map((x) => x.lp))
+  const lpRange = Math.max(maxLp - minLp, 50)
+  const minT = points[0].date.getTime()
+  const maxT = points[points.length - 1].date.getTime()
+  const tRange = Math.max(maxT - minT, 1)
+  const toX = (d: Date) => p.left + ((d.getTime() - minT) / tRange) * innerW
+  const toY = (lp: number) => p.top + innerH - ((lp - minLp) / lpRange) * innerH
+  const pathD = points
+    .map((pt, i) => `${i === 0 ? 'M' : 'L'} ${toX(pt.date)} ${toY(pt.lp)}`)
+    .join(' ')
+  // Points clés pour les labels (début, ~1/3, ~2/3, fin)
+  const labelIndices =
+    points.length <= 4
+      ? points.map((_, i) => i)
+      : [0, Math.floor(points.length / 3), Math.floor((2 * points.length) / 3), points.length - 1]
+  const uniq = Array.from(new Set(labelIndices)).sort((a, b) => a - b)
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="w-full h-full"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {/* Grille horizontale */}
+      {[0, 0.25, 0.5, 0.75, 1].map((q) => {
+        const lp = minLp + q * lpRange
+        const y = toY(lp)
+        return (
+          <line
+            key={q}
+            x1={p.left}
+            y1={y}
+            x2={width - p.right}
+            y2={y}
+            stroke="rgba(255,255,255,0.06)"
+            strokeDasharray="4 4"
+          />
+        )
+      })}
+      {/* Courbe cyan */}
+      <path
+        d={pathD}
+        fill="none"
+        stroke={LP_LINE_COLOR}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Cercles aux points */}
+      {points.map((pt, i) => (
+        <circle
+          key={i}
+          cx={toX(pt.date)}
+          cy={toY(pt.lp)}
+          r="3"
+          fill={LP_LINE_COLOR}
+          stroke="rgba(0,0,0,0.3)"
+          strokeWidth="1"
+        />
+      ))}
+      {/* Labels sur la courbe (milestones) */}
+      {uniq.map((i) => {
+        const pt = points[i]
+        const x = toX(pt.date)
+        const y = toY(pt.lp)
+        const label = `${pt.lp} LP`
+        return (
+          <g key={i}>
+            <rect
+              x={x - 28}
+              y={y - 22}
+              width={56}
+              height={18}
+              rx="4"
+              fill="rgba(0,0,0,0.75)"
+              stroke="rgba(255,255,255,0.2)"
+            />
+            <text
+              x={x}
+              y={y - 9}
+              textAnchor="middle"
+              className="fill-white text-[10px] font-semibold font-mono"
+            >
+              {label}
+            </text>
+          </g>
+        )
+      })}
+      {/* Axe Y (LP) */}
+      {[0, 0.25, 0.5, 0.75, 1].map((q) => {
+        const lp = Math.round(minLp + q * lpRange)
+        const y = toY(lp)
+        return (
+          <text
+            key={q}
+            x={p.left - 8}
+            y={y + 4}
+            textAnchor="end"
+            className="fill-gray-400 text-[11px] font-mono"
+          >
+            {lp}
+          </text>
+        )
+      })}
+      {/* Axe X (dates DD/MM) */}
+      {(() => {
+        const step = Math.max(1, Math.floor(points.length / 10))
+        const indices = []
+        for (let i = 0; i < points.length; i += step) indices.push(i)
+        if (points.length - 1 - (indices[indices.length - 1] ?? 0) > step / 2) indices.push(points.length - 1)
+        return indices.map((i) => {
+          const pt = points[i]
+          const x = toX(pt.date)
+          const label = `${String(pt.date.getDate()).padStart(2, '0')}/${String(pt.date.getMonth() + 1).padStart(2, '0')}`
+          return (
+            <text
+              key={i}
+              x={x}
+              y={height - 12}
+              textAnchor="middle"
+              className="fill-gray-500 text-[10px] font-mono"
+            >
+              {label}
+            </text>
+          )
+        })
+      })()}
+    </svg>
+  )
 }
 
 // ─── Timeline helpers (Team) ──────────────────────────────────────────────────
@@ -263,6 +415,8 @@ export const PlayerDetailPage = () => {
   const [championModalMatchesLoading, setChampionModalMatchesLoading] = useState(false)
   const [gameDetailMatch, setGameDetailMatch] = useState(null)
   const matchHistoryPlayerIdRef = useRef(null)
+  const [lpGraphMatches, setLpGraphMatches] = useState<any[]>([])
+  const [lpGraphLoading, setLpGraphLoading] = useState(false)
 
   // ─── Team timeline data ───────────────────────────────────────────────────
   const { matches: allTeamMatches } = useTeamMatches(team?.id)
@@ -575,6 +729,7 @@ export const PlayerDetailPage = () => {
     setChampionModalMatches([])
     setGameDetailMatch(null)
     matchHistoryPlayerIdRef.current = null
+    setLpGraphMatches([])
   }, [player?.id, selectedSoloqAccount])
 
   useEffect(() => {
@@ -588,6 +743,50 @@ export const PlayerDetailPage = () => {
     loadSoloqTopChampionsFromDb()
   }, [selectedCard, player?.id, selectedSoloqAccount])
 
+  // Charger les matchs pour le graphique LP (carte Général)
+  useEffect(() => {
+    if (selectedCard !== 'general' || !player?.id) return
+    let cancelled = false
+    setLpGraphLoading(true)
+    const accountSource = selectedSoloqAccount === 1 ? 'primary' : 'secondary'
+    fetchSoloqMatches({
+      playerId: player.id,
+      accountSource,
+      seasonStart: SEASON_16_START_MS,
+      offset: 0,
+      limit: 300,
+    })
+      .then(({ data }) => {
+        if (!cancelled && Array.isArray(data)) {
+          setLpGraphMatches(data.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC))
+        }
+      })
+      .catch(() => { if (!cancelled) setLpGraphMatches([]) })
+      .finally(() => { if (!cancelled) setLpGraphLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedCard, player?.id, selectedSoloqAccount])
+
+  // Courbe LP (doit être avant tout early return pour respecter l'ordre des Hooks)
+  const lpCurvePoints = useMemo(() => {
+    const currentLp = parseLpFromRank(player?.rank)
+    if (currentLp == null || !lpGraphMatches.length) return []
+    const sorted = [...lpGraphMatches].sort(
+      (a: any, b: any) => (a.game_creation ?? 0) - (b.game_creation ?? 0)
+    )
+    let lp = currentLp
+    for (const m of sorted) {
+      lp += m.win ? -25 : 25
+    }
+    const points: { date: Date; lp: number; win?: boolean }[] = []
+    for (const m of sorted) {
+      const ts = m.game_creation ?? 0
+      points.push({ date: new Date(ts), lp, win: !!m.win })
+      lp += m.win ? 25 : -25
+    }
+    points.push({ date: new Date(), lp: currentLp })
+    return points
+  }, [player?.rank, lpGraphMatches])
+
   const handleRefreshData = async () => {
     if (!player?.pseudo || (!player.pseudo.includes('#') && !player.pseudo.includes('/'))) {
       toastInfo('Pseudo GameName#TagLine requis')
@@ -599,9 +798,15 @@ export const PlayerDetailPage = () => {
         `${getBackendUrl()}/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(player.pseudo.trim())}`
       )
       const data = await res.json().catch(() => ({}))
-      if (!data.success) throw new Error(data.error || 'Erreur API')
+      if (!data.success) {
+        if (data.rateLimitSeconds != null) setRateLimitSeconds(Math.max(1, data.rateLimitSeconds))
+        throw new Error(data.error || 'Erreur API')
+      }
       const updates: Record<string, unknown> = {}
-      if (data.rank != null) updates.rank = data.rank
+      if (data.rank != null) {
+        updates.rank = data.rank
+        updates.rank_updated_at = new Date().toISOString()
+      }
       if (typeof data.totalMatchIds === 'number') updates.soloq_total_match_ids = data.totalMatchIds
       if (Object.keys(updates).length > 0) {
         try {
@@ -640,6 +845,19 @@ export const PlayerDetailPage = () => {
           matchHistoryPlayerIdRef.current = null
           await loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
           await loadSoloqTopChampionsFromDb()
+        }
+        if (selectedCard === 'general' && player?.id) {
+          const accountSource = selectedSoloqAccount === 1 ? 'primary' : 'secondary'
+          const { data } = await fetchSoloqMatches({
+            playerId: player.id,
+            accountSource,
+            seasonStart: SEASON_16_START_MS,
+            offset: 0,
+            limit: 300,
+          })
+          if (Array.isArray(data)) {
+            setLpGraphMatches(data.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC))
+          }
         }
       }
     } catch (e) {
@@ -723,9 +941,9 @@ export const PlayerDetailPage = () => {
         </div>
       </div>
 
-      {/* Nom du joueur + image + liens au-dessus des cartes */}
+      {/* Bloc identité / liens / sync bien séparés */}
       <div
-        className={`relative rounded-2xl p-6 overflow-hidden ${bigChampBg ? '' : `bg-gradient-to-r ${getRankColor(player.rank)}`}`}
+        className={`relative rounded-2xl overflow-hidden ${bigChampBg ? '' : `bg-gradient-to-r ${getRankColor(player.rank)}`}`}
         style={
           bigChampBg
             ? {
@@ -736,32 +954,37 @@ export const PlayerDetailPage = () => {
             : undefined
         }
       >
-        <div className="relative z-10 flex flex-wrap items-start gap-6">
-          <img
-            src={
-              mostPlayedName
-                ? getChampionImage(mostPlayedName)
-                : 'https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/Aatrox.png'
-            }
-            alt=""
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-white/20 shrink-0"
-          />
-          <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
-              {player.player_name || 'Joueur'}
-            </h1>
-            <p className="text-white/80 mt-1">{player.pseudo || '—'}</p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium text-white">
-                {roleLabel}
-              </span>
-              {player.rank && (
-                <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium text-white">
-                  {player.rank}
-                </span>
-              )}
+        <div className="relative z-10 p-6 space-y-5">
+          {/* Ligne 1 : Identité (gauche) + Liens externes (droite) */}
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-5">
+              <img
+                src={
+                  mostPlayedName
+                    ? getChampionImage(mostPlayedName)
+                    : 'https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/Aatrox.png'
+                }
+                alt=""
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-white/20 shrink-0"
+              />
+              <div>
+                <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
+                  {player.player_name || 'Joueur'}
+                </h1>
+                <p className="text-white/80 mt-1">{player.pseudo || '—'}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium text-white">
+                    {roleLabel}
+                  </span>
+                  {player.rank && (
+                    <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium text-white">
+                      {player.rank}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3 mt-4">
+            <div className="flex flex-wrap gap-2">
               {player.opgg_link && (
                 <a
                   href={player.opgg_link}
@@ -773,24 +996,14 @@ export const PlayerDetailPage = () => {
                 </a>
               )}
               {dpmLink && (
-                <>
-                  <a
-                    href={dpmLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 flex items-center gap-2 text-sm font-medium text-white transition-colors"
-                  >
-                    <ExternalLink size={16} /> dpm.lol
-                  </a>
-                  <button
-                    onClick={handleRefreshData}
-                    disabled={syncing}
-                    className="px-4 py-2.5 bg-accent-blue/30 border border-accent-blue/50 rounded-xl flex items-center gap-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-accent-blue/40 transition-colors"
-                  >
-                    <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} /> Actualiser
-                    (rang + 20 parties)
-                  </button>
-                </>
+                <a
+                  href={dpmLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 flex items-center gap-2 text-sm font-medium text-white transition-colors"
+                >
+                  <ExternalLink size={16} /> dpm.lol
+                </a>
               )}
               {player.lolpro_link && (
                 <a
@@ -804,6 +1017,21 @@ export const PlayerDetailPage = () => {
               )}
             </div>
           </div>
+
+          {/* Dernière MAJ rang (remontée auto ou Ranked Update page Joueurs) */}
+          {player.rank_updated_at != null && (
+            <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-white/10">
+              <span className="text-sm text-white/80">
+                Dernière MAJ rang :{' '}
+                {new Date(player.rank_updated_at).toLocaleDateString('fr-FR', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -889,7 +1117,34 @@ export const PlayerDetailPage = () => {
       {/* Contenu selon carte + sous-menu */}
       <div className="rounded-2xl border border-dark-border bg-dark-card/30 p-6 min-h-[200px]">
         {selectedCard === 'general' && (
-          <p className="text-gray-500 text-sm">Section à développer plus tard.</p>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-6 rounded-full bg-cyan-400" />
+              <div>
+                <h3 className="font-display text-lg font-semibold text-white">
+                  Rank History
+                </h3>
+                <p className="text-gray-500 text-sm mt-0.5">
+                  {lpCurvePoints.length >= 2
+                    ? `Historique du ${lpCurvePoints[0].date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} au ${lpCurvePoints[lpCurvePoints.length - 1].date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}`
+                    : 'Saison en cours'}
+                </p>
+              </div>
+            </div>
+            {lpGraphLoading ? (
+              <p className="text-gray-500 text-sm">Chargement des parties…</p>
+            ) : lpCurvePoints.length < 2 ? (
+              <p className="text-gray-500 text-sm">
+                {parseLpFromRank(player.rank) != null
+                  ? 'Chargez des parties Solo Q (onglet Solo Q → Import) pour afficher la courbe des LP.'
+                  : 'Rang sans LP affiché ou aucune partie. Faites une mise à jour du rang en haut de page.'}
+              </p>
+            ) : (
+              <div className="w-full h-72 rounded-xl bg-dark-bg/80 border border-dark-border overflow-hidden">
+                <LpCurveChart points={lpCurvePoints} />
+              </div>
+            )}
+          </div>
         )}
 
         {selectedCard === 'soloq' && (
@@ -960,15 +1215,49 @@ export const PlayerDetailPage = () => {
             )}
 
             {selectedSoloqSub === 'statistiques' && (
-              <div>
-                {soloqWinrate != null ? (
-                  <p className="text-gray-500 text-sm">
-                    Winrate {soloqWinrate}% sur les parties enregistrées.
+              <div className="space-y-6">
+                {soloqWinrate != null && (
+                  <p className="text-gray-400 text-sm">
+                    Winrate <span className="font-semibold text-white">{soloqWinrate}%</span> sur les parties enregistrées.
                   </p>
+                )}
+                {soloqTopChampionsLoading ? (
+                  <p className="text-gray-500 text-sm">Chargement du Top 5…</p>
+                ) : soloqTopChampionsFromDb.length > 0 ? (
+                  <div className="rounded-xl border border-dark-border bg-dark-bg/50 p-4">
+                    <p className="text-gray-400 text-sm font-medium mb-3">Top 5 Champions</p>
+                    <div className="grid grid-cols-5 gap-2 justify-items-center">
+                      {soloqTopChampionsFromDb.slice(0, 5).map((champ: any, idx: number) => {
+                        const name = champ.name
+                        if (!name) return null
+                        const wr = champ.winrate ?? 0
+                        const wrColor =
+                          wr >= 90 ? 'text-violet-300' : wr >= 60 ? 'text-green-400' : wr >= 40 ? 'text-orange-400' : 'text-red-700'
+                        return (
+                          <button
+                            key={`${name}-${idx}`}
+                            type="button"
+                            onClick={() => openChampionModal(champ)}
+                            className="flex flex-col items-center gap-1 min-w-0 w-full"
+                          >
+                            <span className="text-[12px] text-white font-medium">{champ.games ?? 0}</span>
+                            <img
+                              src={getChampionImage(name)}
+                              alt={name}
+                              className="w-12 h-12 rounded-lg object-cover border border-dark-border shrink-0"
+                            />
+                            <span className={`text-[12px] font-semibold ${wrColor}`}>{wr}%</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-gray-500 text-sm">
-                    Chargez des parties dans Import pour voir les statistiques.
-                  </p>
+                  soloqWinrate == null && (
+                    <p className="text-gray-500 text-sm">
+                      Chargez des parties dans Import pour voir les statistiques.
+                    </p>
+                  )
                 )}
               </div>
             )}
@@ -1197,10 +1486,57 @@ export const PlayerDetailPage = () => {
 
         {selectedCard === 'team' && (
           <>
-            {/* ── Statistiques : Général | Timeline ── */}
+            {/* ── Statistiques : Forme récente + Général | Timeline ── */}
             {selectedTeamSub === 'statistiques' && (
-              <div>
-                <div className="flex gap-2 mb-5 border-b border-dark-border pb-4">
+              <div className="space-y-6">
+                {/* Forme récente : 5 derniers matchs team */}
+                {!teamStatsLoading && (teamStats?.length ?? 0) > 0 && (
+                  <div className="rounded-xl border border-dark-border bg-dark-bg/50 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-gray-400 text-sm font-medium">Forme récente (Team)</p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTeamSub('historiques')}
+                        className="text-accent-blue text-sm font-medium hover:underline"
+                      >
+                        Voir l&apos;historique
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(teamStats ?? [])
+                        .slice(0, 5)
+                        .map((s: any, i: number) => {
+                          const m = s.team_matches
+                          const win = s.win ?? m?.our_win
+                          const k = s.kills ?? 0
+                          const d = s.deaths ?? 0
+                          const a = s.assists ?? 0
+                          const kda = d > 0 ? ((k + a) / d).toFixed(1) : (k + a).toFixed(1)
+                          return (
+                            <div
+                              key={s.id || i}
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-dark-card/80 border border-dark-border/60"
+                            >
+                              <img
+                                src={getChampionImage(s.champion_name)}
+                                alt=""
+                                className="w-8 h-8 rounded object-cover border border-dark-border shrink-0"
+                              />
+                              <span
+                                className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${
+                                  win ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                                }`}
+                              >
+                                {win ? 'V' : 'D'}
+                              </span>
+                              <span className="text-xs text-gray-400 font-mono">KDA {kda}</span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2 border-b border-dark-border pb-4">
                   {(
                     [
                       { id: 'general', label: 'Général', icon: BarChart3 },
@@ -1533,7 +1869,10 @@ export const PlayerDetailPage = () => {
         )}
 
         {selectedCard === 'pool-champ' && (
-          <div>
+          <div className="space-y-4">
+            <p className="text-gray-400 text-sm">
+              Pool et tier list pour <span className="text-white font-medium">{roleLabel}</span>. Classez vos champions par niveau de priorité (S, A, B, C).
+            </p>
             <TierTable tiers={tiersForTable} activeTier={null} />
             {TIER_KEYS.every((k) => !(tiersForTable[k] || []).length) && (
               <p className="text-gray-500 text-sm mt-4">
