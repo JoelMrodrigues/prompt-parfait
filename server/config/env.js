@@ -26,7 +26,9 @@ export function loadServerEnv() {
         if (m) {
           const key = m[1].trim()
           const val = m[2].trim().replace(/^["']|["']$/g, '').replace(/\s+$/, '')
-          if (key && val) {
+          // Ne pas écraser une variable déjà définie (ex. Railway)
+          const existing = String(process.env[key] || '').trim()
+          if (key && val && !existing) {
             process.env[key] = val
             count++
           }

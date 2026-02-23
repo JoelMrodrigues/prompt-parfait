@@ -8,6 +8,8 @@ import statsRoutes from './routes/stats.routes.js'
 loadServerEnv()
 resolveRiotApiKey()
 
+console.log('[Startup] RIOT_API_KEY présent:', !!String(process.env.RIOT_API_KEY || '').trim())
+
 const app = express()
 const PORT = process.env.PORT || 3001
 
