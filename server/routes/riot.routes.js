@@ -34,7 +34,14 @@ function requirePseudo(req, res, next) {
   next()
 }
 
-// ─── TEST CLÉ ────────────────────────────────────────────────────────────────
+// ─── DIAGNOSTIC (pas d'appel Riot) ───────────────────────────────────────────
+
+router.get('/status', (req, res) => {
+  const key = getApiKey()
+  res.json({ ok: true, riotKeySet: !!key?.trim(), message: key ? 'RIOT_API_KEY présente' : 'RIOT_API_KEY absente — ajoute-la dans Railway Variables' })
+})
+
+// ─── TEST CLÉ (appel Riot pour valider) ───────────────────────────────────────
 
 router.get('/test-key', async (req, res) => {
   const apiKey = getApiKey()
