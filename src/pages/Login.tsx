@@ -66,6 +66,7 @@ export const Login = () => {
               <label className="block text-sm font-medium mb-2">Mot de passe</label>
               <input
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded-lg focus:border-accent-blue focus:outline-none"
