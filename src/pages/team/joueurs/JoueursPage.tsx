@@ -27,7 +27,7 @@ export const JoueursPage = () => {
   const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
   const [rankedUpdateLoading, setRankedUpdateLoading] = useState(false)
-  const [soloqMood, setSoloqMood] = useState<Record<string, MoodRow>>({})
+  const [soloqMoodFetched, setSoloqMoodFetched] = useState<Record<string, MoodRow>>({})
 
   useEffect(() => {
     if (!players.length) return
@@ -36,6 +36,16 @@ export const JoueursPage = () => {
       const next: Record<string, MoodRow> = {}
       await Promise.all(
         players.map(async (p) => {
+          if (p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object') {
+            const m = p.soloq_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
+            next[p.id] = {
+              wins: m.wins ?? 0,
+              losses: m.losses ?? 0,
+              kda: m.kda ?? '—',
+              count: m.count ?? 0,
+            }
+            return
+          }
           const { data: matches } = await fetchSoloqMatches({
             playerId: p.id,
             accountSource: 'primary',
@@ -57,33 +67,54 @@ export const JoueursPage = () => {
           next[p.id] = { wins, losses, kda, count: list.length }
         })
       )
-      if (!cancelled) setSoloqMood(next)
+      if (!cancelled) setSoloqMoodFetched(next)
     }
     load()
     return () => { cancelled = true }
-  }, [players.map((p) => p.id).join(',')])
+  }, [players.map((p) => p.id).join(','), players.map((p) => (p.soloq_mood_last_5 ? JSON.stringify(p.soloq_mood_last_5) : '')).join('|')])
+
+  const soloqMood = useMemo(() => {
+    const out: Record<string, MoodRow> = { ...soloqMoodFetched }
+    for (const p of players) {
+      if (p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object') {
+        const m = p.soloq_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
+        out[p.id] = { wins: m.wins ?? 0, losses: m.losses ?? 0, kda: m.kda ?? '—', count: m.count ?? 0 }
+      }
+    }
+    return out
+  }, [players, soloqMoodFetched])
 
   const teamMood = useMemo(() => {
+    const byPlayer: Record<string, MoodRow> = {}
+    for (const p of players) {
+      if (p.team_mood_last_5 && typeof p.team_mood_last_5 === 'object') {
+        const m = p.team_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
+        byPlayer[p.id] = { wins: m.wins ?? 0, losses: m.losses ?? 0, kda: m.kda ?? '—', count: m.count ?? 0 }
+        continue
+      }
+      byPlayer[p.id] = { wins: 0, losses: 0, kda: '—', count: 0 }
+    }
     const list = (teamMatches || []).slice().sort((a: any, b: any) => {
       const ta = new Date(a.created_at || 0).getTime()
       const tb = new Date(b.created_at || 0).getTime()
       return tb - ta
     })
-    const byPlayer: Record<string, MoodRow> = {}
-    for (const p of players) byPlayer[p.id] = { wins: 0, losses: 0, kda: '—', count: 0 }
     for (const p of players) {
+      if (byPlayer[p.id]?.count > 0) continue
       const participations: { win: boolean; kills: number; deaths: number; assists: number }[] = []
       for (const match of list) {
         const part = (match.team_match_participants || []).find(
           (x: any) => (x.team_side === 'our' || !x.team_side) && x.player_id === p.id
         )
-        if (part) participations.push({
-          win: !!part.win || !!match.our_win,
-          kills: part.kills ?? 0,
-          deaths: part.deaths ?? 0,
-          assists: part.assists ?? 0,
-        })
-        if (participations.length >= 5) break
+        if (part) {
+          participations.push({
+            win: !!part.win || !!match.our_win,
+            kills: part.kills ?? 0,
+            deaths: part.deaths ?? 0,
+            assists: part.assists ?? 0,
+          })
+          if (participations.length >= 5) break
+        }
       }
       if (participations.length === 0) continue
       const row = byPlayer[p.id]

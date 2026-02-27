@@ -10,6 +10,8 @@ import {
   fetchRankAndMatches,
   fetchMatchHistory,
   fetchMatchCount,
+  fetchMatchIdsOnly,
+  fetchMatchDetailsByIds,
   fetchWeeklyMatchCount,
 } from '../services/riotService.js'
 import { riotFetch } from '../lib/riotClient.js'
@@ -17,7 +19,11 @@ import { riotFetch } from '../lib/riotClient.js'
 const router = Router()
 
 function getApiKey() {
-  return (process.env.RIOT_API_KEY || '').trim().replace(/\r/g, '')
+  const isProd = process.env.NODE_ENV === 'production'
+  const key = isProd
+    ? (process.env.RIOT_API_KEY || '')
+    : (process.env.RIOT_API_KEY_TEST || process.env.RIOT_API_KEY || '')
+  return key.trim().replace(/\r/g, '')
 }
 
 // Middleware : vérifie que la clé API est configurée
@@ -202,6 +208,58 @@ router.get('/match-history', requireApiKey, requirePseudo, async (req, res) => {
     res.json({ success: true, matches: result.matches, hasMore: result.hasMore })
   } catch (err) {
     console.error('match-history error:', err.message)
+    res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
+  }
+})
+
+// ─── LISTE D'IDS UNIQUEMENT (count max 100, peu de requêtes) ───────────────────
+
+router.get('/match-ids', requireApiKey, requirePseudo, async (req, res) => {
+  const parsed = parsePseudo(req.pseudo)
+  if (!parsed) {
+    return res.status(400).json({ success: false, error: 'Pseudo GameName#TagLine requis' })
+  }
+  const start = Math.max(0, parseInt(req.query.start, 10) || 0)
+  const count = Math.min(100, Math.max(1, parseInt(req.query.count, 10) || 100))
+
+  try {
+    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
+    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+
+    const result = await fetchMatchIdsOnly(puuidResult.puuid, start, count, getApiKey())
+    if (result.error) return res.status(result.status || 500).json({ success: false, error: result.error })
+
+    res.json({ success: true, puuid: puuidResult.puuid, matchIds: result.matchIds, hasMore: result.hasMore })
+  } catch (err) {
+    console.error('match-ids error:', err.message)
+    res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
+  }
+})
+
+// ─── DÉTAILS DE MATCHS PAR IDS (pour les manquants uniquement) ─────────────────
+
+router.get('/match-details', requireApiKey, requirePseudo, async (req, res) => {
+  const parsed = parsePseudo(req.pseudo)
+  if (!parsed) {
+    return res.status(400).json({ success: false, error: 'Pseudo GameName#TagLine requis' })
+  }
+  const matchIdsRaw = (req.query.matchIds || req.query.match_ids || '').trim()
+  const matchIds = matchIdsRaw ? matchIdsRaw.split(/[\s,]+/).filter(Boolean) : []
+  if (matchIds.length === 0) {
+    return res.status(400).json({ success: false, error: 'Paramètre matchIds requis (ids séparés par des virgules)' })
+  }
+  if (matchIds.length > 50) {
+    return res.status(400).json({ success: false, error: 'Maximum 50 match IDs par requête' })
+  }
+
+  try {
+    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
+    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+
+    const matches = await fetchMatchDetailsByIds(puuidResult.puuid, matchIds, getApiKey())
+    res.json({ success: true, matches })
+  } catch (err) {
+    console.error('match-details error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
   }
 })

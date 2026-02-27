@@ -7,12 +7,16 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { TeamSidebar } from './TeamSidebar'
 import { useTeam } from './hooks/useTeam'
 import { useTeamAutoSync } from './hooks/useTeamAutoSync'
+import { useSoloqMoodSync } from './hooks/useSoloqMoodSync'
+import { useTeamMoodSync } from './hooks/useTeamMoodSync'
 
 export const TeamLayout = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { team, loading } = useTeam()
   useTeamAutoSync()
+  useSoloqMoodSync()
+  useTeamMoodSync()
 
   // Si pas d'équipe, rediriger vers overview (sauf page d'invitation)
   const isJoinPage = location.pathname.startsWith('/team/join/')

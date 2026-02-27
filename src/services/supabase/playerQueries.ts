@@ -57,6 +57,19 @@ export async function fetchSoloqMatches({
   return { data, error, count }
 }
 
+/** Liste des riot_match_id déjà en base (S16) pour un joueur — pour diff avec Riot */
+export async function fetchSoloqMatchIds(playerId: string, accountSource: string, seasonStart: number) {
+  const { data, error } = await supabase
+    .from('player_soloq_matches')
+    .select('riot_match_id')
+    .eq('player_id', playerId)
+    .eq('account_source', accountSource)
+    .gte('game_creation', seasonStart)
+  if (error) return { data: [], error }
+  const ids = (data || []).map((r: { riot_match_id: string }) => r.riot_match_id).filter(Boolean)
+  return { data: ids, error: null }
+}
+
 export async function fetchSoloqChampionStats({
   playerId,
   accountSource,

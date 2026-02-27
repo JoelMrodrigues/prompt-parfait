@@ -1,11 +1,14 @@
 /**
- * Sync automatique : pour chaque joueur dans l'ordre :
- * 1) Total RÉEL de parties (match-count, comme "Actualiser le total")
- * 2) Comparer avec Supabase (obligatoire : base <= total réel)
- * 3) Remonter uniquement les parties manquantes, les pousser en Supabase
- * 4) Mettre à jour le RANG en dernier (sync-rank, pas sync-rank-and-matches)
- * 5) Top 5 champions via Supabase (pas d'API Riot)
- * Pause 3 min puis recommencer.
+ * AUTO-SYNC — Saison depuis 08/01/2026 → tout en Supabase
+ *
+ * Pour chaque joueur :
+ * 1) match-count = total OFFICIEL S16 (validé côté backend) → ex. 126 pour Marcel
+ * 2) match-ids : on récupère uniquement les totalRiot premiers IDs (pas 348)
+ * 3) Manquants = ces IDs pas encore en base → match-details → upsert Supabase
+ * 4) soloq_total_match_ids = count en base après sync (ce qu’on a remonté à l’instant)
+ * 5) sync-rank, Top 5 depuis Supabase
+ * 6) Mood Solo Q + Team : 5 dernières parties depuis Supabase (pas d’API Riot), mise à jour joueur.
+ * Pause 3 min, recommencer.
  */
 import { useEffect, useRef } from 'react'
 import { useTeam } from './useTeam'
@@ -13,9 +16,9 @@ import { supabase } from '../../../lib/supabase'
 import {
   fetchSoloqChampionStats,
   fetchSoloqMatches,
+  fetchSoloqMatchIds,
   upsertSoloqMatches,
 } from '../../../services/supabase/playerQueries'
-
 const getBackendUrl = () =>
   (import.meta.env.VITE_DPM_API_URL || 'http://localhost:3001').replace(/\/$/, '')
 const SEASON_16_START_MS = 1767830400000
@@ -23,8 +26,8 @@ const DELAY_BETWEEN_REQUESTS_MS = 2500
 const DELAY_BETWEEN_PLAYERS_MS = 3000
 const SYNC_LOOP_INTERVAL_MS = 3 * 60 * 1000
 const DELAY_BEFORE_FIRST_RUN_MS = 2000
-const MAX_MATCHES_PER_PLAYER = 300
-const PAGE_SIZE = 20
+const MATCH_IDS_PAGE = 100
+const DETAILS_CHUNK = 20
 
 const LOG_PREFIX = '[AutoSync]'
 
@@ -36,6 +39,9 @@ function hasValidPseudo(p: { pseudo?: string | null }) {
   const pseudo = (p.pseudo || '').trim()
   return pseudo.length > 0 && (pseudo.includes('#') || pseudo.includes('/'))
 }
+
+/** Parties < 3 min = remake : exclues des stats (Top 5, etc.) — comme page joueur */
+const REMAKE_THRESHOLD_SEC = 180
 
 export function useTeamAutoSync() {
   const { team, players, updatePlayer, refetch } = useTeam()
@@ -77,8 +83,8 @@ export function useTeamAutoSync() {
           console.log(LOG_PREFIX, `[${i + 1}/${listToSync.length}]`, name)
 
           try {
-            // ─── 1) Total RÉEL (comme "Actualiser le total" en Import) ───
-            console.log(LOG_PREFIX, name, '| 1/4 total réel (match-count)...')
+            // ─── 1) Total OFFICIEL S16 (match-count : validé gameCreation + queue) ───
+            console.log(LOG_PREFIX, name, '| 1/4 total officiel (match-count)...')
             let countRes = await fetch(
               `${getBackendUrl()}/api/riot/match-count?pseudo=${encodeURIComponent(pseudo)}`
             )
@@ -98,10 +104,46 @@ export function useTeamAutoSync() {
               continue
             }
             const totalRiot = countData.total
-            console.log(LOG_PREFIX, name, '| total réel Riot (S16):', totalRiot)
+            console.log(LOG_PREFIX, name, '| total officiel S16:', totalRiot)
             await delay(DELAY_BETWEEN_REQUESTS_MS)
 
-            // ─── 2) Comparer avec Supabase ───
+            if (totalRiot === 0) {
+              await updatePlayerFn(player.id, { soloq_total_match_ids: 0 })
+              await delay(DELAY_BETWEEN_PLAYERS_MS)
+              continue
+            }
+
+            // ─── 2) Récupérer uniquement les totalRiot premiers IDs (match-ids, pages de 100) ───
+            console.log(LOG_PREFIX, name, '| 2/4 liste IDs (match-ids, max', totalRiot, ')...')
+            const allRiotIds: string[] = []
+            let start = 0
+            while (allRiotIds.length < totalRiot) {
+              const idsRes = await fetch(
+                `${getBackendUrl()}/api/riot/match-ids?pseudo=${encodeURIComponent(pseudo)}&start=${start}&count=${MATCH_IDS_PAGE}`
+              )
+              const idsData = await idsRes.json().catch(() => ({}))
+              if (idsRes.status === 429 && (idsData.retry_after ?? idsData.retryAfter)) {
+                const wait = Math.max(2000, (idsData.retry_after ?? idsData.retryAfter) * 1000)
+                console.log(LOG_PREFIX, name, '| match-ids rate limit — attente', Math.round(wait / 1000), 's')
+                await delay(wait)
+                continue
+              }
+              if (!idsData.success || !Array.isArray(idsData.matchIds)) {
+                console.warn(LOG_PREFIX, name, '| match-ids erreur:', idsData.error || idsRes.status)
+                break
+              }
+              const chunk = idsData.matchIds || []
+              for (const id of chunk) {
+                if (allRiotIds.length >= totalRiot) break
+                allRiotIds.push(id)
+              }
+              if (chunk.length < MATCH_IDS_PAGE || !idsData.hasMore) break
+              start += MATCH_IDS_PAGE
+              await delay(DELAY_BETWEEN_REQUESTS_MS)
+            }
+            const idsToSync = allRiotIds.slice(0, totalRiot)
+
+            // ─── 3) IDs déjà en base → manquants = idsToSync − base ───
             const { count: countInDb } = await fetchSoloqMatches({
               playerId: player.id,
               accountSource: 'primary',
@@ -111,37 +153,28 @@ export function useTeamAutoSync() {
               withCount: true,
             })
             const inDb = countInDb ?? 0
-            if (inDb > totalRiot) {
-              console.warn(LOG_PREFIX, name, '| incohérence: base=', inDb, '> Riot=', totalRiot, '(impossible en théorie, on ne touche pas aux parties)')
-            }
+            const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS)
+            const existingSet = new Set(existingIds || [])
+            const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
 
-            // ─── 3) Remonter uniquement les parties manquantes, pousser en Supabase ───
-            const toLoad = Math.max(0, Math.min(totalRiot - inDb, MAX_MATCHES_PER_PLAYER - inDb))
-            if (toLoad > 0) {
-              console.log(LOG_PREFIX, name, '| 2/4 manquantes:', toLoad, '— on remonte et pousse en base')
-              let start = inDb
-              while (start < totalRiot && start < MAX_MATCHES_PER_PLAYER) {
-                const limit = Math.min(PAGE_SIZE, totalRiot - start)
+            // ─── 4) Détails uniquement pour les manquants, upsert Supabase ───
+            if (missingIds.length > 0) {
+              console.log(LOG_PREFIX, name, '| manquantes:', missingIds.length, '— récupération détails uniquement')
+              for (let c = 0; c < missingIds.length; c += DETAILS_CHUNK) {
+                const chunk = missingIds.slice(c, c + DETAILS_CHUNK)
                 try {
-                  const histRes = await fetch(
-                    `${getBackendUrl()}/api/riot/match-history?pseudo=${encodeURIComponent(pseudo)}&start=${start}&limit=${limit}`
+                  const detailsRes = await fetch(
+                    `${getBackendUrl()}/api/riot/match-details?pseudo=${encodeURIComponent(pseudo)}&matchIds=${chunk.join(',')}`
                   )
-                  const histData = await histRes.json().catch(() => ({}))
-                  if (histRes.status === 429 && (histData.retry_after ?? histData.retryAfter)) {
-                    const wait = Math.max(2000, (histData.retry_after ?? histData.retryAfter) * 1000)
-                    console.log(LOG_PREFIX, name, '| rate limit — attente', Math.round(wait / 1000), 's')
+                  const detailsData = await detailsRes.json().catch(() => ({}))
+                  if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
+                    const wait = Math.max(2000, (detailsData.retry_after ?? detailsData.retryAfter) * 1000)
                     await delay(wait)
+                    c -= DETAILS_CHUNK
                     continue
                   }
-                  if (!histData.success || !Array.isArray(histData.matches) || histData.matches.length === 0) {
-                    console.log(LOG_PREFIX, name, '| plus de matches ou erreur, arrêt')
-                    break
-                  }
-                  const s16 = (histData.matches || []).filter(
-                    (m: any) => (m.gameCreation || 0) >= SEASON_16_START_MS
-                  )
-                  if (s16.length > 0 && supabase) {
-                    const rows = s16.map((m: any) => ({
+                  if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0 && supabase) {
+                    const rows = detailsData.matches.map((m: any) => ({
                       player_id: player.id,
                       riot_match_id: m.matchId,
                       account_source: 'primary',
@@ -156,33 +189,28 @@ export function useTeamAutoSync() {
                       game_creation: m.gameCreation ?? 0,
                     }))
                     const { error: upsertErr } = await upsertSoloqMatches(rows)
-                    if (upsertErr) {
-                      console.error(LOG_PREFIX, name, '| erreur Supabase upsert:', upsertErr)
-                    } else {
-                      console.log(LOG_PREFIX, name, '| +', rows.length, 'parties poussées en Supabase')
-                    }
+                    if (!upsertErr) console.log(LOG_PREFIX, name, '| +', rows.length, 'parties poussées')
                   }
-                  start += histData.matches?.length ?? 0
-                  if (!histData.hasMore || (histData.matches?.length ?? 0) < limit) break
-                  await delay(DELAY_BETWEEN_REQUESTS_MS)
                 } catch (err) {
-                  console.warn(LOG_PREFIX, name, '| erreur match-history:', err)
-                  break
+                  console.warn(LOG_PREFIX, name, '| erreur match-details:', err)
                 }
+                await delay(DELAY_BETWEEN_REQUESTS_MS)
               }
-              const { count: afterCount } = await fetchSoloqMatches({
-                playerId: player.id,
-                accountSource: 'primary',
-                seasonStart: SEASON_16_START_MS,
-                offset: 0,
-                limit: 1,
-                withCount: true,
-              })
-              console.log(LOG_PREFIX, name, '| en base après sync:', afterCount ?? 0, '/', totalRiot)
-            } else {
-              console.log(LOG_PREFIX, name, '| 2/4 déjà à jour —', inDb, 'parties en base /', totalRiot, 'Riot')
             }
-            await updatePlayerFn(player.id, { soloq_total_match_ids: totalRiot })
+            const { count: afterCount } = await fetchSoloqMatches({
+              playerId: player.id,
+              accountSource: 'primary',
+              seasonStart: SEASON_16_START_MS,
+              offset: 0,
+              limit: 1,
+              withCount: true,
+            })
+            const totalEnBase = afterCount ?? 0
+            console.log(LOG_PREFIX, name, '| en base après sync:', totalEnBase, 'parties')
+            if (missingIds.length === 0 && inDb >= totalRiot) {
+              console.log(LOG_PREFIX, name, '| déjà à jour —', inDb, 'parties en base')
+            }
+            await updatePlayerFn(player.id, { soloq_total_match_ids: totalEnBase })
 
             // ─── 4) Rang en dernier (sync-rank seul, pas sync-rank-and-matches) ───
             console.log(LOG_PREFIX, name, '| 3/4 mise à jour rang (sync-rank)...')
@@ -210,12 +238,13 @@ export function useTeamAutoSync() {
               console.warn(LOG_PREFIX, name, '| sync-rank erreur:', rankData.error || rankRes.status)
             }
 
-            // ─── 5) Top 5 via Supabase (pas d'API Riot) ───
-            console.log(LOG_PREFIX, name, '| 4/4 Top 5 champions (Supabase)...')
+            // ─── 5) Top 5 via Supabase, hors remakes (même logique que page joueur) ───
+            console.log(LOG_PREFIX, name, '| 4/4 Top 5 champions (Supabase, hors remakes)...')
             const { data: rows } = await fetchSoloqChampionStats({
               playerId: player.id,
               accountSource: 'primary',
               seasonStart: SEASON_16_START_MS,
+              minDuration: REMAKE_THRESHOLD_SEC,
             })
             if (rows?.length) {
               const byChamp: Record<string, { games: number; wins: number }> = {}
@@ -247,6 +276,7 @@ export function useTeamAutoSync() {
           }
         }
 
+        // ─── Mood Solo Q + Team (5 dernières parties depuis Supabase, pas d’API Riot) ───
         console.log(LOG_PREFIX, 'Refetch équipe...')
         await refetchFn()
         console.log(LOG_PREFIX, '--- Fin du cycle ---')

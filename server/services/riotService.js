@@ -221,6 +221,50 @@ export async function fetchRankAndMatches(puuid, platform, apiKey, limit = 20) {
   return { rank, matches, totalMatchIds: allIds.length }
 }
 
+// ─── LISTE D'IDS (sans détails, count max 100) ─────────────────────────────────
+
+const MATCH_IDS_PAGE_MAX = 100
+
+export async function fetchMatchIdsOnly(puuid, start, count, apiKey) {
+  const limit = Math.min(Math.max(1, count || 20), MATCH_IDS_PAGE_MAX)
+  const res = await riotFetch(
+    `https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=${start}&count=${limit}&start_time=${SEASON_16_START_SEC}`,
+    apiKey,
+  )
+  if (!res.ok) {
+    return {
+      error: res.data?.status?.message || `Match IDs API (${res.status})`,
+      status: res.status >= 500 ? 500 : 400,
+    }
+  }
+  const matchIds = Array.isArray(res.data) ? res.data : []
+  return { matchIds, hasMore: matchIds.length === limit }
+}
+
+// ─── DÉTAILS DE MATCHS PAR IDS (pour compléter les manquants) ─────────────────
+
+export async function fetchMatchDetailsByIds(puuid, matchIds, apiKey) {
+  const matches = []
+  for (const matchId of matchIds) {
+    await sleep(120)
+    try {
+      const res = await riotFetch(
+        `https://europe.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`,
+        apiKey,
+      )
+      if (!res.ok || !res.data?.info) continue
+      const { info } = res.data
+      if ((info.queueId ?? 0) !== QUEUE_SOLO_DUO || (info.gameCreation ?? 0) < SEASON_16_START_MS) continue
+      const participant = extractParticipantData(info, puuid)
+      if (!participant) continue
+      matches.push({ matchId, ...participant })
+    } catch (e) {
+      console.warn('fetchMatchDetailsByIds — match ignoré:', matchId, e.message)
+    }
+  }
+  return matches
+}
+
 // ─── HISTORIQUE MATCHS (paginé) ───────────────────────────────────────────────
 
 export async function fetchMatchHistory(puuid, start, limit, apiKey) {

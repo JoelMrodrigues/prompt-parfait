@@ -17,6 +17,7 @@ import {
   ChevronDown,
   TrendingUp,
   X,
+  Table2,
 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useToast } from '../../../contexts/ToastContext'
@@ -65,6 +66,7 @@ const TEAM_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
   { id: 'champions', label: 'Champions', icon: Sparkles },
   { id: 'historiques', label: 'Historiques', icon: History },
+  { id: 'allstats', label: 'All Stats', icon: Table2 },
 ]
 
 function rowToMatch(row) {
@@ -414,6 +416,7 @@ export const PlayerDetailPage = () => {
   const [championModalMatches, setChampionModalMatches] = useState([])
   const [championModalMatchesLoading, setChampionModalMatchesLoading] = useState(false)
   const [gameDetailMatch, setGameDetailMatch] = useState(null)
+  const [selectedAllStatsMatchId, setSelectedAllStatsMatchId] = useState<string | null>(null)
   const matchHistoryPlayerIdRef = useRef(null)
   const [lpGraphMatches, setLpGraphMatches] = useState<any[]>([])
   const [lpGraphLoading, setLpGraphLoading] = useState(false)
@@ -1862,6 +1865,189 @@ export const PlayerDetailPage = () => {
                       Aucune donnée en équipe. Ajoutez des parties depuis <strong>Matchs</strong>.
                     </p>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* ── All Stats (matchs équipe : liste puis détail 10 joueurs × toutes les stats) ── */}
+            {selectedTeamSub === 'allstats' && (
+              <div className="space-y-4">
+                {selectedAllStatsMatchId ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAllStatsMatchId(null)}
+                      className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+                    >
+                      <ArrowLeft size={16} />
+                      Retour à la liste des matchs
+                    </button>
+                    {(() => {
+                      const m = (allTeamMatches || []).find(
+                        (x: any) => x.id === selectedAllStatsMatchId
+                      )
+                      const json = m?.match_json
+                      if (!m) return <p className="text-gray-500 text-sm">Match introuvable.</p>
+                      if (!json || (!json.participants?.length && !json.info?.participants?.length)) {
+                        return (
+                          <div className="rounded-xl border border-dark-border bg-dark-card/50 p-6 text-center">
+                            <p className="text-gray-500 text-sm">
+                              Données complètes non disponibles pour ce match (import ancien).
+                            </p>
+                            <p className="text-gray-500 text-xs mt-1">
+                              Ré-importez le match depuis Import pour enregistrer toutes les stats.
+                            </p>
+                          </div>
+                        )
+                      }
+                      const participants = json.info?.participants ?? json.participants ?? []
+                      const identities = json.participantIdentities ?? json.info?.participantIdentities ?? []
+                      const getPseudo = (participantId: number) => {
+                        const id = identities.find(
+                          (i: any) => (i.participantId ?? i.participant_id) === participantId
+                        )
+                        const p = id?.player ?? id?.riotId
+                        if (!p) return `Joueur ${participantId}`
+                        const name = p.gameName ?? p.game_name ?? p.summonerName ?? ''
+                        const tag = p.tagLine ?? p.tag_line ?? ''
+                        return tag ? `${name}#${tag}` : name || `Joueur ${participantId}`
+                      }
+                      const sorted = [...participants].sort((a: any, b: any) => {
+                        const tA = a.teamId ?? a.team_id ?? 0
+                        const tB = b.teamId ?? b.team_id ?? 0
+                        if (tA !== tB) return tA - tB
+                        return (a.participantId ?? a.participant_id ?? 0) - (b.participantId ?? b.participant_id ?? 0)
+                      })
+                      const allKeys = new Set<string>()
+                      sorted.forEach((p: any) => {
+                        const s = p.stats ?? p
+                        if (s && typeof s === 'object') Object.keys(s).forEach((k) => allKeys.add(k))
+                      })
+                      const ignoredExact = new Set(
+                        [
+                          'causedEarlySurrender',
+                          'combatPlayerScore',
+                          'earlySurrenderAccomplice',
+                          'gameEndedInSurrender',
+                          'gameEndedInEarlySurrender',
+                          'neutralMinionsKilledEnemyJungle',
+                          'neutralMinionsKilledTeamJungle',
+                          'objectivePlayerScore',
+                          'playerSubteamId',
+                          'sightWardsBoughtInGame',
+                          'subteamPlacement',
+                          'teamEarlySurrendered',
+                          'totalPlayerScore',
+                          'totalScoreRank',
+                          'unrealKills',
+                        ].map((k) => k.toLowerCase()),
+                      )
+                      const statKeys = Array.from(allKeys)
+                        .filter((k) => {
+                          const kl = k.toLowerCase()
+                          if (ignoredExact.has(kl)) return false
+                          if (kl.startsWith('playeraugment')) return false
+                          if (kl.startsWith('playerscore')) return false
+                          return true
+                        })
+                        .sort()
+                      const getStat = (p: any, key: string) => {
+                        const s = p.stats ?? p
+                        if (!s || typeof s !== 'object') return '—'
+                        const k = Object.keys(s).find((x) => x.toLowerCase() === key.toLowerCase())
+                        const v = k ? s[k] : s[key]
+                        if (v === undefined || v === null) return '—'
+                        if (typeof v === 'boolean') return v ? 'Oui' : 'Non'
+                        return String(v)
+                      }
+                      return (
+                        <div className="overflow-x-auto rounded-xl border border-dark-border bg-dark-bg/50">
+                          <table className="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                              <tr className="border-b border-dark-border">
+                                <th className="p-3 text-gray-400 font-medium text-sm sticky left-0 bg-dark-bg/90 z-10 min-w-[120px]">
+                                  Stat
+                                </th>
+                                {sorted.map((p: any, i: number) => {
+                                  const pid = p.participantId ?? p.participant_id ?? i + 1
+                                  return (
+                                    <th
+                                      key={pid}
+                                      className="p-3 text-gray-300 font-medium text-sm whitespace-nowrap max-w-[140px] truncate"
+                                      title={getPseudo(pid)}
+                                    >
+                                      {getPseudo(pid)}
+                                    </th>
+                                  )
+                                })}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {statKeys.map((key) => (
+                                <tr key={key} className="border-b border-dark-border/50 hover:bg-dark-card/30">
+                                  <td className="p-3 text-gray-400 text-sm font-medium sticky left-0 bg-dark-bg/80 z-10">
+                                    {key}
+                                  </td>
+                                  {sorted.map((p: any, i: number) => (
+                                    <td key={i} className="p-3 text-white text-sm">
+                                      {getStat(p, key)}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    })()}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-500 text-sm">
+                      Choisissez un match pour afficher les 10 joueurs et toutes les statistiques (données du JSON importé).
+                    </p>
+                    {!allTeamMatches?.length ? (
+                      <div className="rounded-xl border border-dark-border bg-dark-card/50 p-6 text-center">
+                        <p className="text-gray-500 text-sm">Aucun match. Importez des parties depuis Matchs / Import.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {(allTeamMatches || []).map((m: any) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setSelectedAllStatsMatchId(m.id)}
+                            className="w-full text-left flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-dark-bg/50 border border-dark-border hover:border-accent-blue/50 hover:bg-dark-bg/70 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono text-sm text-gray-500">#{m.game_id}</span>
+                              <span
+                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                  m.our_win ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                }`}
+                              >
+                                {m.our_win ? 'Victoire' : 'Défaite'}
+                              </span>
+                              <span className="text-gray-500 text-sm">
+                                {m.game_duration ? `${Math.round(m.game_duration / 60)} min` : '—'}
+                              </span>
+                            </div>
+                            {m.game_creation && (
+                              <span className="text-xs text-gray-500">
+                                {new Date(m.game_creation).toLocaleString('fr-FR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
