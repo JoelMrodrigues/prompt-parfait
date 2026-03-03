@@ -9,7 +9,7 @@ export default [
   { ignores: ['dist', 'node_modules', 'server'] },
 
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

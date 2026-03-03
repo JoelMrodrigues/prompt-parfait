@@ -26,6 +26,8 @@ export interface Player {
   rank?: string | null
   rank_lp?: number | null
   top_champions?: string[] | null
+  puuid?: string | null
+  region?: string | null
   created_at?: string
 }
 

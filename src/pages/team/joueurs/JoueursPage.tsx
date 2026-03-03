@@ -13,10 +13,8 @@ import { MoodSoloQCard, type MoodRow } from './components/MoodSoloQCard'
 import { MoodTeamCard } from './components/MoodTeamCard'
 import { fetchSoloqMatches, fetchSoloqChampionStats, upsertSoloqMatches } from '../../../services/supabase/playerQueries'
 import { supabase } from '../../../lib/supabase'
-
-const getBackendUrl = () =>
-  (import.meta.env.VITE_DPM_API_URL || 'http://localhost:3001').replace(/\/$/, '')
-const SEASON_16_START_MS = 1767830400000
+import { SEASON_16_START_MS } from '../../../lib/constants'
+import { apiFetch } from '../../../lib/apiFetch'
 
 export const JoueursPage = () => {
   const { error: toastError, success: toastSuccess } = useToast()
@@ -164,8 +162,8 @@ export const JoueursPage = () => {
     setRankedUpdateLoading(true)
     try {
       for (const player of toUpdate) {
-        const res = await fetch(
-          `${getBackendUrl()}/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(player.pseudo.trim())}`
+        const res = await apiFetch(
+          `/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(player.pseudo.trim())}`
         )
         const data = await res.json().catch(() => ({}))
         if (!data.success) {

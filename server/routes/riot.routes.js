@@ -40,6 +40,18 @@ function requirePseudo(req, res, next) {
   next()
 }
 
+/**
+ * Résout le PUUID depuis le param ?puuid (cache) ou via lookup Riot.
+ * Évite 2 appels API inutiles si le PUUID est déjà connu.
+ * @returns {{ puuid: string } | { error: string, status: number }}
+ */
+async function resolvePuuid(pseudo, region, puuidOverride) {
+  if (puuidOverride) return { puuid: puuidOverride }
+  const parsed = parsePseudo(pseudo)
+  if (!parsed) return { error: 'Pseudo au format GameName#TagLine ou GameName/TagLine requis', status: 400 }
+  return getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey(), region)
+}
+
 // ─── DIAGNOSTIC (pas d'appel Riot) ───────────────────────────────────────────
 
 router.get('/status', (req, res) => {
@@ -67,7 +79,7 @@ router.get('/test-key', async (req, res) => {
 // ─── TOP CHAMPIONS SOLO Q ────────────────────────────────────────────────────
 
 router.get('/soloq-top-champions', requireApiKey, requirePseudo, async (req, res) => {
-  const region = (req.query.region || 'euw1').trim()
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
   const cacheKey = cache.buildKey(req.pseudo, region)
   const cached = cache.get(cacheKey)
   if (cached) {
@@ -89,20 +101,15 @@ router.get('/soloq-top-champions', requireApiKey, requirePseudo, async (req, res
 // ─── SYNC RANK ───────────────────────────────────────────────────────────────
 
 router.get('/sync-rank', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({
-      success: false,
-      error: 'Pseudo au format GameName#TagLine ou GameName/TagLine requis',
-    })
-  }
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
 
   try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const rank = await getRankFromPuuid('euw1', puuidResult.puuid, getApiKey())
-    res.json({ success: true, rank })
+    const rank = await getRankFromPuuid(region, resolved.puuid, getApiKey())
+    res.json({ success: true, rank, puuid: resolved.puuid })
   } catch (err) {
     const detail = err.response?.data?.status?.message || err.message
     let msg = detail || 'Erreur serveur'
@@ -164,20 +171,15 @@ router.get('/player-stats', requireApiKey, requirePseudo, async (req, res) => {
 // ─── SYNC RANK + 20 DERNIERS MATCHS ──────────────────────────────────────────
 
 router.get('/sync-rank-and-matches', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({
-      success: false,
-      error: 'Pseudo au format GameName#TagLine ou GameName/TagLine requis',
-    })
-  }
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
 
   try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const { rank, matches, totalMatchIds } = await fetchRankAndMatches(puuidResult.puuid, 'euw1', getApiKey(), 20)
-    res.json({ success: true, rank, matches, totalMatchIds })
+    const { rank, matches, totalMatchIds } = await fetchRankAndMatches(resolved.puuid, region, getApiKey(), 20)
+    res.json({ success: true, rank, matches, totalMatchIds, puuid: resolved.puuid })
   } catch (err) {
     console.error('sync-rank-and-matches error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
@@ -187,25 +189,19 @@ router.get('/sync-rank-and-matches', requireApiKey, requirePseudo, async (req, r
 // ─── HISTORIQUE MATCHS (paginé) ───────────────────────────────────────────────
 
 router.get('/match-history', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({
-      success: false,
-      error: 'Pseudo au format GameName#TagLine ou GameName/TagLine requis',
-    })
-  }
-
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
   const start = Math.max(0, parseInt(req.query.start, 10) || 0)
   const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 20), 100)
 
   try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const result = await fetchMatchHistory(puuidResult.puuid, start, limit, getApiKey())
+    const result = await fetchMatchHistory(resolved.puuid, start, limit, getApiKey(), region)
     if (result.error) return res.status(result.status || 500).json({ success: false, error: result.error })
 
-    res.json({ success: true, matches: result.matches, hasMore: result.hasMore })
+    res.json({ success: true, matches: result.matches, hasMore: result.hasMore, puuid: resolved.puuid })
   } catch (err) {
     console.error('match-history error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
@@ -215,21 +211,19 @@ router.get('/match-history', requireApiKey, requirePseudo, async (req, res) => {
 // ─── LISTE D'IDS UNIQUEMENT (count max 100, peu de requêtes) ───────────────────
 
 router.get('/match-ids', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({ success: false, error: 'Pseudo GameName#TagLine requis' })
-  }
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
   const start = Math.max(0, parseInt(req.query.start, 10) || 0)
   const count = Math.min(100, Math.max(1, parseInt(req.query.count, 10) || 100))
 
   try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const result = await fetchMatchIdsOnly(puuidResult.puuid, start, count, getApiKey())
+    const result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region)
     if (result.error) return res.status(result.status || 500).json({ success: false, error: result.error })
 
-    res.json({ success: true, puuid: puuidResult.puuid, matchIds: result.matchIds, hasMore: result.hasMore })
+    res.json({ success: true, puuid: resolved.puuid, matchIds: result.matchIds, hasMore: result.hasMore })
   } catch (err) {
     console.error('match-ids error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
@@ -239,10 +233,8 @@ router.get('/match-ids', requireApiKey, requirePseudo, async (req, res) => {
 // ─── DÉTAILS DE MATCHS PAR IDS (pour les manquants uniquement) ─────────────────
 
 router.get('/match-details', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({ success: false, error: 'Pseudo GameName#TagLine requis' })
-  }
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
   const matchIdsRaw = (req.query.matchIds || req.query.match_ids || '').trim()
   const matchIds = matchIdsRaw ? matchIdsRaw.split(/[\s,]+/).filter(Boolean) : []
   if (matchIds.length === 0) {
@@ -253,11 +245,11 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req, res) => {
   }
 
   try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const matches = await fetchMatchDetailsByIds(puuidResult.puuid, matchIds, getApiKey())
-    res.json({ success: true, matches })
+    const matches = await fetchMatchDetailsByIds(resolved.puuid, matchIds, getApiKey(), region)
+    res.json({ success: true, matches, puuid: resolved.puuid })
   } catch (err) {
     console.error('match-details error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
@@ -267,22 +259,17 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req, res) => {
 // ─── COMPTAGE MATCHS SAISON ───────────────────────────────────────────────────
 
 router.get('/match-count', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({
-      success: false,
-      error: 'Pseudo au format GameName#TagLine requis',
-    })
-  }
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
 
   try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const result = await fetchMatchCount(puuidResult.puuid, getApiKey())
+    const result = await fetchMatchCount(resolved.puuid, getApiKey(), region)
     if (result.error) return res.status(result.status || 500).json({ success: false, error: result.error })
 
-    res.json({ success: true, total: result.total })
+    res.json({ success: true, total: result.total, puuid: resolved.puuid })
   } catch (err) {
     console.error('match-count error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })
@@ -292,18 +279,17 @@ router.get('/match-count', requireApiKey, requirePseudo, async (req, res) => {
 // ─── GAMES SEMAINE (soloq ranked, 7 derniers jours) ─────────────────────────
 
 router.get('/weekly-games', requireApiKey, requirePseudo, async (req, res) => {
-  const parsed = parsePseudo(req.pseudo)
-  if (!parsed) {
-    return res.status(400).json({ success: false, error: 'Pseudo au format GameName#TagLine requis' })
-  }
-  try {
-    const puuidResult = await getPuuidByRiotId(parsed.gameName, parsed.tagLine, getApiKey())
-    if (puuidResult.error) return res.status(puuidResult.status).json({ success: false, error: puuidResult.error })
+  const region = (req.query.region || 'euw1').trim().toLowerCase()
+  const puuidOverride = (req.query.puuid || '').trim()
 
-    const result = await fetchWeeklyMatchCount(puuidResult.puuid, getApiKey())
+  try {
+    const resolved = await resolvePuuid(req.pseudo, region, puuidOverride)
+    if (resolved.error) return res.status(resolved.status).json({ success: false, error: resolved.error })
+
+    const result = await fetchWeeklyMatchCount(resolved.puuid, getApiKey(), region)
     if (result.error) return res.status(result.status || 500).json({ success: false, error: result.error })
 
-    res.json({ success: true, count: result.count })
+    res.json({ success: true, count: result.count, puuid: resolved.puuid })
   } catch (err) {
     console.error('weekly-games error:', err.message)
     res.status(500).json({ success: false, error: err.message || 'Erreur serveur' })

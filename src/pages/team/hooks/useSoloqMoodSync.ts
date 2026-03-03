@@ -5,10 +5,9 @@
 import { useEffect, useRef } from 'react'
 import { useTeam } from './useTeam'
 import { fetchSoloqMatches } from '../../../services/supabase/playerQueries'
+import { REMAKE_THRESHOLD_SEC, SEASON_16_START_MS, MOOD_SYNC_INTERVAL_MS } from '../../../lib/constants'
 
-const REMAKE_THRESHOLD_SEC = 180
-const SEASON_16_START_MS = 1767830400000
-const INTERVAL_MS = 2 * 60 * 1000 // 2 min
+const INTERVAL_MS = MOOD_SYNC_INTERVAL_MS
 const DELAY_BEFORE_FIRST_MS = 5000
 const LOG_PREFIX = '[SoloqMoodSync]'
 
@@ -74,8 +73,8 @@ export function useSoloqMoodSync() {
       }
     }
 
-    const schedule = () => {
-      run()
+    const schedule = async () => {
+      await run()
       timeoutRef.current = setTimeout(schedule, INTERVAL_MS)
     }
 

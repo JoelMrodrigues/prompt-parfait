@@ -9,6 +9,7 @@ import { useTeam } from './hooks/useTeam'
 import { useTeamAutoSync } from './hooks/useTeamAutoSync'
 import { useSoloqMoodSync } from './hooks/useSoloqMoodSync'
 import { useTeamMoodSync } from './hooks/useTeamMoodSync'
+import { ErrorBoundary } from '../../components/common/ErrorBoundary'
 
 export const TeamLayout = () => {
   const location = useLocation()
@@ -43,7 +44,9 @@ export const TeamLayout = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

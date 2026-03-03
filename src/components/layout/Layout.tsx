@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from './Header'
+import { ErrorBoundary } from '../common/ErrorBoundary'
 
 export const Layout = () => {
   const location = useLocation()
@@ -9,7 +10,9 @@ export const Layout = () => {
     <div className="min-h-screen bg-dark-bg">
       {!isDraftPage && <Header />}
       <main className={!isDraftPage ? 'pt-20' : ''}>
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   )

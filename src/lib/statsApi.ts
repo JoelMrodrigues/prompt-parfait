@@ -5,12 +5,10 @@
  */
 
 import type { StatsFilters, FilterOptions, ChampionStats } from '../types'
+import { apiFetch } from './apiFetch'
 
-const getBackendUrl = () =>
-  (import.meta.env.VITE_DPM_API_URL || 'http://localhost:3001').replace(/\/$/, '')
-
-async function apiFetch(path) {
-  const res = await fetch(`${getBackendUrl()}${path}`)
+async function apiJson(path: string) {
+  const res = await apiFetch(path)
   if (!res.ok) {
     const { error } = await res.json().catch(() => ({}))
     throw new Error(error || `Erreur ${res.status}`)
@@ -20,13 +18,13 @@ async function apiFetch(path) {
 
 /** Années disponibles (2020 → 2026) */
 export async function getAvailableYears() {
-  const { years } = await apiFetch('/api/stats/years')
+  const { years } = await apiJson('/api/stats/years')
   return years
 }
 
 /** Options de filtre pour une année (leagues, patches, splits) */
 export async function getFilterOptions(year = '2026'): Promise<FilterOptions> {
-  return apiFetch(`/api/stats/filters?year=${year}`)
+  return apiJson(`/api/stats/filters?year=${year}`)
 }
 
 /**
@@ -41,7 +39,7 @@ export async function getChampionStats(filters: StatsFilters = {}): Promise<Cham
   if (side && side !== 'all') params.set('side', side)
   if (split && split !== 'all') params.set('split', split)
   if (leagues.length > 0) params.set('leagues', leagues.join(','))
-  return apiFetch(`/api/stats/champions?${params}`)
+  return apiJson(`/api/stats/champions?${params}`)
 }
 
 /**
@@ -55,7 +53,7 @@ export async function getChampionRows(championName: string, filters: StatsFilter
   if (side && side !== 'all') params.set('side', side)
   if (split && split !== 'all') params.set('split', split)
   if (leagues.length > 0) params.set('leagues', leagues.join(','))
-  return apiFetch(`/api/stats/champion/${encodeURIComponent(championName)}?${params}`)
+  return apiJson(`/api/stats/champion/${encodeURIComponent(championName)}?${params}`)
 }
 
 /**
@@ -64,7 +62,7 @@ export async function getChampionRows(championName: string, filters: StatsFilter
  * @param {string} year
  */
 export async function getMatchDetails(gameid, year = '2026') {
-  return apiFetch(`/api/stats/match/${encodeURIComponent(gameid)}?year=${year}`)
+  return apiJson(`/api/stats/match/${encodeURIComponent(gameid)}?year=${year}`)
 }
 
 /**
@@ -74,5 +72,5 @@ export async function getMatchDetails(gameid, year = '2026') {
  */
 export async function getTeamNames(gameids, year = '2026') {
   if (!gameids?.length) return {}
-  return apiFetch(`/api/stats/team-names?year=${year}&gameids=${gameids.join(',')}`)
+  return apiJson(`/api/stats/team-names?year=${year}&gameids=${gameids.join(',')}`)
 }

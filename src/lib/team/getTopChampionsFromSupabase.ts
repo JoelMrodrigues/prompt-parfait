@@ -4,8 +4,7 @@
  */
 import { supabase } from '../supabase'
 import { fetchSoloqTopChampions } from '../../services/supabase/playerQueries'
-
-const SEASON_16_START_MS = 1767830400000
+import { SEASON_16_START_MS } from '../constants'
 
 export async function getTopChampionsFromSupabase(playerId, accountSource = 'primary') {
   if (!playerId || !supabase) return []

@@ -5,8 +5,9 @@
 import { useEffect, useRef } from 'react'
 import { useTeam } from './useTeam'
 import { fetchTeamMatches } from '../../../services/supabase/matchQueries'
+import { MOOD_SYNC_INTERVAL_MS } from '../../../lib/constants'
 
-const INTERVAL_MS = 2 * 60 * 1000 // 2 min
+const INTERVAL_MS = MOOD_SYNC_INTERVAL_MS
 const DELAY_BEFORE_FIRST_MS = 6000 // après le soloq mood pour étaler
 const LOG_PREFIX = '[TeamMoodSync]'
 
@@ -84,8 +85,8 @@ export function useTeamMoodSync() {
       }
     }
 
-    const schedule = () => {
-      run()
+    const schedule = async () => {
+      await run()
       timeoutRef.current = setTimeout(schedule, INTERVAL_MS)
     }
 

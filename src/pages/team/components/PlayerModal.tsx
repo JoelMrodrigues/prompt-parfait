@@ -6,26 +6,61 @@ import { useToast } from '../../../contexts/ToastContext'
 
 const ROLES = ['TOP', 'JNG', 'MID', 'BOT', 'SUP']
 
+const REGIONS = [
+  { value: 'euw1', label: 'EUW — Europe West' },
+  { value: 'eun1', label: 'EUNE — Europe Nordic & East' },
+  { value: 'na1', label: 'NA — North America' },
+  { value: 'kr', label: 'KR — Korea' },
+  { value: 'br1', label: 'BR — Brazil' },
+  { value: 'la1', label: 'LAN — Latin America North' },
+  { value: 'la2', label: 'LAS — Latin America South' },
+  { value: 'oc1', label: 'OCE — Oceania' },
+  { value: 'tr1', label: 'TR — Turkey' },
+  { value: 'ru', label: 'RU — Russia' },
+  { value: 'jp1', label: 'JP — Japan' },
+]
+
+// Mapping région Riot (euw1) → région op.gg (euw)
+const RIOT_TO_OPGG: Record<string, string> = {
+  euw1: 'euw',
+  eun1: 'eune',
+  na1: 'na',
+  kr: 'kr',
+  br1: 'br',
+  la1: 'lan',
+  la2: 'las',
+  oc1: 'oce',
+  tr1: 'tr',
+  ru: 'ru',
+  jp1: 'jp',
+}
+
+// Mapping inverse op.gg → Riot (pour rétro-compatibilité avec anciens opgg_link)
+const OPGG_TO_RIOT: Record<string, string> = Object.fromEntries(
+  Object.entries(RIOT_TO_OPGG).map(([riot, opgg]) => [opgg, riot])
+)
+
+const generateOpggLink = (p: string, riotRegion: string) => {
+  if (!p || !riotRegion) return ''
+  const opggRegion = RIOT_TO_OPGG[riotRegion] || riotRegion
+  return `https://op.gg/fr/lol/summoners/${opggRegion}/${encodeURIComponent(p.replace(/#/g, '-'))}`
+}
+
+const generateDpmLink = (p: string) => {
+  if (!p) return ''
+  return `https://dpm.lol/${encodeURIComponent(p.replace(/#/g, '-'))}?queue=solo`
+}
+
 export const PlayerModal = ({ player, onSave, onClose }) => {
   const { error: toastError, success: toastSuccess, info: toastInfo } = useToast()
   const [playerName, setPlayerName] = useState(player?.player_name || '')
   const [pseudo, setPseudo] = useState(player?.pseudo || '')
   const [secondaryAccount, setSecondaryAccount] = useState(player?.secondary_account || '')
-  const [region, setRegion] = useState('euw')
+  const [region, setRegion] = useState('euw1')
   const [role, setRole] = useState(player?.position || 'TOP')
   const [lolpro, setLolpro] = useState(player?.lolpro_link || '')
   const [rank, setRank] = useState(player?.rank || '')
   const [syncing, setSyncing] = useState(false)
-
-  const generateOpggLink = (p, r) => {
-    if (!p || !r) return ''
-    return `https://op.gg/fr/lol/summoners/${r}/${encodeURIComponent(p.replace(/#/g, '-'))}`
-  }
-
-  const generateDpmLink = (p) => {
-    if (!p) return ''
-    return `https://dpm.lol/${encodeURIComponent(p.replace(/#/g, '-'))}?queue=solo`
-  }
 
   const opgg = generateOpggLink(pseudo, region)
   const dpm = generateDpmLink(pseudo)
@@ -49,14 +84,21 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
       setPlayerName(player.player_name || '')
       setPseudo(player.pseudo || '')
       setSecondaryAccount(player.secondary_account || '')
-      if (player.opgg_link) {
-        const match = player.opgg_link.match(/summoners\/([^/]+)\//)
-        if (match) setRegion(match[1])
-      }
       setRole(player.position || 'TOP')
       setLolpro(player.lolpro_link || '')
       setRank(player.rank || '')
       setTopChampions(getTopChampions())
+
+      // Priorité : player.region (Riot format) → parser opgg_link (rétro-compat) → défaut euw1
+      if (player.region) {
+        setRegion(player.region)
+      } else if (player.opgg_link) {
+        const match = player.opgg_link.match(/summoners\/([^/]+)\//)
+        if (match) {
+          const opggRegion = match[1]
+          setRegion(OPGG_TO_RIOT[opggRegion] || 'euw1')
+        }
+      }
     }
   }, [player])
 
@@ -90,6 +132,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
       pseudo,
       secondary_account: secondaryAccount.trim() || null,
       position: role,
+      region,
       opgg_link: generateOpggLink(pseudo, region) || null,
       lolpro_link: lolpro || null,
       rank: rank || null,
@@ -113,7 +156,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-dark-card border border-dark-border rounded-lg p-6 max-w-md w-full"
+        className="bg-dark-card border border-dark-border rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="font-display text-2xl font-bold">
@@ -141,16 +184,34 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              Pseudo du joueur <span className="text-red-500">*</span>
+              Pseudo Riot ID <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
-              placeholder="Ex: SummonerName"
+              placeholder="Ex: SummonerName#EUW"
               className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded-lg focus:border-accent-blue focus:outline-none"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Région <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded-lg focus:border-accent-blue focus:outline-none"
+              required
+            >
+              {REGIONS.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
