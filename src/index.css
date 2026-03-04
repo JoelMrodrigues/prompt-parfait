@@ -4,17 +4,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────
+   CSS Variables — Light mode (défaut)
+   Les valeurs sont en composantes RGB séparées
+   pour supporter la syntaxe Tailwind /60, /80…
+───────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg:     240 237 251;   /* #f0edfb — fond page, violet très léger */
+  --color-card:   255 255 255;   /* #ffffff — cartes blanches */
+  --color-border: 229 225 242;   /* #e5e1f2 — bordure violet pâle */
+
+  /* Accent */
+  --color-accent: 147 51 234;    /* #9333ea — purple-600 */
+
+  /* Texte (override text-white / gray-*) */
+  --color-foreground: 9   9   11;   /* #09090b — quasi-noir */
+  --color-gray-300:   113 113 122;  /* zinc-500  */
+  --color-gray-400:   82  82  91;   /* zinc-600  */
+  --color-gray-500:   63  63  70;   /* zinc-700  */
+  --color-gray-600:   113 113 122;  /* zinc-500 (placeholder) */
+}
+
+/* ─────────────────────────────────────────────
+   CSS Variables — Dark mode
+───────────────────────────────────────────── */
+.dark {
+  /* Backgrounds */
+  --color-bg:     10  10  15;    /* #0a0a0f — quasi-noir violet */
+  --color-card:   19  17  26;    /* #13111a — carte sombre */
+  --color-border: 42  37  53;    /* #2a2535 — bordure sombre */
+
+  /* Accent */
+  --color-accent: 167 85  247;   /* #a755f7 — purple-400, lisible sur fond sombre */
+
+  /* Texte */
+  --color-foreground: 245 243 255;  /* #f5f3ff — quasi-blanc violet */
+  --color-gray-300:   212 212 216;  /* zinc-300 */
+  --color-gray-400:   161 161 170;  /* zinc-400 */
+  --color-gray-500:   113 113 122;  /* zinc-500 */
+  --color-gray-600:   82  82  91;   /* zinc-600 */
+}
+
+/* ─────────────────────────────────────────────
+   Base styles
+───────────────────────────────────────────── */
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  background-color: #0a0a0a;
-  color: #f3f4f6;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-foreground));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─────────────────────────────────────────────
+   Glow utilities
+───────────────────────────────────────────── */
 .glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 20px rgb(var(--color-accent) / 0.5);
 }
 
 .glow-gold {
