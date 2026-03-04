@@ -1,7 +1,9 @@
 /**
  * Sidebar de navigation pour la section Team
  * Groupée en 3 sections : Équipe | Analyse | Outils
+ * + Team switcher en haut
  */
+import { useState, useRef, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Home,
@@ -13,7 +15,12 @@ import {
   Gamepad2,
   Upload,
   CalendarDays,
+  ChevronDown,
+  Plus,
+  Check,
+  Swords,
 } from 'lucide-react'
+import { useTeam } from './hooks/useTeam'
 
 const SIDEBAR_GROUPS = [
   {
@@ -43,11 +50,127 @@ const SIDEBAR_GROUPS = [
 ]
 
 export const TeamSidebar = () => {
+  const { team, allTeams, switchTeam, createNewTeam } = useTeam()
+  const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [creatingTeam, setCreatingTeam] = useState(false)
+  const [newTeamName, setNewTeamName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const switcherRef = useRef<HTMLDivElement>(null)
+
+  // Fermer au clic extérieur
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setSwitcherOpen(false)
+        setCreatingTeam(false)
+        setNewTeamName('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleSwitch = async (teamId: string) => {
+    setSwitcherOpen(false)
+    await switchTeam(teamId)
+  }
+
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTeamName.trim() || creating) return
+    setCreating(true)
+    try {
+      await createNewTeam(newTeamName.trim())
+      setNewTeamName('')
+      setCreatingTeam(false)
+      setSwitcherOpen(false)
+    } catch (err) {
+      console.error('Erreur création équipe:', err)
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <aside className="w-60 bg-dark-card border-r border-dark-border flex flex-col shrink-0">
-      {/* Header */}
-      <div className="px-5 py-5 border-b border-dark-border">
-        <h2 className="font-display text-base font-bold text-white">Mon Équipe</h2>
+      {/* Team Switcher */}
+      <div className="px-3 py-3 border-b border-dark-border" ref={switcherRef}>
+        <button
+          onClick={() => setSwitcherOpen((v) => !v)}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-dark-bg/60 transition-colors"
+        >
+          <div className="w-7 h-7 rounded-md bg-accent-blue/20 flex items-center justify-center shrink-0">
+            <Swords size={14} className="text-accent-blue" />
+          </div>
+          <span className="flex-1 text-sm font-semibold text-white truncate text-left">
+            {team?.team_name ?? 'Mon Équipe'}
+          </span>
+          <ChevronDown
+            size={14}
+            className={`text-gray-500 shrink-0 transition-transform ${switcherOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Dropdown switcher */}
+        {switcherOpen && (
+          <div className="mt-1.5 bg-dark-bg border border-dark-border rounded-lg overflow-hidden shadow-xl">
+            {allTeams.length > 0 && (
+              <ul className="py-1">
+                {allTeams.map((t) => (
+                  <li key={t.id}>
+                    <button
+                      onClick={() => handleSwitch(t.id)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-dark-card transition-colors"
+                    >
+                      <div className="w-5 h-5 rounded bg-accent-blue/15 flex items-center justify-center shrink-0">
+                        <Swords size={11} className="text-accent-blue/80" />
+                      </div>
+                      <span
+                        className={`flex-1 truncate text-left ${
+                          t.id === team?.id ? 'text-white font-medium' : 'text-gray-400'
+                        }`}
+                      >
+                        {t.team_name}
+                      </span>
+                      {t.id === team?.id && (
+                        <Check size={13} className="text-accent-blue shrink-0" />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="border-t border-dark-border/60 p-2">
+              {!creatingTeam ? (
+                <button
+                  onClick={() => setCreatingTeam(true)}
+                  className="w-full flex items-center gap-2 px-2 py-2 text-xs text-gray-400 hover:text-white hover:bg-dark-card rounded-lg transition-colors"
+                >
+                  <Plus size={13} />
+                  Nouvelle équipe
+                </button>
+              ) : (
+                <form onSubmit={handleCreateTeam} className="flex gap-1.5">
+                  <input
+                    autoFocus
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder="Nom de l'équipe"
+                    className="flex-1 bg-dark-card border border-dark-border rounded-lg px-2 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newTeamName.trim() || creating}
+                    className="px-2 py-1.5 bg-accent-blue rounded-lg text-xs font-medium disabled:opacity-50"
+                  >
+                    {creating ? '…' : 'OK'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation groupée */}

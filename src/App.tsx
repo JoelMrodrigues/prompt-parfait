@@ -24,6 +24,9 @@ import { DraftsPage } from './pages/team/drafts/DraftsPage'
 import { CoachingPage } from './pages/team/coaching/CoachingPage'
 import { PlanningPage } from './pages/team/planning/PlanningPage'
 
+import { ProfilePage } from './pages/profile/ProfilePage'
+import { SettingsPage } from './pages/settings/SettingsPage'
+
 import { Stats } from './pages/Stats'
 import { ProChampions } from './pages/stats/ProChampions'
 import { ChampionDetail } from './pages/stats/ChampionDetail'
@@ -81,6 +84,22 @@ function AppRoutes() {
           <Route path="stats/pro/players" element={<ProPlayers />} />
           <Route path="stats/pro/tournaments" element={<ProTournaments />} />
           <Route path="login" element={<Login />} />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

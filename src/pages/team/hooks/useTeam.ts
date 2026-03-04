@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../../contexts/AuthContext'
 import {
-  fetchFirstTeam,
   createTeam as createTeamQuery,
   updateTeam as updateTeamQuery,
   getOrCreateInviteToken,
   joinTeamByToken as joinTeamByTokenQuery,
 } from '../../../services/supabase/teamQueries'
+import {
+  fetchAllTeams,
+  upsertProfile,
+} from '../../../services/supabase/profileQueries'
 import {
   fetchPlayersByTeam,
   createPlayer as createPlayerQuery,
@@ -21,15 +24,16 @@ import {
 } from '../../../services/supabase/championQueries'
 
 export const useTeam = () => {
-  const { user } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const [team, setTeam] = useState(null)
+  const [allTeams, setAllTeams] = useState([])
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (user && supabase) fetchTeam()
     else setLoading(false)
-  }, [user])
+  }, [user, profile?.active_team_id])
 
   const fetchTeam = async () => {
     if (!supabase) {
@@ -37,19 +41,38 @@ export const useTeam = () => {
       return
     }
     try {
-      const { data: teamData, error: teamError } = await fetchFirstTeam()
-      if (teamError && teamError.code !== 'PGRST116') {
-        console.error('Erreur récupération équipe:', teamError)
+      const { data: teamsData, error: teamsError } = await fetchAllTeams(user.id)
+      if (teamsError) {
+        console.error('Erreur récupération équipes:', teamsError)
         setTeam(null)
+        setAllTeams([])
         setPlayers([])
         setLoading(false)
         return
       }
-      setTeam(teamData)
-      if (teamData) {
-        const { data: playersData, error: playersError } = await fetchPlayersByTeam(teamData.id)
+
+      setAllTeams(teamsData || [])
+
+      // Déterminer l'équipe active : active_team_id du profil, sinon la première
+      let activeTeam = null
+      if (profile?.active_team_id) {
+        activeTeam = teamsData?.find((t) => t.id === profile.active_team_id) ?? null
+      }
+      if (!activeTeam && teamsData?.length > 0) {
+        activeTeam = teamsData[0]
+        // Mémoriser comme active si pas encore défini
+        if (user && !profile?.active_team_id) {
+          await upsertProfile(user.id, { active_team_id: activeTeam.id })
+        }
+      }
+
+      setTeam(activeTeam)
+      if (activeTeam) {
+        const { data: playersData, error: playersError } = await fetchPlayersByTeam(activeTeam.id)
         if (playersError) throw playersError
         setPlayers(playersData || [])
+      } else {
+        setPlayers([])
       }
     } catch (error) {
       console.error('Error fetching team:', error)
@@ -60,11 +83,24 @@ export const useTeam = () => {
     }
   }
 
-  const createTeam = async (teamName) => {
+  const switchTeam = async (teamId: string) => {
+    if (!user) return
+    await upsertProfile(user.id, { active_team_id: teamId })
+    await refreshProfile()
+    // fetchTeam sera re-déclenché via le useEffect sur profile.active_team_id
+  }
+
+  const createTeam = async (teamName: string) => {
     const { data, error } = await createTeamQuery(user.id, teamName)
     if (error) throw error
-    setTeam(data)
+    // Définir la nouvelle équipe comme active
+    await upsertProfile(user.id, { active_team_id: data.id })
+    await refreshProfile()
     return data
+  }
+
+  const createNewTeam = async (teamName: string) => {
+    return createTeam(teamName)
   }
 
   const updateTeam = async (teamId, updates) => {
@@ -162,9 +198,12 @@ export const useTeam = () => {
 
   return {
     team,
+    allTeams,
     players,
     loading,
     createTeam,
+    createNewTeam,
+    switchTeam,
     updateTeam,
     createPlayer,
     updatePlayer,

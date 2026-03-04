@@ -1,14 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useAuth } from '../../contexts/AuthContext'
+import { UserProfileMenu } from './UserProfileMenu'
 
 export const Header = () => {
-  const { user, signOut } = useAuth()
   const location = useLocation()
 
   const navLinks = [
     { to: '/', label: 'Accueil' },
-    { to: '/stats', label: 'Stats' },
     { to: '/team', label: 'Équipe' },
     { to: '/draft', label: 'Draft' },
   ]
@@ -48,21 +46,23 @@ export const Header = () => {
             ))}
           </ul>
 
-          {user ? (
-            <button
-              onClick={signOut}
-              className="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue transition-colors"
-            >
-              Déconnexion
-            </button>
-          ) : (
-            <Link
-              to="/login"
-              className="px-4 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors"
-            >
-              Connexion
-            </Link>
-          )}
+          <Link
+            to="/stats"
+            className={`relative px-3 py-2 transition-colors ${
+              isActive('/stats') ? 'text-accent-blue' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Stats
+            {isActive('/stats') && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-blue"
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+          </Link>
+
+          <UserProfileMenu />
         </div>
       </nav>
     </header>
