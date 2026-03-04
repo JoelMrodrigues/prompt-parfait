@@ -337,6 +337,10 @@ export const JoueursPage = () => {
           setShowPlayerModal(true)
         }}
         onDelete={(p) => setConfirmDelete(p)}
+        onAdd={() => {
+          setEditingPlayer(null)
+          setShowPlayerModal(true)
+        }}
       />
 
       {/* Mood des joueurs — 2 cartes (Solo Q + Team) en dessous des cards joueurs */}

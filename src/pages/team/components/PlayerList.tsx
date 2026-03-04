@@ -3,7 +3,7 @@
  */
 import { PlayerCard } from './PlayerCard'
 import { ROSTER_ROLES, ROLE_LABELS } from '../constants/roles'
-import { Users } from 'lucide-react'
+import { Users, Plus, RefreshCw, BarChart3 } from 'lucide-react'
 
 function normalizeRole(position: string | null | undefined): string {
   const r = (position || '').toUpperCase()
@@ -14,10 +14,12 @@ export const PlayerList = ({
   players,
   onEdit,
   onDelete,
+  onAdd,
 }: {
   players: any[]
   onEdit: (p: any) => void
   onDelete: (p: any) => void
+  onAdd?: () => void
 }) => {
   const byRole = (() => {
     const map: Record<string, any[]> = { TOP: [], JNG: [], MID: [], ADC: [], SUP: [] }
@@ -31,10 +33,35 @@ export const PlayerList = ({
 
   if (players.length === 0) {
     return (
-      <div className="bg-dark-card border border-dark-border rounded-2xl p-12 text-center">
-        <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-        <p className="text-gray-400 mb-2">Aucun joueur</p>
-        <p className="text-gray-600 text-sm">Ajoutez votre premier joueur pour commencer.</p>
+      <div className="bg-dark-card border border-dark-border border-dashed rounded-2xl p-12 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mx-auto mb-5">
+          <Users className="w-8 h-8 text-accent-blue/60" />
+        </div>
+        <h3 className="text-white font-semibold mb-2">Aucun joueur dans l'équipe</h3>
+        <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+          Ajoutez vos joueurs pour suivre leur rang, leurs champions et leur forme en temps réel.
+        </p>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-blue hover:bg-accent-blue/90 text-white font-medium rounded-xl transition-colors"
+          >
+            <Plus size={18} />
+            Ajouter un joueur
+          </button>
+        )}
+        <div className="mt-8 grid grid-cols-3 gap-4 max-w-sm mx-auto text-left">
+          {[
+            { icon: Users, text: 'Rang Riot' },
+            { icon: RefreshCw, text: 'Sync auto' },
+            { icon: BarChart3, text: 'Stats Solo Q' },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-2 text-xs text-gray-600">
+              <Icon size={13} />
+              {text}
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

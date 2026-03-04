@@ -379,11 +379,39 @@ export const TeamOverviewPage = () => {
 
   if (!team) {
     return (
-      <div className="max-w-lg mx-auto pt-16">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h2 className="font-display text-3xl font-bold mb-2">Créer votre équipe</h2>
-          <p className="text-gray-400 mb-8">Commencez par donner un nom à votre équipe.</p>
-          <TeamForm onSubmit={createTeam} />
+      <div className="max-w-2xl mx-auto pt-12 px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+          {/* Bienvenue */}
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-blue/30 bg-accent-blue/10 text-accent-blue text-sm font-medium mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-blue" />
+              Première connexion
+            </div>
+            <h2 className="font-display text-3xl font-bold text-white mb-3">Créez votre équipe</h2>
+            <p className="text-gray-500 max-w-md mx-auto">
+              Donnez un nom à votre équipe pour commencer. Vous pourrez ensuite ajouter vos joueurs et importer vos matchs.
+            </p>
+          </div>
+
+          {/* Étapes à venir */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { num: '1', label: 'Créer l\'équipe', desc: 'Maintenant', active: true },
+              { num: '2', label: 'Ajouter les joueurs', desc: 'Ensuite', active: false },
+              { num: '3', label: 'Importer les matchs', desc: 'Puis', active: false },
+            ].map((step) => (
+              <div key={step.num} className={`rounded-xl p-4 border text-center ${step.active ? 'border-accent-blue/50 bg-accent-blue/10' : 'border-dark-border bg-dark-card/50'}`}>
+                <div className={`text-lg font-display font-bold mb-1 ${step.active ? 'text-accent-blue' : 'text-gray-600'}`}>{step.num}</div>
+                <div className={`text-sm font-medium ${step.active ? 'text-white' : 'text-gray-500'}`}>{step.label}</div>
+                <div className="text-xs text-gray-600 mt-0.5">{step.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Formulaire */}
+          <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
+            <TeamForm onSubmit={createTeam} />
+          </div>
         </motion.div>
       </div>
     )
