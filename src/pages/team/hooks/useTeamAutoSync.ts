@@ -130,6 +130,8 @@ export function useTeamAutoSync() {
               cachedPuuid = countData.puuid
               await updatePlayerFn(player.id, { puuid: cachedPuuid })
               console.log(LOG_PREFIX, name, '| PUUID mis en cache')
+            } else if (!countData.puuid && !cachedPuuid) {
+              console.warn(LOG_PREFIX, name, '| match-count sans puuid (Railway ancien code?) — match-ids re-lookupera le joueur')
             }
 
             console.log(LOG_PREFIX, name, '| total officiel S16:', totalRiot)
@@ -145,6 +147,7 @@ export function useTeamAutoSync() {
             console.log(LOG_PREFIX, name, '| 2/4 liste IDs (match-ids, max', totalRiot, ')...')
             const allRiotIds: string[] = []
             let start = 0
+            let idsRetry404 = 0
             while (allRiotIds.length < totalRiot) {
               const idsRes = await apiFetch(
                 `/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}`
@@ -154,6 +157,13 @@ export function useTeamAutoSync() {
                 const wait = Math.max(2000, (idsData.retry_after ?? idsData.retryAfter) * 1000)
                 console.log(LOG_PREFIX, name, '| match-ids rate limit — attente', Math.round(wait / 1000), 's')
                 await delay(wait)
+                continue
+              }
+              // Retry unique sur 404 (joueur introuvable transient côté Riot)
+              if (idsRes.status === 404 && idsRetry404 < 1) {
+                idsRetry404++
+                console.warn(LOG_PREFIX, name, '| match-ids 404 — retry dans 3s...')
+                await delay(3000)
                 continue
               }
               if (!idsData.success || !Array.isArray(idsData.matchIds)) {
