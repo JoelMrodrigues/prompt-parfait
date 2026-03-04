@@ -87,7 +87,7 @@ export const UserProfileMenu = () => {
             <DropdownItem
               icon={Shield}
               label="Équipes"
-              to="/team/overview"
+              to="/teams"
               onClick={() => setOpen(false)}
             />
             <DropdownItem

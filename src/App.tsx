@@ -26,6 +26,7 @@ import { PlanningPage } from './pages/team/planning/PlanningPage'
 
 import { ProfilePage } from './pages/profile/ProfilePage'
 import { SettingsPage } from './pages/settings/SettingsPage'
+import { TeamsPage } from './pages/teams/TeamsPage'
 
 import { Stats } from './pages/Stats'
 import { ProChampions } from './pages/stats/ProChampions'
@@ -97,6 +98,14 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="teams"
+            element={
+              <ProtectedRoute>
+                <TeamsPage />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { fetchProfile, upsertProfile, Profile } from '../services/supabase/profileQueries'
@@ -21,11 +21,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  // Supabase fire SIGNED_IN during _recoverAndRefresh (before DB is ready), then INITIAL_SESSION.
+  // We skip loadProfile for SIGNED_IN until INITIAL_SESSION confirms the client is ready.
+  const initialSessionReceived = useRef(false)
 
   const loadProfile = async (u: User) => {
     let p = await fetchProfile(u.id)
     if (!p) {
-      // Créer le profil automatiquement avec le display_name déduit de l'email
       const defaultName = u.email?.split('@')[0] ?? 'Joueur'
       p = await upsertProfile(u.id, { display_name: defaultName })
     }
@@ -43,22 +45,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
-    supabase!.auth.getSession().then(async ({ data: { session } }) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) await loadProfile(u)
-      setLoading(false)
-    })
-
     const {
       data: { subscription },
-    } = supabase!.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase!.auth.onAuthStateChange(async (event, session) => {
       const u = session?.user ?? null
       setUser(u)
-      if (u) {
-        await loadProfile(u)
-      } else {
-        setProfile(null)
+
+      // Simple JWT refresh — profile unchanged
+      if (event === 'TOKEN_REFRESHED') {
+        setLoading(false)
+        return
+      }
+
+      // SIGNED_IN fires during _recoverAndRefresh before the Supabase client is fully ready.
+      // At that point DB queries hang. Wait for INITIAL_SESSION instead.
+      if (event === 'SIGNED_IN' && !initialSessionReceived.current) {
+        // Stay loading=true — INITIAL_SESSION will call loadProfile and setLoading(false)
+        return
+      }
+
+      if (event === 'INITIAL_SESSION') {
+        initialSessionReceived.current = true
+      }
+
+      try {
+        if (u) {
+          await Promise.race([
+            loadProfile(u),
+            new Promise<void>((_, reject) =>
+              setTimeout(() => reject(new Error('loadProfile timeout')), 10000)
+            ),
+          ])
+        } else {
+          setProfile(null)
+        }
+      } catch (err) {
+        console.error('[AuthContext] loadProfile error:', err)
+      } finally {
+        setLoading(false)
       }
     })
 

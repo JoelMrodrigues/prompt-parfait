@@ -28,7 +28,6 @@ import { useTeam } from '../hooks/useTeam'
 import { usePlayerSync } from '../hooks/usePlayerSync'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useToast } from '../../../contexts/ToastContext'
-import { TeamForm } from '../components/TeamForm'
 import { PlayerModal } from '../components/PlayerModal'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { supabase } from '../../../lib/supabase'
@@ -93,7 +92,6 @@ export const TeamOverviewPage = () => {
     players,
     loading,
     updateTeam,
-    createTeam,
     createPlayer,
     updatePlayer,
     deletePlayer,
@@ -379,39 +377,15 @@ export const TeamOverviewPage = () => {
 
   if (!team) {
     return (
-      <div className="max-w-2xl mx-auto pt-12 px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          {/* Bienvenue */}
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-blue/30 bg-accent-blue/10 text-accent-blue text-sm font-medium mb-5">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent-blue" />
-              Première connexion
-            </div>
-            <h2 className="font-display text-3xl font-bold text-white mb-3">Créez votre équipe</h2>
-            <p className="text-gray-500 max-w-md mx-auto">
-              Donnez un nom à votre équipe pour commencer. Vous pourrez ensuite ajouter vos joueurs et importer vos matchs.
-            </p>
+      <div className="max-w-md mx-auto pt-20 px-4 text-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-blue/10 border border-accent-blue/20 mx-auto">
+            <Swords size={28} className="text-accent-blue" />
           </div>
-
-          {/* Étapes à venir */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { num: '1', label: 'Créer l\'équipe', desc: 'Maintenant', active: true },
-              { num: '2', label: 'Ajouter les joueurs', desc: 'Ensuite', active: false },
-              { num: '3', label: 'Importer les matchs', desc: 'Puis', active: false },
-            ].map((step) => (
-              <div key={step.num} className={`rounded-xl p-4 border text-center ${step.active ? 'border-accent-blue/50 bg-accent-blue/10' : 'border-dark-border bg-dark-card/50'}`}>
-                <div className={`text-lg font-display font-bold mb-1 ${step.active ? 'text-accent-blue' : 'text-gray-600'}`}>{step.num}</div>
-                <div className={`text-sm font-medium ${step.active ? 'text-white' : 'text-gray-500'}`}>{step.label}</div>
-                <div className="text-xs text-gray-600 mt-0.5">{step.desc}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Formulaire */}
-          <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
-            <TeamForm onSubmit={createTeam} />
-          </div>
+          <h2 className="font-display text-2xl font-bold text-white">Aucune équipe</h2>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Utilisez le sélecteur d'équipe en haut de la barre latérale pour créer ou rejoindre une équipe.
+          </p>
         </motion.div>
       </div>
     )

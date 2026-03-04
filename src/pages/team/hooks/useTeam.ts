@@ -43,7 +43,6 @@ export const useTeam = () => {
     try {
       const { data: teamsData, error: teamsError } = await fetchAllTeams(user.id)
       if (teamsError) {
-        console.error('Erreur récupération équipes:', teamsError)
         setTeam(null)
         setAllTeams([])
         setPlayers([])
@@ -53,14 +52,12 @@ export const useTeam = () => {
 
       setAllTeams(teamsData || [])
 
-      // Déterminer l'équipe active : active_team_id du profil, sinon la première
       let activeTeam = null
       if (profile?.active_team_id) {
         activeTeam = teamsData?.find((t) => t.id === profile.active_team_id) ?? null
       }
       if (!activeTeam && teamsData?.length > 0) {
         activeTeam = teamsData[0]
-        // Mémoriser comme active si pas encore défini
         if (user && !profile?.active_team_id) {
           await upsertProfile(user.id, { active_team_id: activeTeam.id })
         }
@@ -75,7 +72,7 @@ export const useTeam = () => {
         setPlayers([])
       }
     } catch (error) {
-      console.error('Error fetching team:', error)
+      console.error('[useTeam] error:', error)
       setTeam(null)
       setPlayers([])
     } finally {
