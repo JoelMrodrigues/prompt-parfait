@@ -2,7 +2,7 @@
  * Page Import - 3 cartes : parties (JSON), timeline, à venir
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Upload, FileJson, AlertCircle, CheckCircle, Clock, HelpCircle } from 'lucide-react'
+import { Upload, FileJson, AlertCircle, CheckCircle, Clock, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { importExaltyMatches } from '../../../lib/team/exaltyMatchImporter'
@@ -16,6 +16,10 @@ import { supabase } from '../../../lib/supabase'
 export const ImportPage = () => {
   const { team, players = [], refetch: refetchTeam } = useTeam()
   const { matches = [], refetch: refetchMatches } = useTeamMatches(team?.id)
+
+  // Help sections
+  const [showHelpGames, setShowHelpGames] = useState(false)
+  const [showHelpTimeline, setShowHelpTimeline] = useState(false)
 
   // Card 1: Import parties
   const [filesGames, setFilesGames] = useState([])
@@ -243,10 +247,37 @@ export const ImportPage = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="font-display text-3xl font-bold mb-2">Import</h2>
-      <p className="text-gray-400 mb-8">
-        Importez vos données (parties, timeline) en glissant les fichiers dans les cartes
-        ci-dessous.
+      <p className="text-gray-400 mb-6">
+        Importez vos données de match depuis Exalty pour analyser vos parties en équipe.
       </p>
+
+      {/* Guide rapide */}
+      <div className="mb-8 bg-dark-card border border-dark-border rounded-xl p-5">
+        <h3 className="font-semibold text-sm text-gray-300 mb-4">Comment ça marche</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex gap-3">
+            <div className="w-7 h-7 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-xs font-bold">1</div>
+            <div>
+              <p className="text-sm font-medium text-white">Jouez avec Exalty</p>
+              <p className="text-xs text-gray-500 mt-0.5">Activez Exalty avant votre partie en équipe pour capturer toutes les données.</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="w-7 h-7 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-xs font-bold">2</div>
+            <div>
+              <p className="text-sm font-medium text-white">Exportez en JSON</p>
+              <p className="text-xs text-gray-500 mt-0.5">En fin de partie, cliquez "Exporter" dans Exalty pour télécharger les fichiers JSON.</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="w-7 h-7 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-xs font-bold">3</div>
+            <div>
+              <p className="text-sm font-medium text-white">Importez ici</p>
+              <p className="text-xs text-gray-500 mt-0.5">Glissez les fichiers dans les cartes ci-dessous. L'import est instantané.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {players?.length === 0 && (
         <div className="mb-6 p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg flex items-center gap-3">
@@ -265,11 +296,49 @@ export const ImportPage = () => {
             <div className="p-2 bg-accent-blue/20 rounded-lg">
               <FileJson size={24} className="text-accent-blue" />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-display text-lg font-semibold">Importer des parties</h3>
-              <p className="text-sm text-gray-500">Fichiers JSON Exalty (fin de partie)</p>
+              <p className="text-sm text-gray-500">Fichiers JSON Exalty — résumé de fin de partie</p>
             </div>
+            <button
+              onClick={() => setShowHelpGames((v) => !v)}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-dark-bg"
+            >
+              <HelpCircle size={14} />
+              Aide
+              {showHelpGames ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
           </div>
+
+          {/* Section d'aide dépliable */}
+          {showHelpGames && (
+            <div className="mb-5 p-4 bg-dark-bg/60 border border-dark-border rounded-lg text-sm space-y-3">
+              <p className="font-medium text-gray-300">Comment obtenir le fichier JSON ?</p>
+              <ol className="space-y-2 text-gray-400">
+                <li className="flex gap-2">
+                  <span className="text-accent-blue font-bold shrink-0">1.</span>
+                  Installez <span className="text-white font-medium">Exalty</span> (outil tiers de suivi de parties LoL) et jouez votre partie en équipe.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-accent-blue font-bold shrink-0">2.</span>
+                  En fin de partie, ouvrez Exalty et cliquez sur <span className="text-white font-medium">"Exporter"</span> ou <span className="text-white font-medium">"Export JSON"</span>.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-accent-blue font-bold shrink-0">3.</span>
+                  Téléchargez le fichier <code className="bg-dark-card px-1 rounded">.json</code> — il contient les stats de fin de partie de tous les joueurs.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-accent-blue font-bold shrink-0">4.</span>
+                  Glissez ce fichier ici. Vous pouvez en importer plusieurs en même temps.
+                </li>
+              </ol>
+              <div className="pt-1 border-t border-dark-border">
+                <p className="text-xs text-gray-500">
+                  <span className="text-amber-400">Note :</span> Assurez-vous que vos joueurs sont ajoutés dans l'onglet "Joueurs" avec les bons pseudos (format <code className="bg-dark-card px-1 rounded">Pseudo#Tag</code>) pour que l'import les associe correctement.
+                </p>
+              </div>
+            </div>
+          )}
           <input
             ref={fileInputGamesRef}
             type="file"
@@ -337,11 +406,49 @@ export const ImportPage = () => {
             <div className="p-2 bg-purple-500/20 rounded-lg">
               <Clock size={24} className="text-purple-400" />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-display text-lg font-semibold">Importer la timeline</h3>
-              <p className="text-sm text-gray-500">Données timeline des games (à configurer)</p>
+              <p className="text-sm text-gray-500">Fichier timeline Exalty — données minute par minute</p>
             </div>
+            <button
+              onClick={() => setShowHelpTimeline((v) => !v)}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-dark-bg"
+            >
+              <HelpCircle size={14} />
+              Aide
+              {showHelpTimeline ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
           </div>
+
+          {/* Section d'aide timeline */}
+          {showHelpTimeline && (
+            <div className="mb-5 p-4 bg-dark-bg/60 border border-dark-border rounded-lg text-sm space-y-3">
+              <p className="font-medium text-gray-300">À quoi sert la timeline ?</p>
+              <p className="text-gray-400">
+                La timeline capture l'état de la partie <span className="text-white font-medium">minute par minute</span> : or, XP, CS, objectifs (dragon, baron, tours), kills. Elle permet d'analyser les avantages/désavantages dans le temps.
+              </p>
+              <p className="font-medium text-gray-300 pt-1">Comment l'obtenir ?</p>
+              <ol className="space-y-2 text-gray-400">
+                <li className="flex gap-2">
+                  <span className="text-purple-400 font-bold shrink-0">1.</span>
+                  Dans Exalty, exportez le fichier <span className="text-white font-medium">"Timeline"</span> (distinct du résumé de partie).
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-purple-400 font-bold shrink-0">2.</span>
+                  <span>Le fichier peut être <code className="bg-dark-card px-1 rounded">.json</code> ou <code className="bg-dark-card px-1 rounded">.txt</code>. Nommez-le avec l'ID de game pour une association automatique (ex. <code className="bg-dark-card px-1 rounded">timeline_7704801020.json</code>).</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-purple-400 font-bold shrink-0">3.</span>
+                  Importez d'abord les <span className="text-white font-medium">parties</span> (carte ci-dessus), puis déposez la timeline et sélectionnez le match correspondant.
+                </li>
+              </ol>
+              <div className="pt-1 border-t border-dark-border">
+                <p className="text-xs text-gray-500">
+                  Vous pouvez importer plusieurs timelines en même temps — elles seront associées automatiquement par Game ID ou par ordre.
+                </p>
+              </div>
+            </div>
+          )}
           <input
             ref={fileInputTimelineRef}
             type="file"
@@ -579,18 +686,28 @@ export const ImportPage = () => {
         </div>
 
         {/* Card 3: À venir */}
-        <div className="bg-dark-card border border-dark-border rounded-xl p-6 opacity-90">
+        <div className="bg-dark-card border border-dark-border rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gray-500/20 rounded-lg">
-              <HelpCircle size={24} className="text-gray-400" />
+              <Upload size={24} className="text-gray-500" />
             </div>
             <div>
-              <h3 className="font-display text-lg font-semibold">À venir</h3>
-              <p className="text-sm text-gray-500">Autre type d'import selon vos besoins</p>
+              <h3 className="font-display text-lg font-semibold text-gray-400">Import personnalisé</h3>
+              <p className="text-sm text-gray-600">D'autres formats à venir</p>
             </div>
+            <span className="ml-auto text-[10px] font-semibold px-2 py-1 rounded bg-dark-bg border border-dark-border text-gray-600">
+              Bientôt
+            </span>
           </div>
-          <div className="border-2 border-dashed border-dark-border rounded-lg p-8 text-center">
-            <p className="text-gray-500 text-sm">Disponible prochainement</p>
+          <div className="border-2 border-dashed border-dark-border/50 rounded-lg p-6 text-center space-y-2">
+            <p className="text-gray-600 text-sm font-medium">Formats prévus</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {['Leaguepedia', 'OP.GG Team', 'Tracker.gg', 'CSV custom'].map((f) => (
+                <span key={f} className="text-xs px-2.5 py-1 rounded-full bg-dark-bg border border-dark-border text-gray-600">
+                  {f}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
