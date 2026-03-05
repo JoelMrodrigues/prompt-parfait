@@ -6,6 +6,15 @@ import { riotFetch, getCluster } from '../lib/riotClient.js'
 import { getChampionNameById } from '../data/champions.js'
 import { formatRank } from '../utils/formatters.js'
 import { sleep } from '../utils/helpers.js'
+import type {
+  PuuidResult,
+  Participant,
+  MatchInfo,
+  ParticipantData,
+  ChampionAggregate,
+  ChampionStats,
+  RankEntry,
+} from '../types/index.js'
 
 export const SEASON_16_START_SEC = 1767830400
 export const SEASON_16_START_MS = 1767830400000
@@ -13,7 +22,11 @@ export const QUEUE_SOLO_DUO = 420
 
 // ─── PUUID ───────────────────────────────────────────────────────────────────
 
-export async function getPuuidAndSummonerId(pseudo, region, apiKey) {
+export async function getPuuidAndSummonerId(
+  pseudo: string,
+  region: string,
+  apiKey: string,
+): Promise<{ puuid: string; summonerId: string }> {
   const normalized = pseudo.replace(/\s*#\s*/, '#').trim()
   const cluster = getCluster(region)
   const platform = (region || 'euw1').toLowerCase()
@@ -21,13 +34,13 @@ export async function getPuuidAndSummonerId(pseudo, region, apiKey) {
   if (normalized.includes('#')) {
     const [gameName, tagLine] = normalized.split('#').map((s) => s.trim())
     if (!gameName || !tagLine) throw new Error('Riot ID invalide')
-    const accRes = await riotFetch(
+    const accRes = await riotFetch<{ puuid: string }>(
       `https://${cluster}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
       apiKey,
     )
     if (!accRes.ok) throw new Error(`Account API ${accRes.status}`)
     const { puuid } = accRes.data
-    const sumRes = await riotFetch(
+    const sumRes = await riotFetch<{ id: string }>(
       `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${encodeURIComponent(puuid)}`,
       apiKey,
     )
@@ -35,7 +48,7 @@ export async function getPuuidAndSummonerId(pseudo, region, apiKey) {
     return { puuid, summonerId: sumRes.data.id }
   }
 
-  const res = await riotFetch(
+  const res = await riotFetch<{ puuid: string; id: string }>(
     `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${encodeURIComponent(normalized)}`,
     apiKey,
   )
@@ -43,9 +56,14 @@ export async function getPuuidAndSummonerId(pseudo, region, apiKey) {
   return { puuid: res.data.puuid, summonerId: res.data.id }
 }
 
-export async function getPuuidByRiotId(gameName, tagLine, apiKey, region = 'euw1') {
+export async function getPuuidByRiotId(
+  gameName: string,
+  tagLine: string,
+  apiKey: string,
+  region = 'euw1',
+): Promise<PuuidResult> {
   const cluster = getCluster(region)
-  const res = await riotFetch(
+  const res = await riotFetch<{ puuid?: string; status?: { message?: string } }>(
     `https://${cluster}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`,
     apiKey,
   )
@@ -62,8 +80,12 @@ export async function getPuuidByRiotId(gameName, tagLine, apiKey, region = 'euw1
 
 // ─── RANK ────────────────────────────────────────────────────────────────────
 
-export async function getRankFromPuuid(platform, puuid, apiKey) {
-  const res = await riotFetch(
+export async function getRankFromPuuid(
+  platform: string,
+  puuid: string,
+  apiKey: string,
+): Promise<string | null> {
+  const res = await riotFetch<RankEntry[]>(
     `https://${(platform || 'euw1').toLowerCase()}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`,
     apiKey,
   )
@@ -78,9 +100,9 @@ export async function getRankFromPuuid(platform, puuid, apiKey) {
 
 // ─── TOP CHAMPIONS SOLO Q ────────────────────────────────────────────────────
 
-async function getMatchIdsForSeason(puuid, region, apiKey) {
+async function getMatchIdsForSeason(puuid: string, region: string, apiKey: string): Promise<string[]> {
   const cluster = getCluster(region)
-  const allIds = []
+  const allIds: string[] = []
   let start = 0
   while (true) {
     const params = new URLSearchParams({
@@ -89,7 +111,7 @@ async function getMatchIdsForSeason(puuid, region, apiKey) {
       start: String(start),
       start_time: String(SEASON_16_START_SEC),
     })
-    const res = await riotFetch(
+    const res = await riotFetch<string[]>(
       `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?${params}`,
       apiKey,
     )
@@ -102,10 +124,10 @@ async function getMatchIdsForSeason(puuid, region, apiKey) {
   return allIds
 }
 
-function aggregateTopChampions(matchDetails, puuid) {
-  const byChampion = {}
+function aggregateTopChampions(matchDetails: Array<{ info?: MatchInfo }>, puuid: string): ChampionStats[] {
+  const byChampion: Record<string, ChampionAggregate> = {}
   for (const match of matchDetails) {
-    const me = (match.info?.participants || []).find((p) => p.puuid === puuid)
+    const me = (match.info?.participants || []).find((p: Participant) => p.puuid === puuid)
     if (!me) continue
     const dbName = getChampionNameById(me.championId)
     const name = dbName.startsWith('Unknown_') ? me.championName || dbName : dbName
@@ -132,33 +154,37 @@ function aggregateTopChampions(matchDetails, puuid) {
     }))
 }
 
-export async function fetchTopChampionsSoloq(pseudo, region, apiKey) {
+export async function fetchTopChampionsSoloq(
+  pseudo: string,
+  region: string,
+  apiKey: string,
+): Promise<{ topChampions: ChampionStats[]; error?: string }> {
   if (!pseudo || !apiKey) return { topChampions: [], error: 'pseudo et apiKey requis' }
   try {
     const { puuid } = await getPuuidAndSummonerId(pseudo, region, apiKey)
     if (!puuid) return { topChampions: [], error: 'puuid introuvable' }
     const matchIds = await getMatchIdsForSeason(puuid, region, apiKey)
     if (matchIds.length === 0) return { topChampions: [], error: 'Aucun match Solo Q sur la saison' }
-    const matchDetails = []
+    const matchDetails: Array<{ info?: MatchInfo }> = []
     const cluster = getCluster(region)
     for (let i = 0; i < matchIds.length; i++) {
       if (i > 0) await sleep(1300)
-      const res = await riotFetch(
+      const res = await riotFetch<{ info?: MatchInfo }>(
         `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${matchIds[i]}`,
         apiKey,
       )
       if (res.ok) matchDetails.push(res.data)
     }
     return { topChampions: aggregateTopChampions(matchDetails, puuid) }
-  } catch (err) {
-    console.error('fetchTopChampionsSoloq:', err.message)
-    return { topChampions: [], error: err.message || 'Erreur API Riot' }
+  } catch (err: unknown) {
+    console.error('fetchTopChampionsSoloq:', (err as Error).message)
+    return { topChampions: [], error: (err as Error).message || 'Erreur API Riot' }
   }
 }
 
 // ─── HELPERS MATCHS ──────────────────────────────────────────────────────────
 
-function extractParticipantData(info, puuid) {
+function extractParticipantData(info: MatchInfo, puuid: string): ParticipantData | null {
   const participant = info.participants?.find((p) => p.puuid === puuid)
   if (!participant) return null
   const myTeamId = participant.teamId
@@ -168,7 +194,7 @@ function extractParticipantData(info, puuid) {
   )
   return {
     championId: participant.championId,
-    championName: participant.championName || participant.championId,
+    championName: participant.championName || String(participant.championId),
     opponentChampionName: opponent ? opponent.championName || String(opponent.championId ?? '') : undefined,
     win: !!participant.win,
     kills: participant.kills ?? 0,
@@ -181,20 +207,25 @@ function extractParticipantData(info, puuid) {
 
 // ─── SYNC RANK + DERNIERS MATCHS ─────────────────────────────────────────────
 
-export async function fetchRankAndMatches(puuid, platform, apiKey, limit = 20) {
+export async function fetchRankAndMatches(
+  puuid: string,
+  platform: string,
+  apiKey: string,
+  limit = 20,
+): Promise<{ rank: string | null; matches: Array<{ matchId: string } & ParticipantData>; totalMatchIds: number }> {
   const cluster = getCluster(platform)
   const [leagueRes, idsRes] = await Promise.all([
-    riotFetch(
+    riotFetch<RankEntry[]>(
       `https://${(platform || 'euw1').toLowerCase()}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`,
       apiKey,
     ),
-    riotFetch(
+    riotFetch<string[]>(
       `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=0&count=100&start_time=${SEASON_16_START_SEC}`,
       apiKey,
     ),
   ])
 
-  let rank = null
+  let rank: string | null = null
   if (leagueRes.ok) {
     const solo = Array.isArray(leagueRes.data)
       ? leagueRes.data.find((e) => e.queueType === 'RANKED_SOLO_5x5')
@@ -203,12 +234,12 @@ export async function fetchRankAndMatches(puuid, platform, apiKey, limit = 20) {
   }
 
   const allIds = idsRes.ok && Array.isArray(idsRes.data) ? idsRes.data : []
-  const matches = []
+  const matches: Array<{ matchId: string } & ParticipantData> = []
 
   for (const matchId of allIds.slice(0, limit)) {
     await sleep(150)
     try {
-      const res = await riotFetch(
+      const res = await riotFetch<{ info?: MatchInfo }>(
         `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`,
         apiKey,
       )
@@ -218,8 +249,8 @@ export async function fetchRankAndMatches(puuid, platform, apiKey, limit = 20) {
       const participant = extractParticipantData(info, puuid)
       if (!participant) continue
       matches.push({ matchId, ...participant })
-    } catch (e) {
-      console.warn('fetchRankAndMatches — match ignoré:', matchId, e.message)
+    } catch (e: unknown) {
+      console.warn('fetchRankAndMatches — match ignoré:', matchId, (e as Error).message)
     }
   }
 
@@ -230,16 +261,22 @@ export async function fetchRankAndMatches(puuid, platform, apiKey, limit = 20) {
 
 const MATCH_IDS_PAGE_MAX = 100
 
-export async function fetchMatchIdsOnly(puuid, start, count, apiKey, region = 'euw1') {
+export async function fetchMatchIdsOnly(
+  puuid: string,
+  start: number,
+  count: number,
+  apiKey: string,
+  region = 'euw1',
+): Promise<{ matchIds: string[]; hasMore: boolean } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const limit = Math.min(Math.max(1, count || 20), MATCH_IDS_PAGE_MAX)
-  const res = await riotFetch(
+  const res = await riotFetch<string[]>(
     `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=${start}&count=${limit}&start_time=${SEASON_16_START_SEC}`,
     apiKey,
   )
   if (!res.ok) {
     return {
-      error: res.data?.status?.message || `Match IDs API (${res.status})`,
+      error: (res.data as { status?: { message?: string } })?.status?.message || `Match IDs API (${res.status})`,
       status: res.status >= 500 ? 500 : 400,
     }
   }
@@ -249,13 +286,18 @@ export async function fetchMatchIdsOnly(puuid, start, count, apiKey, region = 'e
 
 // ─── DÉTAILS DE MATCHS PAR IDS (pour compléter les manquants) ─────────────────
 
-export async function fetchMatchDetailsByIds(puuid, matchIds, apiKey, region = 'euw1') {
+export async function fetchMatchDetailsByIds(
+  puuid: string,
+  matchIds: string[],
+  apiKey: string,
+  region = 'euw1',
+): Promise<Array<{ matchId: string } & ParticipantData>> {
   const cluster = getCluster(region)
-  const matches = []
+  const matches: Array<{ matchId: string } & ParticipantData> = []
   for (const matchId of matchIds) {
     await sleep(120)
     try {
-      const res = await riotFetch(
+      const res = await riotFetch<{ info?: MatchInfo }>(
         `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`,
         apiKey,
       )
@@ -265,8 +307,8 @@ export async function fetchMatchDetailsByIds(puuid, matchIds, apiKey, region = '
       const participant = extractParticipantData(info, puuid)
       if (!participant) continue
       matches.push({ matchId, ...participant })
-    } catch (e) {
-      console.warn('fetchMatchDetailsByIds — match ignoré:', matchId, e.message)
+    } catch (e: unknown) {
+      console.warn('fetchMatchDetailsByIds — match ignoré:', matchId, (e as Error).message)
     }
   }
   return matches
@@ -274,26 +316,32 @@ export async function fetchMatchDetailsByIds(puuid, matchIds, apiKey, region = '
 
 // ─── HISTORIQUE MATCHS (paginé) ───────────────────────────────────────────────
 
-export async function fetchMatchHistory(puuid, start, limit, apiKey, region = 'euw1') {
+export async function fetchMatchHistory(
+  puuid: string,
+  start: number,
+  limit: number,
+  apiKey: string,
+  region = 'euw1',
+): Promise<{ matches: Array<{ matchId: string } & ParticipantData>; hasMore: boolean } | { error: string; status: number }> {
   const cluster = getCluster(region)
-  const idsRes = await riotFetch(
+  const idsRes = await riotFetch<string[]>(
     `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=${start}&count=${limit}&start_time=${SEASON_16_START_SEC}`,
     apiKey,
   )
   if (!idsRes.ok) {
     return {
-      error: idsRes.data?.status?.message || `Erreur Match IDs (${idsRes.status})`,
+      error: (idsRes.data as { status?: { message?: string } })?.status?.message || `Erreur Match IDs (${idsRes.status})`,
       status: idsRes.status >= 500 ? 500 : 400,
     }
   }
 
   const matchIds = Array.isArray(idsRes.data) ? idsRes.data : []
-  const matches = []
+  const matches: Array<{ matchId: string } & ParticipantData> = []
 
   for (const matchId of matchIds) {
     await sleep(150)
     try {
-      const res = await riotFetch(
+      const res = await riotFetch<{ info?: MatchInfo }>(
         `https://${cluster}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`,
         apiKey,
       )
@@ -303,8 +351,8 @@ export async function fetchMatchHistory(puuid, start, limit, apiKey, region = 'e
       const participant = extractParticipantData(info, puuid)
       if (!participant) continue
       matches.push({ matchId, ...participant })
-    } catch (e) {
-      console.warn('fetchMatchHistory — match ignoré:', matchId, e.message)
+    } catch (e: unknown) {
+      console.warn('fetchMatchHistory — match ignoré:', matchId, (e as Error).message)
     }
   }
 
@@ -312,23 +360,25 @@ export async function fetchMatchHistory(puuid, start, limit, apiKey, region = 'e
 }
 
 // ─── COMPTAGE MATCHS SAISON ───────────────────────────────────────────────────
-// Riot filtre déjà par start_time + queue — on compte simplement les pages d'IDs.
-// Pas besoin de binary search : c'est fiable et ~10x plus rapide.
 
-export async function fetchMatchCount(puuid, apiKey, region = 'euw1') {
+export async function fetchMatchCount(
+  puuid: string,
+  apiKey: string,
+  region = 'euw1',
+): Promise<{ total: number; puuid?: string } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const BATCH = 100
   let total = 0
   let start = 0
 
   while (true) {
-    const res = await riotFetch(
+    const res = await riotFetch<string[]>(
       `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=${start}&count=${BATCH}&start_time=${SEASON_16_START_SEC}`,
       apiKey,
     )
     if (!res.ok) {
       return {
-        error: res.data?.status?.message || `Erreur Match IDs (${res.status})`,
+        error: (res.data as { status?: { message?: string } })?.status?.message || `Erreur Match IDs (${res.status})`,
         status: res.status >= 500 ? 500 : 400,
       }
     }
@@ -343,16 +393,20 @@ export async function fetchMatchCount(puuid, apiKey, region = 'euw1') {
 
 // ─── GAMES JOUÉES CETTE SEMAINE (ranked soloq) ────────────────────────────────
 
-export async function fetchWeeklyMatchCount(puuid, apiKey, region = 'euw1') {
+export async function fetchWeeklyMatchCount(
+  puuid: string,
+  apiKey: string,
+  region = 'euw1',
+): Promise<{ count: number } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const startOfWeek = Math.floor((Date.now() - 7 * 24 * 3600 * 1000) / 1000)
-  const res = await riotFetch(
+  const res = await riotFetch<string[]>(
     `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start_time=${startOfWeek}&count=100`,
     apiKey,
   )
   if (!res.ok) {
     return {
-      error: res.data?.status?.message || `Erreur Match IDs (${res.status})`,
+      error: (res.data as { status?: { message?: string } })?.status?.message || `Erreur Match IDs (${res.status})`,
       status: res.status >= 500 ? 500 : 400,
     }
   }

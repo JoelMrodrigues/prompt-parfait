@@ -135,7 +135,7 @@ function getJsonPseudo(identity) {
  * Retourne true si le pseudo du JSON correspond au joueur.
  * On teste d'abord le pseudo principal, puis le compte secondaire.
  */
-function pseudoMatchesPlayer(player, jsonPseudo) {
+function _pseudoMatchesPlayer(player, jsonPseudo) {
   if (!jsonPseudo) return false
   const n = norm(jsonPseudo)
   const main = norm(player.pseudo)

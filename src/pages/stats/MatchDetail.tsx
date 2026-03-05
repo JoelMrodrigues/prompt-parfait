@@ -77,7 +77,7 @@ export const MatchDetail = () => {
     )
   }
 
-  const { blueTeam, redTeam, teamA, teamB, winner, gamelength, date, league, patch, game } =
+  const { blueTeam, redTeam, teamA, teamB, gamelength, date, league, patch } =
     matchData
   const gameTime = formatTime(gamelength)
   const matchDate = date
@@ -156,7 +156,7 @@ export const MatchDetail = () => {
 
 // Tab Summary
 const SummaryTab = ({ matchData }) => {
-  const { blueTeam, redTeam, winner, gamelength } = matchData
+  const { blueTeam, redTeam, winner } = matchData
   const isBlueWinner = winner === 'blue'
 
   return (
@@ -479,7 +479,7 @@ const AllStatsTab = ({ matchData }) => {
 }
 
 // Tab Builds (Placeholder)
-const BuildsTab = ({ matchData }) => {
+const BuildsTab = ({ matchData: _matchData }) => {
   return (
     <div className="bg-dark-card border border-dark-border rounded-lg p-6">
       <h3 className="text-accent-blue font-bold text-lg mb-4">BUILDS</h3>
@@ -489,7 +489,7 @@ const BuildsTab = ({ matchData }) => {
 }
 
 // Tab Timeline (Placeholder)
-const TimelineTab = ({ matchData }) => {
+const TimelineTab = ({ matchData: _matchData }) => {
   return (
     <div className="bg-dark-card border border-dark-border rounded-lg p-6">
       <h3 className="text-accent-blue font-bold text-lg mb-4">TIMELINE</h3>
@@ -499,7 +499,7 @@ const TimelineTab = ({ matchData }) => {
 }
 
 // Tab Plays (Placeholder)
-const PlaysTab = ({ matchData }) => {
+const PlaysTab = ({ matchData: _matchData }) => {
   return (
     <div className="bg-dark-card border border-dark-border rounded-lg p-6">
       <h3 className="text-accent-blue font-bold text-lg mb-4">PLAYS</h3>

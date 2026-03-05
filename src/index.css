@@ -68,3 +68,13 @@ body {
 .glow-gold {
   box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
 }
+
+/* ─────────────────────────────────────────────
+   Texte toujours blanc sur fonds colorés solides
+   (accent violet, rouge, etc.) — light & dark
+───────────────────────────────────────────── */
+.bg-accent-blue:not([class*="bg-accent-blue\/"]) { color: #ffffff; }
+.bg-red-500:not([class*="bg-red-500\/"]),
+.bg-red-600:not([class*="bg-red-600\/"]) { color: #ffffff; }
+.bg-green-500:not([class*="bg-green-500\/"]),
+.bg-green-600:not([class*="bg-green-600\/"]) { color: #ffffff; }

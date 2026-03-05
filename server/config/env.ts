@@ -8,11 +8,11 @@ import { readFileSync, existsSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export function loadServerEnv() {
+export function loadServerEnv(): void {
   const paths = [
-    resolve(__dirname, '..', '.env'),          // server/.env
-    resolve(process.cwd(), 'server', '.env'),  // ./server/.env
-    resolve(process.cwd(), '.env'),            // ./.env
+    resolve(__dirname, '..', '.env'),         // server/.env
+    resolve(process.cwd(), 'server', '.env'), // ./server/.env
+    resolve(process.cwd(), '.env'),           // ./.env
   ]
 
   for (const p of paths) {
@@ -39,7 +39,7 @@ export function loadServerEnv() {
   }
 }
 
-export function resolveRiotApiKey() {
+export function resolveRiotApiKey(): void {
   // Fallback : VITE_RIOT_API_KEY peut servir de RIOT_API_KEY en local
   if (!process.env.RIOT_API_KEY?.trim() && process.env.VITE_RIOT_API_KEY?.trim()) {
     process.env.RIOT_API_KEY = process.env.VITE_RIOT_API_KEY.trim()

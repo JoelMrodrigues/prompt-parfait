@@ -18,9 +18,9 @@ export const Header = () => {
       <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
         <Link
           to="/"
-          className="font-display text-2xl font-bold bg-gradient-to-r from-accent-blue to-accent-gold bg-clip-text text-transparent"
+          className="font-display text-2xl font-bold bg-gradient-to-r from-purple-300 to-white bg-clip-text text-transparent"
         >
-          LoL Draft Pro
+          Void.pro
         </Link>
 
         <div className="flex items-center gap-8">

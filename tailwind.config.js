@@ -22,6 +22,8 @@ export default {
         // "white" = quasi-noir en light, quasi-blanc en dark
         // → text-white, hover:text-white, bg-white s'adaptent automatiquement
         white: 'rgb(var(--color-foreground) / <alpha-value>)',
+        // "off-white" = toujours blanc — pour text sur fond coloré (boutons accent, badges)
+        'off-white': '#ffffff',
         // Grays adaptatifs pour le texte secondaire/tertiaire
         gray: {
           300: 'rgb(var(--color-gray-300) / <alpha-value>)',

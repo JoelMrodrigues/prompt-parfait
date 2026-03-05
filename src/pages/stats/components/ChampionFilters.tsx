@@ -22,7 +22,6 @@ const ERL_KEYWORDS = [
 ]
 const ASIA_KEYWORDS = ['LCKC', 'LDL', 'Challengers Korea', 'LCK CL', 'LJL CS']
 const AMERICAS_KEYWORDS = ['Academy', 'Challengers NA', 'CBLOLA', 'Liga Latinoamérica']
-const OTHER_KEYWORDS = ['AL', 'HLL', 'LIT', 'ROL']
 
 export const ChampionFilters = ({
   filters,

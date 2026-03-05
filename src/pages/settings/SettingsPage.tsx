@@ -47,7 +47,7 @@ export const SettingsPage = () => {
             }`}
           >
             <span
-              className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              className={`absolute top-1 w-4 h-4 rounded-full bg-off-white shadow-sm transition-transform duration-200 ${
                 isDark ? 'translate-x-6' : 'translate-x-1'
               }`}
             />

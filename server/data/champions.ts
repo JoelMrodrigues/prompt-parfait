@@ -2,7 +2,7 @@
  * Mapping champion ID (Riot) → nom affiché
  * Synchro avec src/lib/team/championsDatabase.js côté frontend
  */
-export const CHAMPIONS_BY_ID = {
+export const CHAMPIONS_BY_ID: Record<number, string> = {
   1: 'Annie', 2: 'Olaf', 3: 'Galio', 4: 'Twisted Fate', 5: 'Xin Zhao',
   6: 'Urgot', 7: 'LeBlanc', 8: 'Vladimir', 9: 'Fiddlesticks', 10: 'Kayle',
   11: 'Master Yi', 12: 'Alistar', 13: 'Ryze', 14: 'Sion', 15: 'Sivir',
@@ -40,6 +40,6 @@ export const CHAMPIONS_BY_ID = {
   950: 'Naafiri',
 }
 
-export function getChampionNameById(id) {
+export function getChampionNameById(id: number): string {
   return CHAMPIONS_BY_ID[id] || `Unknown_${id}`
 }

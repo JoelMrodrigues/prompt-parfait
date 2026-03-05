@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { TeamProvider } from './contexts/TeamContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { Layout } from './components/layout/Layout'
@@ -121,7 +122,9 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <AppRoutes />
+          <TeamProvider>
+            <AppRoutes />
+          </TeamProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

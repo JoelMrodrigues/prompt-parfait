@@ -3,7 +3,7 @@
  * Ex: ("MASTER", "", 454) → "Master 454 LP"
  *     ("DIAMOND", "II", 32) → "Diamond II 32 LP"
  */
-export function formatRank(tier, rank, lp) {
+export function formatRank(tier: string, rank: string, lp: number): string {
   const t = (tier || '').toLowerCase().replace(/^./, (c) => c.toUpperCase())
   if (['Master', 'Grandmaster', 'Challenger'].includes(t)) return `${t} ${lp} LP`
   return rank ? `${t} ${rank} ${lp} LP` : `${t} ${lp} LP`
@@ -13,10 +13,10 @@ export function formatRank(tier, rank, lp) {
  * Formate un slug champion dpm.lol en nom affichable
  * Ex: "DrMundo" → "Dr. Mundo", "LeeSin" → "Lee Sin"
  */
-export function formatChampionName(slug) {
+export function formatChampionName(slug: string): string {
   if (!slug) return ''
 
-  const specialNames = {
+  const specialNames: Record<string, string> = {
     drmundo: 'Dr. Mundo',
     leesin: 'Lee Sin',
     monkeyking: 'Wukong',

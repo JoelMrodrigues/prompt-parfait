@@ -91,7 +91,6 @@ function DraftPreview() {
 
   return (
     <div className="relative rounded-2xl border border-dark-border bg-dark-card overflow-hidden shadow-2xl">
-      {/* Barre du haut */}
       <div className="flex items-center justify-between px-4 py-2 bg-dark-bg border-b border-dark-border">
         <span className="text-xs text-accent-blue font-semibold">PHASE 3 · PICKS</span>
         <div className="flex gap-1">
@@ -100,9 +99,7 @@ function DraftPreview() {
           <div className="w-2 h-2 rounded-full bg-green-500/60" />
         </div>
       </div>
-
       <div className="grid grid-cols-3 gap-0">
-        {/* Côté bleu */}
         <div className="p-3 space-y-2 border-r border-dark-border">
           <p className="text-xs text-accent-blue font-bold mb-2 text-center">BLUE</p>
           {blue.map((role, i) => (
@@ -112,8 +109,6 @@ function DraftPreview() {
             </div>
           ))}
         </div>
-
-        {/* Centre — bans */}
         <div className="p-3 flex flex-col items-center justify-center gap-2">
           <p className="text-xs text-gray-500 font-semibold mb-1">BANS</p>
           <div className="flex gap-1">
@@ -131,8 +126,6 @@ function DraftPreview() {
             À vous
           </div>
         </div>
-
-        {/* Côté rouge */}
         <div className="p-3 space-y-2 border-l border-dark-border">
           <p className="text-xs text-red-400 font-bold mb-2 text-center">RED</p>
           {red.map((role, i) => (
@@ -153,9 +146,15 @@ export const Home = () => {
 
       {/* ─── HERO ─────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/8 via-transparent to-accent-gold/8" />
-        {/* Grille déco */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/8 via-transparent to-accent-blue/4" />
+        {/* Grille déco — couleur accent adaptative */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: 'linear-gradient(rgb(var(--color-accent)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--color-accent)) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
+          }}
+        />
 
         <div className="relative z-10 container mx-auto max-w-6xl px-6 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -171,13 +170,22 @@ export const Home = () => {
                 Outil de préparation compétitive LoL
               </div>
 
-              <h1 className="font-display text-4xl md:text-6xl font-bold leading-tight mb-6">
-                <span className="bg-gradient-to-r from-accent-blue via-white to-accent-gold bg-clip-text text-transparent">
-                  Dominez la draft
+              {/* Titre principal Void.pro */}
+              <h1
+                className="font-display font-bold leading-none mb-4 bg-gradient-to-r from-purple-300 to-white bg-clip-text text-transparent"
+                style={{ fontSize: 'clamp(4.5rem, 12vw, 8rem)' }}
+              >
+                Void.pro
+              </h1>
+
+              {/* Tagline */}
+              <h2 className="font-display text-2xl md:text-3xl font-bold mb-6 leading-tight">
+                <span className="bg-gradient-to-r from-accent-blue via-white to-white bg-clip-text text-transparent">
+                  Dominez les statistiques
                 </span>
                 <br />
-                <span className="text-white">avant le game</span>
-              </h1>
+                <span className="text-white">de votre équipe</span>
+              </h2>
 
               <p className="text-lg text-gray-400 mb-8 leading-relaxed max-w-lg">
                 Simulateur de draft, stats pro toutes ligues, suivi de roster et analyse de matchs —
@@ -216,6 +224,35 @@ export const Home = () => {
               <p className="text-center text-xs text-gray-600 mt-3">Aperçu du Draft Simulator</p>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* ─── DOMINEZ LA DRAFT ─────────────────────────────────── */}
+      <section className="py-20 px-6 border-t border-dark-border bg-dark-card/30">
+        <div className="container mx-auto max-w-4xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
+              <span className="bg-gradient-to-r from-accent-blue via-white to-accent-gold bg-clip-text text-transparent">
+                Dominez la draft
+              </span>
+              <br />
+              <span className="text-white">avant le game</span>
+            </h2>
+            <p className="text-gray-500 text-lg mb-8 max-w-xl mx-auto">
+              Prenez de l'avance sur vos adversaires avec des données pro et un simulateur complet.
+            </p>
+            <Link
+              to="/draft"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-accent-blue text-white rounded-xl text-base font-semibold hover:bg-accent-blue/90 transition-all hover:scale-105 glow-blue"
+            >
+              Lancer le Draft Simulator
+              <ChevronRight size={18} />
+            </Link>
+          </motion.div>
         </div>
       </section>
 
@@ -338,7 +375,7 @@ export const Home = () => {
           className="text-center max-w-2xl mx-auto"
         >
           <h2 className="font-display text-4xl font-bold text-white mb-4">
-            Prêt à préparer vos drafts ?
+            Prêt à prendre l'avance ?
           </h2>
           <p className="text-gray-500 mb-8">
             Gratuit, sans carte bancaire. Commence par le draft simulator ou crée ton équipe directement.

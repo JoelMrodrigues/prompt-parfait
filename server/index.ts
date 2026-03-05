@@ -23,9 +23,9 @@ app.use(express.json())
 app.use('/api/riot', riotRoutes)
 app.use('/api/stats', statsRoutes)
 
-app.get('/', (_, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
-app.get('/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
-app.get('/.well-known/appspecific/com.chrome.devtools.json', (_, res) => res.status(204).end())
+app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
+app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (_req, res) => res.status(204).end())
 
 app.listen(PORT, async () => {
   const apiKey = (process.env.RIOT_API_KEY || '').trim().replace(/\r/g, '')
