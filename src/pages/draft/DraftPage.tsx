@@ -3,7 +3,7 @@
  * Orchestration uniquement - logique dans les hooks
  */
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, RotateCcw, Undo2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { InitModal } from './components/InitModal'
@@ -16,6 +16,7 @@ import { useChampions } from './hooks/useChampions'
 import { DRAFT_PHASES } from '../../lib/draftPhases'
 
 export const Draft = () => {
+  const navigate = useNavigate()
   const { champions, loading: loadingChampions, error: championsError } = useChampions()
   const [showInitModal, setShowInitModal] = useState(true)
   const [showChampionSelect, setShowChampionSelect] = useState(false)
@@ -75,7 +76,7 @@ export const Draft = () => {
   if (showInitModal) {
     return (
       <div className="min-h-screen bg-dark-bg">
-        <InitModal onStart={handleStartDraft} onClose={() => {}} />
+        <InitModal onStart={handleStartDraft} onClose={() => navigate(-1)} />
       </div>
     )
   }

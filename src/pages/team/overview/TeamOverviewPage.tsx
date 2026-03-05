@@ -34,6 +34,7 @@ import { supabase } from '../../../lib/supabase'
 import { getChampionImage } from '../../../lib/championImages'
 import { fetchWeeklyGames } from '../../../lib/riotSync'
 import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
+import { getRankColorText } from '../joueurs/utils/playerDetailHelpers'
 
 // ── Rank helpers ───────────────────────────────────────────────────────────────
 
@@ -59,21 +60,6 @@ function rankToSortValue(rank: string | null | undefined): number {
   return (tierIdx >= 0 ? tierIdx * 400 : 0) + (divIdx >= 0 ? divIdx * 100 : 0) + lp
 }
 
-function getRankColor(rank: string | null | undefined): string {
-  if (!rank) return 'text-gray-500'
-  const r = rank.toLowerCase()
-  if (r.includes('challenger')) return 'text-yellow-300'
-  if (r.includes('grandmaster')) return 'text-orange-400'
-  if (r.includes('master')) return 'text-purple-400'
-  if (r.includes('diamond')) return 'text-blue-400'
-  if (r.includes('emerald')) return 'text-emerald-400'
-  if (r.includes('platinum')) return 'text-cyan-400'
-  if (r.includes('gold')) return 'text-yellow-400'
-  if (r.includes('silver')) return 'text-gray-300'
-  if (r.includes('bronze')) return 'text-orange-500'
-  if (r.includes('iron')) return 'text-gray-500'
-  return 'text-gray-400'
-}
 
 function stripLP(rank: string | null | undefined): string {
   if (!rank) return '—'
@@ -707,7 +693,7 @@ export const TeamOverviewPage = () => {
                           style={{ width: `${Math.max(barPct, 3)}%` }}
                         />
                       </div>
-                      <span className={`text-xs shrink-0 ${getRankColor(p.rank)}`}>
+                      <span className={`text-xs shrink-0 ${getRankColorText(p.rank)}`}>
                         {rankLabel}
                       </span>
                       <span className="text-xs text-gray-600 shrink-0 w-12 text-right">
@@ -823,7 +809,7 @@ export const TeamOverviewPage = () => {
                       <div className="shrink-0 w-28 text-right">
                         {p.rank ? (
                           <>
-                            <p className={`text-xs font-semibold ${getRankColor(p.rank)}`}>
+                            <p className={`text-xs font-semibold ${getRankColorText(p.rank)}`}>
                               {rankLabel}
                             </p>
                             <p className="text-[11px] text-gray-600">{lp > 0 ? `${lp} LP` : ''}</p>
@@ -1193,7 +1179,7 @@ export const TeamOverviewPage = () => {
 
                     {/* Rank */}
                     {p.rank ? (
-                      <p className={`text-xs truncate mt-0.5 ${getRankColor(p.rank)}`}>
+                      <p className={`text-xs truncate mt-0.5 ${getRankColorText(p.rank)}`}>
                         {stripLP(p.rank)}
                       </p>
                     ) : (

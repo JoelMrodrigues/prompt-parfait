@@ -5,6 +5,7 @@
 import type { CacheEntry } from '../types/index.js'
 
 const TTL_MS = 15 * 60 * 1000
+const MAX_SIZE = 500
 
 class CacheService {
   private store: Map<string, CacheEntry>
@@ -28,6 +29,11 @@ class CacheService {
   }
 
   set(key: string, data: Record<string, unknown>): void {
+    if (this.store.size >= MAX_SIZE) {
+      // Éviction LRU approximative : supprimer la première entrée insérée
+      const firstKey = this.store.keys().next().value
+      if (firstKey !== undefined) this.store.delete(firstKey)
+    }
     this.store.set(key, { ...data, at: Date.now() })
   }
 }

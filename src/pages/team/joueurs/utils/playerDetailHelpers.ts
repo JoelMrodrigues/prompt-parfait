@@ -37,6 +37,22 @@ export function getRankColor(rank: string | null | undefined): string {
   return 'from-gray-500 to-gray-700'
 }
 
+export function getRankColorText(rank: string | null | undefined): string {
+  if (!rank) return 'text-gray-500'
+  const r = rank.toLowerCase()
+  if (r.includes('challenger')) return 'text-yellow-300'
+  if (r.includes('grandmaster')) return 'text-orange-400'
+  if (r.includes('master')) return 'text-purple-400'
+  if (r.includes('diamond')) return 'text-blue-400'
+  if (r.includes('emerald')) return 'text-emerald-400'
+  if (r.includes('platinum')) return 'text-cyan-400'
+  if (r.includes('gold')) return 'text-yellow-400'
+  if (r.includes('silver')) return 'text-gray-300'
+  if (r.includes('bronze')) return 'text-orange-500'
+  if (r.includes('iron')) return 'text-gray-500'
+  return 'text-gray-400'
+}
+
 export function generateDpmLink(pseudo: string | null | undefined): string {
   if (!pseudo) return ''
   return `https://dpm.lol/${encodeURIComponent(pseudo.replace(/#/g, '-'))}?queue=solo`

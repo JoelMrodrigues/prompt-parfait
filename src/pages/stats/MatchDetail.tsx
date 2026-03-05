@@ -31,8 +31,7 @@ export const MatchDetail = () => {
     const loadMatch = async () => {
       setLoading(true)
       try {
-        // Détecter la saison depuis le gameid (S16 commence par LOLTMNT)
-        const season = gameid?.startsWith('LOLTMNT') ? 'S16' : 'S16' // Pour l'instant, on assume S16
+        const season = 'S16'
         const { data, error } = await getMatchDetails(gameid, season)
         if (error) {
           console.error('Erreur chargement match:', error)

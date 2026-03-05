@@ -6,22 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { Edit2, Trash2 } from 'lucide-react'
 import { getChampionImage } from '../../../lib/championImages'
 import { ROLE_CONFIG, ROLE_LABELS } from '../constants/roles'
-
-function getRankColor(rank: string | null | undefined): string {
-  if (!rank) return 'from-gray-500 to-gray-700'
-  const r = rank.toLowerCase()
-  if (r.includes('challenger')) return 'from-yellow-400 via-blue-500 to-yellow-400'
-  if (r.includes('grandmaster')) return 'from-orange-500 to-orange-700'
-  if (r.includes('master')) return 'from-purple-500 to-purple-700'
-  if (r.includes('diamond')) return 'from-blue-500 to-blue-700'
-  if (r.includes('emerald')) return 'from-emerald-500 to-emerald-700'
-  if (r.includes('platinum')) return 'from-cyan-500 to-cyan-700'
-  if (r.includes('gold')) return 'from-yellow-500 to-yellow-700'
-  if (r.includes('silver')) return 'from-gray-400 to-gray-600'
-  if (r.includes('bronze')) return 'from-orange-600 to-orange-800'
-  if (r.includes('iron')) return 'from-gray-600 to-gray-800'
-  return 'from-gray-500 to-gray-700'
-}
+import { getRankColor } from '../joueurs/utils/playerDetailHelpers'
 
 const EXCLUDED_CHAMP_WORDS = [
   'Tierlist', 'Leaderboards', 'Esports', 'Games', 'Winrate', 'KDA', 'Damage', 'Gold', 'CS',

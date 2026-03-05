@@ -13,7 +13,7 @@ import { MoodSoloQCard, type MoodRow } from './components/MoodSoloQCard'
 import { MoodTeamCard } from './components/MoodTeamCard'
 import { fetchSoloqMatches, fetchSoloqChampionStats, upsertSoloqMatches } from '../../../services/supabase/playerQueries'
 import { supabase } from '../../../lib/supabase'
-import { SEASON_16_START_MS } from '../../../lib/constants'
+import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants'
 import { apiFetch } from '../../../lib/apiFetch'
 
 export const JoueursPage = () => {
@@ -26,6 +26,13 @@ export const JoueursPage = () => {
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
   const [rankedUpdateLoading, setRankedUpdateLoading] = useState(false)
   const [soloqMoodFetched, setSoloqMoodFetched] = useState<Record<string, MoodRow>>({})
+
+  // Clé stable : déclenche l'effet uniquement si un joueur est ajouté/supprimé
+  // ou si soloq_mood_last_5 passe de null à non-null (données nouvellement disponibles)
+  const playersKey = useMemo(
+    () => players.map((p) => `${p.id}:${p.soloq_mood_last_5 != null ? '1' : '0'}`).join(','),
+    [players]
+  )
 
   useEffect(() => {
     if (!players.length) return
@@ -52,7 +59,7 @@ export const JoueursPage = () => {
             limit: 5,
           })
           if (cancelled) return
-          const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= 180)
+          const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC)
           const wins = list.filter((m: any) => m.win).length
           const losses = list.length - wins
           let kda = '—'
@@ -69,7 +76,7 @@ export const JoueursPage = () => {
     }
     load()
     return () => { cancelled = true }
-  }, [players.map((p) => p.id).join(','), players.map((p) => (p.soloq_mood_last_5 ? JSON.stringify(p.soloq_mood_last_5) : '')).join('|')])
+  }, [playersKey])
 
   const soloqMood = useMemo(() => {
     const out: Record<string, MoodRow> = { ...soloqMoodFetched }

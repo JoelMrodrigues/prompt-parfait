@@ -146,42 +146,42 @@ export const PlayerDetailPage = () => {
               <img
                 src={mostPlayedName ? getChampionImage(mostPlayedName) : 'https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/Aatrox.png'}
                 alt=""
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-white/20 shrink-0"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-off-white/20 shrink-0"
               />
               <div>
-                <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
+                <h1 className="font-display text-2xl sm:text-3xl font-bold text-off-white">
                   {player.player_name || 'Joueur'}
                 </h1>
-                <p className="text-white/80 mt-1">{player.pseudo || '—'}</p>
+                <p className="text-off-white/80 mt-1">{player.pseudo || '—'}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium text-white">{roleLabel}</span>
+                  <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{roleLabel}</span>
                   {player.rank && (
-                    <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium text-white">{player.rank}</span>
+                    <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{player.rank}</span>
                   )}
                 </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               {player.opgg_link && (
-                <a href={player.opgg_link} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 flex items-center gap-2 text-sm font-medium text-white transition-colors">
+                <a href={player.opgg_link} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-off-white/10 border border-off-white/20 rounded-xl hover:bg-off-white/20 flex items-center gap-2 text-sm font-medium text-off-white transition-colors">
                   <ExternalLink size={16} /> OP.gg
                 </a>
               )}
               {dpmLink && (
-                <a href={dpmLink} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 flex items-center gap-2 text-sm font-medium text-white transition-colors">
+                <a href={dpmLink} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-off-white/10 border border-off-white/20 rounded-xl hover:bg-off-white/20 flex items-center gap-2 text-sm font-medium text-off-white transition-colors">
                   <ExternalLink size={16} /> dpm.lol
                 </a>
               )}
               {player.lolpro_link && (
-                <a href={player.lolpro_link} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 flex items-center gap-2 text-sm font-medium text-white transition-colors">
+                <a href={player.lolpro_link} target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 bg-off-white/10 border border-off-white/20 rounded-xl hover:bg-off-white/20 flex items-center gap-2 text-sm font-medium text-off-white transition-colors">
                   <ExternalLink size={16} /> Lol Pro
                 </a>
               )}
             </div>
           </div>
           {player.rank_updated_at != null && (
-            <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-white/10">
-              <span className="text-sm text-white/80">
+            <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-off-white/10">
+              <span className="text-sm text-off-white/80">
                 Dernière MAJ rang :{' '}
                 {new Date(player.rank_updated_at).toLocaleDateString('fr-FR', {
                   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -291,7 +291,7 @@ export const PlayerDetailPage = () => {
                   : 'Rang sans LP affiché ou aucune partie. Faites une mise à jour du rang en haut de page.'}
               </p>
             ) : (
-              <div className="w-full h-72 rounded-xl bg-dark-bg/80 border border-dark-border overflow-hidden">
+              <div className="w-full rounded-xl bg-dark-bg/80 border border-dark-border p-4">
                 <LpCurveChart points={d.lpCurvePoints} />
               </div>
             )}

@@ -16,13 +16,11 @@ function delay(ms: number) {
 }
 
 export function useSoloqMoodSync() {
-  const { team, players, updatePlayer, refetch } = useTeam()
+  const { team, players, updatePlayer } = useTeam()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const updatePlayerRef = useRef(updatePlayer)
-  const refetchRef = useRef(refetch)
   const playersRef = useRef(players)
   updatePlayerRef.current = updatePlayer
-  refetchRef.current = refetch
   playersRef.current = players
 
   useEffect(() => {
@@ -31,11 +29,9 @@ export function useSoloqMoodSync() {
     const run = async () => {
       const list = playersRef.current || []
       const updatePlayerFn = updatePlayerRef.current
-      const refetchFn = refetchRef.current
       if (list.length === 0) return
 
       try {
-        console.log(LOG_PREFIX, 'Mise à jour mood Solo Q (5 dernières parties)...')
         for (const player of list) {
           try {
             const { data: soloqMatches } = await fetchSoloqMatches({
@@ -43,7 +39,7 @@ export function useSoloqMoodSync() {
               accountSource: 'primary',
               seasonStart: SEASON_16_START_MS,
               offset: 0,
-              limit: 20,
+              limit: 10,
             })
             const valid = (soloqMatches || []).filter(
               (m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC
@@ -66,8 +62,6 @@ export function useSoloqMoodSync() {
           }
           await delay(80)
         }
-        await refetchFn()
-        console.log(LOG_PREFIX, 'Mood Solo Q mis à jour')
       } catch (e) {
         console.warn(LOG_PREFIX, 'Erreur', e)
       }

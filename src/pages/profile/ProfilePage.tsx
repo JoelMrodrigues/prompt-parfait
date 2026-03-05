@@ -1,7 +1,7 @@
 /**
  * Page Profil utilisateur — infos, sécurité, danger zone
  */
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { UserCircle, Save, Check, Mail, KeyRound, AlertCircle } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { upsertProfile } from '../../services/supabase/profileQueries'
@@ -15,6 +15,13 @@ export const ProfilePage = () => {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    }
+  }, [])
 
   // Sécurité
   const [resetSent, setResetSent] = useState(false)
@@ -30,7 +37,8 @@ export const ProfilePage = () => {
       await upsertProfile(user.id, { display_name: displayName.trim() })
       await refreshProfile()
       setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+      savedTimerRef.current = setTimeout(() => setSaved(false), 2500)
     } catch (err: any) {
       setSaveError(err.message || 'Erreur lors de la sauvegarde')
     } finally {

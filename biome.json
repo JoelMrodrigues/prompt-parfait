@@ -12,7 +12,7 @@
         "noUnusedVariables": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noConsoleLog": "warn"
       },
       "style": {

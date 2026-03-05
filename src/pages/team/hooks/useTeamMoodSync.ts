@@ -16,14 +16,12 @@ function delay(ms: number) {
 }
 
 export function useTeamMoodSync() {
-  const { team, players, updatePlayer, refetch } = useTeam()
+  const { team, players, updatePlayer } = useTeam()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const updatePlayerRef = useRef(updatePlayer)
-  const refetchRef = useRef(refetch)
   const playersRef = useRef(players)
   const teamRef = useRef(team)
   updatePlayerRef.current = updatePlayer
-  refetchRef.current = refetch
   playersRef.current = players
   teamRef.current = team
 
@@ -34,12 +32,10 @@ export function useTeamMoodSync() {
     const run = async () => {
       const list = playersRef.current || []
       const updatePlayerFn = updatePlayerRef.current
-      const refetchFn = refetchRef.current
       const tid = teamRef.current?.id
       if (!tid || list.length === 0) return
 
       try {
-        console.log(LOG_PREFIX, 'Mise à jour mood Team (5 dernières parties depuis Matchs)...')
         const { data: teamMatchesList } = await fetchTeamMatches(tid)
         const sortedTeam = (teamMatchesList || []).slice().sort((a: any, b: any) => {
           const ta = new Date(a.created_at || 0).getTime()
@@ -51,7 +47,7 @@ export function useTeamMoodSync() {
             const participations: { win: boolean; kills: number; deaths: number; assists: number }[] = []
             for (const match of sortedTeam) {
               const part = (match.team_match_participants || []).find(
-                (x: any) => (x.team_side === 'our' || !x.team_side) && x.player_id === player.id
+                (x: any) => x.team_side === 'our' && x.player_id === player.id
               )
               if (part) {
                 participations.push({
@@ -78,8 +74,6 @@ export function useTeamMoodSync() {
           }
           await delay(80)
         }
-        await refetchFn()
-        console.log(LOG_PREFIX, 'Mood Team mis à jour')
       } catch (e) {
         console.warn(LOG_PREFIX, 'Erreur', e)
       }

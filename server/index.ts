@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
 import axios from 'axios'
 import { loadServerEnv, resolveRiotApiKey } from './config/env.js'
@@ -8,14 +8,21 @@ import statsRoutes from './routes/stats.routes.js'
 loadServerEnv()
 resolveRiotApiKey()
 
-console.log('[Startup] RIOT_API_KEY présent:', !!String(process.env.RIOT_API_KEY || '').trim())
+if (process.env.NODE_ENV !== 'production') {
+  console.log('[Startup] RIOT_API_KEY présent:', !!String(process.env.RIOT_API_KEY || '').trim())
+}
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
-const corsOptions = process.env.FRONTEND_URL
-  ? { origin: process.env.FRONTEND_URL.split(',').map((u) => u.trim()), credentials: true }
-  : {}
+const prodOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
+  : []
+
+const corsOptions = {
+  origin: [...new Set([...prodOrigins, 'http://localhost:5173'])],
+  credentials: true,
+}
 
 app.use(cors(corsOptions))
 app.use(express.json())
@@ -26,6 +33,12 @@ app.use('/api/stats', statsRoutes)
 app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (_req, res) => res.status(204).end())
+
+// Error handler global — catch les erreurs async non gérées
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('[Error]', err.message)
+  res.status(500).json({ success: false, error: 'Erreur serveur interne' })
+})
 
 app.listen(PORT, async () => {
   const apiKey = (process.env.RIOT_API_KEY || '').trim().replace(/\r/g, '')

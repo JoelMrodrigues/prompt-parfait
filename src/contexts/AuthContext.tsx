@@ -70,12 +70,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         if (u) {
+          let timedOut = false
           await Promise.race([
             loadProfile(u),
             new Promise<void>((_, reject) =>
-              setTimeout(() => reject(new Error('loadProfile timeout')), 10000)
+              setTimeout(() => { timedOut = true; reject(new Error('timeout')) }, 12000)
             ),
-          ])
+          ]).catch((err: unknown) => {
+            if (timedOut) {
+              // Timeout Supabase — profil minimal pour débloquer l'UI, sans bloquer le chargement
+              setProfile({
+                id: u.id,
+                display_name: u.email?.split('@')[0] ?? 'Joueur',
+                avatar_url: null,
+                active_team_id: null,
+                created_at: '',
+                updated_at: '',
+              })
+            } else {
+              throw err
+            }
+          })
         } else {
           setProfile(null)
         }

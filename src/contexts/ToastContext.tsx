@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
 import { Toast, ToastType } from '../types'
 
 interface ToastContextValue {
@@ -16,8 +16,14 @@ let toastId = 0
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
   const removeToast = useCallback((id: number) => {
+    const t = timersRef.current.get(id)
+    if (t !== undefined) {
+      clearTimeout(t)
+      timersRef.current.delete(id)
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
@@ -25,10 +31,16 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     (message: string, type: ToastType = 'info', duration = 3500) => {
       const id = toastId++
       setToasts((prev) => [...prev, { id, message, type }])
-      if (duration) setTimeout(() => removeToast(id), duration)
+      if (duration) {
+        const t = setTimeout(() => {
+          timersRef.current.delete(id)
+          setToasts((prev) => prev.filter((t) => t.id !== id))
+        }, duration)
+        timersRef.current.set(id, t)
+      }
       return id
     },
-    [removeToast]
+    []
   )
 
   const success = useCallback((msg: string, dur?: number) => addToast(msg, 'success', dur), [addToast])

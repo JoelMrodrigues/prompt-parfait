@@ -145,16 +145,19 @@ export const Home = () => {
     <div className="min-h-screen">
 
       {/* ─── HERO ─────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/8 via-transparent to-accent-blue/4" />
-        {/* Grille déco — couleur accent adaptative */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: 'linear-gradient(rgb(var(--color-accent)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--color-accent)) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
+      <section className="relative min-h-screen flex items-center pt-20">
+        {/* Déco absolute en overflow-hidden pour ne pas clipper le titre */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/8 via-transparent to-accent-blue/4" />
+          {/* Grille déco — couleur accent adaptative */}
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: 'linear-gradient(rgb(var(--color-accent)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--color-accent)) 1px, transparent 1px)',
+              backgroundSize: '60px 60px',
+            }}
+          />
+        </div>
 
         <div className="relative z-10 container mx-auto max-w-6xl px-6 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">

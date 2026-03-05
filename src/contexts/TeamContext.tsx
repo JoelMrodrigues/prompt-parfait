@@ -137,13 +137,15 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     if (onlySoloqTotal && Object.keys(cleanUpdates).length > 0) {
       const { error } = await updatePlayerSilent(playerId, cleanUpdates)
       if (error) { console.error('Erreur mise à jour joueur:', error); throw error }
-      await fetchTeam()
+      // Mise à jour locale uniquement — pas de fetchTeam() pour éviter les cascades
+      setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, ...cleanUpdates } : p))
       return null
     }
     const { data, error } = await updatePlayerQuery(playerId, cleanUpdates)
     if (error) { console.error('Erreur mise à jour joueur:', error); throw error }
     if (!data || data.length === 0) throw new Error('Joueur non trouvé ou mise à jour échouée')
-    await fetchTeam()
+    // Mise à jour locale O(n) sans roundtrip Supabase supplémentaire
+    setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, ...data[0] } : p))
     return data[0]
   }
 

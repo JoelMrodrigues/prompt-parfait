@@ -64,14 +64,8 @@ export function useTeamAutoSync() {
   useEffect(() => {
     if (!team?.id || !players?.length) return
     const toSync = players.filter(hasValidPseudo)
-    if (!toSync.length) {
-      console.log(LOG_PREFIX, 'Aucun joueur avec pseudo valide (GameName#Tag), sync désactivé')
-      return
-    }
-    if (runningRef.current) {
-      console.log(LOG_PREFIX, 'Cycle déjà en cours, on ne relance pas')
-      return
-    }
+    if (!toSync.length) return
+    if (runningRef.current) return
 
     const runLoop = async () => {
       const currentPlayers = playersRef.current
@@ -92,8 +86,6 @@ export function useTeamAutoSync() {
           // PUUID en cache : si connu, tous les endpoints l'utilisent directement (0 re-lookup)
           let cachedPuuid: string | null = player.puuid || null
 
-          console.log(LOG_PREFIX, `[${i + 1}/${listToSync.length}]`, name, `(${region})`)
-
           // Helper : construit les query params communs (pseudo + region + puuid si connu)
           const buildParams = (extra = '') => {
             let p = `pseudo=${encodeURIComponent(pseudo)}&region=${encodeURIComponent(region)}`
@@ -104,14 +96,12 @@ export function useTeamAutoSync() {
 
           try {
             // ─── 1) Total OFFICIEL S16 (match-count, simple pagination sans binary search) ───
-            console.log(LOG_PREFIX, name, '| 1/4 total officiel (match-count)...')
             let countRes = await apiFetch(
               `/api/riot/match-count?${buildParams()}`
             )
             let countData = await countRes.json().catch(() => ({}))
             if (countRes.status === 429 && (countData.retry_after ?? countData.retryAfter)) {
               const wait = Math.max(2000, (countData.retry_after ?? countData.retryAfter) * 1000)
-              console.log(LOG_PREFIX, name, '| match-count rate limit — attente', Math.round(wait / 1000), 's')
               await delay(wait)
               countRes = await apiFetch(
                 `/api/riot/match-count?${buildParams()}`
@@ -129,12 +119,10 @@ export function useTeamAutoSync() {
             if (countData.puuid && !cachedPuuid) {
               cachedPuuid = countData.puuid
               await updatePlayerFn(player.id, { puuid: cachedPuuid })
-              console.log(LOG_PREFIX, name, '| PUUID mis en cache')
             } else if (!countData.puuid && !cachedPuuid) {
               console.warn(LOG_PREFIX, name, '| match-count sans puuid (Railway ancien code?) — match-ids re-lookupera le joueur')
             }
 
-            console.log(LOG_PREFIX, name, '| total officiel S16:', totalRiot)
             await delay(DELAY_BETWEEN_REQUESTS_MS)
 
             if (totalRiot === 0) {
@@ -144,7 +132,6 @@ export function useTeamAutoSync() {
             }
 
             // ─── 2) Récupérer uniquement les totalRiot premiers IDs (pages de 100) ───
-            console.log(LOG_PREFIX, name, '| 2/4 liste IDs (match-ids, max', totalRiot, ')...')
             const allRiotIds: string[] = []
             let start = 0
             let idsRetry404 = 0
@@ -155,7 +142,6 @@ export function useTeamAutoSync() {
               const idsData = await idsRes.json().catch(() => ({}))
               if (idsRes.status === 429 && (idsData.retry_after ?? idsData.retryAfter)) {
                 const wait = Math.max(2000, (idsData.retry_after ?? idsData.retryAfter) * 1000)
-                console.log(LOG_PREFIX, name, '| match-ids rate limit — attente', Math.round(wait / 1000), 's')
                 await delay(wait)
                 continue
               }
@@ -174,7 +160,6 @@ export function useTeamAutoSync() {
               if (idsData.puuid && !cachedPuuid) {
                 cachedPuuid = idsData.puuid
                 await updatePlayerFn(player.id, { puuid: cachedPuuid })
-                console.log(LOG_PREFIX, name, '| PUUID mis en cache (depuis match-ids)')
               }
               const chunk = idsData.matchIds || []
               for (const id of chunk) {
@@ -203,7 +188,6 @@ export function useTeamAutoSync() {
 
             // ─── 4) Détails uniquement pour les manquants, upsert Supabase ───
             if (missingIds.length > 0) {
-              console.log(LOG_PREFIX, name, '| manquantes:', missingIds.length, '— récupération détails uniquement')
               for (let c = 0; c < missingIds.length; c += DETAILS_CHUNK) {
                 const chunk = missingIds.slice(c, c + DETAILS_CHUNK)
                 try {
@@ -233,7 +217,7 @@ export function useTeamAutoSync() {
                       game_creation: m.gameCreation ?? 0,
                     }))
                     const { error: upsertErr } = await upsertSoloqMatches(rows)
-                    if (!upsertErr) console.log(LOG_PREFIX, name, '| +', rows.length, 'parties poussées')
+                    if (upsertErr) console.warn(LOG_PREFIX, name, '| upsert erreur:', upsertErr)
                   }
                 } catch (err) {
                   console.warn(LOG_PREFIX, name, '| erreur match-details:', err)
@@ -244,14 +228,9 @@ export function useTeamAutoSync() {
 
             // soloq_total_match_ids = total OFFICIEL Riot (pas le count en base)
             // Cela reflète le nombre réel de parties jouées en S16, même si la DB est incomplète.
-            if (missingIds.length === 0 && inDb >= totalRiot) {
-              console.log(LOG_PREFIX, name, '| déjà à jour —', inDb, 'parties en base')
-            }
             await updatePlayerFn(player.id, { soloq_total_match_ids: totalRiot })
-            console.log(LOG_PREFIX, name, '| total S16 Riot enregistré:', totalRiot)
 
             // ─── 5) Rang en dernier (sync-rank seul) ───
-            console.log(LOG_PREFIX, name, '| 3/4 mise à jour rang (sync-rank)...')
             await delay(DELAY_BETWEEN_REQUESTS_MS)
             let rankRes = await apiFetch(
               `/api/riot/sync-rank?${buildParams()}`
@@ -259,7 +238,6 @@ export function useTeamAutoSync() {
             let rankData = await rankRes.json().catch(() => ({}))
             if (rankRes.status === 429 && (rankData.retry_after ?? rankData.retryAfter)) {
               const wait = Math.max(2000, (rankData.retry_after ?? rankData.retryAfter) * 1000)
-              console.log(LOG_PREFIX, name, '| sync-rank rate limit — attente', Math.round(wait / 1000), 's')
               await delay(wait)
               rankRes = await apiFetch(
                 `/api/riot/sync-rank?${buildParams()}`
@@ -271,13 +249,11 @@ export function useTeamAutoSync() {
                 rank: rankData.rank,
                 rank_updated_at: new Date().toISOString(),
               })
-              console.log(LOG_PREFIX, name, '| rang + rank_updated_at enregistrés')
             } else {
               console.warn(LOG_PREFIX, name, '| sync-rank erreur:', rankData.error || rankRes.status)
             }
 
             // ─── 6) Top 5 via Supabase, hors remakes ───
-            console.log(LOG_PREFIX, name, '| 4/4 Top 5 champions (Supabase, hors remakes)...')
             const { data: rows } = await fetchSoloqChampionStats({
               playerId: player.id,
               accountSource: 'primary',
@@ -303,7 +279,6 @@ export function useTeamAutoSync() {
                 }))
               if (top5.length > 0) {
                 await updatePlayerFn(player.id, { top_champions: top5 })
-                console.log(LOG_PREFIX, name, '| Top 5 mis à jour')
               }
             }
 
@@ -314,8 +289,6 @@ export function useTeamAutoSync() {
           }
         }
 
-        // ─── Mood Solo Q + Team (5 dernières parties depuis Supabase, pas d'API Riot) ───
-        console.log(LOG_PREFIX, 'Refetch équipe...')
         await refetchFn()
         console.log(LOG_PREFIX, '--- Fin du cycle ---')
       } catch (e) {
@@ -324,7 +297,6 @@ export function useTeamAutoSync() {
         runningRef.current = false
       }
 
-      console.log(LOG_PREFIX, 'Prochain cycle dans 3 min')
       timeoutRef.current = setTimeout(runLoop, SYNC_LOOP_INTERVAL_MS)
     }
 
@@ -338,7 +310,6 @@ export function useTeamAutoSync() {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
-        console.log(LOG_PREFIX, 'Cleanup: timer annulé')
       }
       runningRef.current = false
     }
