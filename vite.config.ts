@@ -18,17 +18,4 @@ export default defineConfig({
       'lucide-react',
     ],
   },
-  build: {
-    // Code splitting automatique par route en prod
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
-          charts: ['recharts'],
-          motion: ['framer-motion'],
-        },
-      },
-    },
-  },
 })
