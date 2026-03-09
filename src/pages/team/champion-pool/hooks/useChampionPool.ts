@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { TIER_KEYS } from '../constants/tiers'
 import {
-  clearPlayerChampionPool,
+  clearPlayerPoolExcludingTraining,
   insertChampionPoolRows,
 } from '../../../../services/supabase/championQueries'
 
@@ -13,10 +13,10 @@ export function useChampionPool() {
   const saveChampionPool = useCallback(async (playerId, tiers) => {
     if (!supabase) throw new Error('Supabase non configuré')
 
-    await clearPlayerChampionPool(playerId)
+    await clearPlayerPoolExcludingTraining(playerId)
 
     const rows = []
-    TIER_KEYS.forEach((tier) => {
+    TIER_KEYS.filter((tier) => tier !== 'Training').forEach((tier) => {
       ;(tiers[tier] || []).forEach((champ) => {
         rows.push({ player_id: playerId, champion_id: champ.id, tier, mastery_level: 0 })
       })

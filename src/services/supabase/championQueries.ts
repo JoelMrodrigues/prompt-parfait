@@ -22,6 +22,16 @@ export async function clearPlayerChampionPool(playerId) {
   return { error }
 }
 
+// Supprime toutes les lignes sauf Training (utilisé par le save de la Pool Champ)
+export async function clearPlayerPoolExcludingTraining(playerId) {
+  const { error } = await supabase
+    .from('champion_pools')
+    .delete()
+    .eq('player_id', playerId)
+    .neq('tier', 'Training')
+  return { error }
+}
+
 export async function insertChampionPoolRows(rows) {
   const { error } = await supabase.from('champion_pools').insert(rows)
   return { error }

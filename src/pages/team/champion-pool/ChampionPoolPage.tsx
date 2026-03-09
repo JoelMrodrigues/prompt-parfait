@@ -10,9 +10,9 @@ import { ChampionRoleFilter } from './components/ChampionRoleFilter'
 import { ChampionGrid } from './components/ChampionGrid'
 import { TierTable } from './components/TierTable'
 import { FILTER_TO_CHAMPION_ROLE } from './utils/roleToChampionRole'
-import { TIER_KEYS } from './constants/tiers'
+import { TIER_KEYS, FIXED_TIER } from './constants/tiers'
+import { fetchTrainingPool } from '../../../services/supabase/championQueries'
 import { Save, Search, Settings2, X } from 'lucide-react'
-import { FIXED_TIER } from './constants/tiers'
 
 const emptyTiers = () => Object.fromEntries(TIER_KEYS.map((k) => [k, []]))
 
@@ -51,6 +51,23 @@ export const ChampionPoolPage = () => {
     hasHydrated.current = true
     setTiersByPlayer(buildTiersFromPlayers(players, champions))
   }, [players, champions, buildTiersFromPlayers])
+
+  // Sync Training depuis Supabase à chaque changement de joueur
+  useEffect(() => {
+    if (!selectedPlayerId || champions.length === 0) return
+    const champMap = Object.fromEntries(champions.map((c) => [c.id, c]))
+    fetchTrainingPool(selectedPlayerId).then(({ data }) => {
+      if (!data) return
+      const trainingChamps = data.map((row) => champMap[row.champion_id] || { id: row.champion_id, name: row.champion_id })
+      setTiersByPlayer((prev) => ({
+        ...prev,
+        [selectedPlayerId]: {
+          ...(prev[selectedPlayerId] || Object.fromEntries(TIER_KEYS.map((k) => [k, []]))),
+          Training: trainingChamps,
+        },
+      }))
+    })
+  }, [selectedPlayerId, champions])
 
   const tiers = tiersByPlayer[selectedPlayerId] || emptyTiers()
 

@@ -2,7 +2,8 @@
  * Page Drafts — Draft board avec sauvegarde Supabase
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Plus, Trash2, Search, X, ChevronRight, AlertTriangle, Check, Swords } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Plus, Trash2, Search, X, Pencil, AlertTriangle, Check, Swords } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatchesFull } from '../hooks/useTeamMatches'
 import { loadChampions } from '../../../lib/championLoader'
@@ -33,7 +34,8 @@ function slotKey(kind: SlotKind, index: number) {
   return `${kind}-${index}`
 }
 
-const ROLE_FILTERS = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const
+const ROLE_FILTERS = ['TOP', 'JNG', 'MID', 'ADC', 'SUP'] as const
+const ROLE_LABELS: Record<string, string> = { TOP: 'Top', JNG: 'Jungle', MID: 'Mid', ADC: 'ADC', SUP: 'Support' }
 
 function computeChampStats(matches: any[]) {
   const m = new Map<string, { games: number; wins: number; k: number; d: number; a: number }>()
@@ -95,13 +97,13 @@ function ChampionPickerModal({
   const isBan = slotKind === 'ourBan' || slotKind === 'enemyBan'
   const title = isBan ? 'Choisir un ban' : 'Choisir un pick'
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60"
       onClick={onClose}
     >
       <div
-        className="bg-dark-card border border-dark-border rounded-2xl shadow-xl w-full max-w-2xl p-5 flex flex-col gap-4 max-h-[80vh]"
+        className="bg-dark-card border border-dark-border rounded-2xl shadow-xl w-full max-w-2xl p-5 flex flex-col gap-4 max-h-[80vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -129,6 +131,17 @@ function ChampionPickerModal({
             />
           </div>
           <div className="flex gap-1 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setRoleFilter(null)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                roleFilter === null
+                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                  : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white'
+              }`}
+            >
+              All
+            </button>
             {ROLE_FILTERS.map((r) => (
               <button
                 key={r}
@@ -140,14 +153,14 @@ function ChampionPickerModal({
                     : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white'
                 }`}
               >
-                {r}
+                {ROLE_LABELS[r]}
               </button>
             ))}
           </div>
         </div>
 
         {/* Champion grid */}
-        <div className="overflow-y-auto flex-1 grid grid-cols-6 sm:grid-cols-8 gap-1.5 pr-1">
+        <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-6 sm:grid-cols-8 gap-1.5 pr-1 content-start">
           {filtered.map((c) => {
             const used = usedNames.has(c.name)
             return (
@@ -178,6 +191,8 @@ function ChampionPickerModal({
       </div>
     </div>
   )
+
+  return createPortal(content, document.body)
 }
 
 // ─── SlotButton ───────────────────────────────────────────────────────────────
@@ -464,6 +479,16 @@ export const DraftsPage = () => {
     }
   }
 
+  // Rename draft (from sidebar)
+  const handleRename = (draft: Draft, e: React.MouseEvent) => {
+    e.stopPropagation()
+    selectDraft(draft)
+    setTimeout(() => {
+      setEditingTitle(true)
+      setTimeout(() => titleRef.current?.focus(), 50)
+    }, 50)
+  }
+
   // Delete draft
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -553,11 +578,10 @@ export const DraftsPage = () => {
             </p>
           ) : (
             drafts.map((d) => (
-              <button
+              <div
                 key={d.id}
-                type="button"
                 onClick={() => selectDraft(d)}
-                className={`w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors group mb-1 ${
+                className={`w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors group mb-1 cursor-pointer ${
                   selectedId === d.id
                     ? 'bg-accent-blue/15 text-white border border-accent-blue/30'
                     : 'text-gray-400 hover:text-white hover:bg-dark-card'
@@ -567,12 +591,21 @@ export const DraftsPage = () => {
                 <span className="flex-1 truncate">{d.title}</span>
                 <button
                   type="button"
+                  onClick={(e) => handleRename(d, e)}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:text-accent-blue transition-colors"
+                  title="Renommer"
+                >
+                  <Pencil size={12} />
+                </button>
+                <button
+                  type="button"
                   onClick={(e) => handleDelete(d.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:text-rose-400 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:text-rose-400 transition-colors"
+                  title="Supprimer"
                 >
                   <Trash2 size={12} />
                 </button>
-              </button>
+              </div>
             ))
           )}
         </div>
