@@ -43,8 +43,8 @@ const SIDEBAR_GROUPS = [
     label: 'Outils',
     items: [
       { id: 'drafts', label: 'Drafts', icon: FileText, path: '/team/drafts' },
-      { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching', soon: true },
-      { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning', soon: true },
+      { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching' },
+      { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning' },
     ],
   },
 ]

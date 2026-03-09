@@ -1300,28 +1300,6 @@ export const TeamOverviewPage = () => {
         </div>
       </motion.div>
 
-      {/* ── Prochain entraînement / match planifié (placeholder) ────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-dark-card border border-dark-border/50 border-dashed rounded-2xl p-5"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-gray-600" />
-            <h3 className="font-semibold text-gray-600 text-sm uppercase tracking-wider">
-              Prochain entraînement / match planifié
-            </h3>
-          </div>
-          <span className="text-xs text-gray-700 bg-dark-bg px-2.5 py-1 rounded-full border border-dark-border/40">
-            Bientôt disponible
-          </span>
-        </div>
-        <p className="text-gray-700 text-xs mt-3">
-          Cette section affichera le prochain événement du planning une fois la fonctionnalité complétée.
-        </p>
-      </motion.div>
 
       {/* ── Modals ───────────────────────────────────────────────────────────── */}
       {showPlayerModal && (
