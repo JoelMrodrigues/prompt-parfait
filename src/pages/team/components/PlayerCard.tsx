@@ -75,8 +75,8 @@ export const PlayerCard = ({
       <div className={`p-5 bg-gradient-to-r ${cardColor} relative`}>
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg text-white truncate">{player.player_name || 'Joueur'}</h3>
-            <p className="text-sm text-white/90 truncate">{player.pseudo || '—'}</p>
+            <h3 className="font-bold text-lg !text-white truncate">{player.player_name || 'Joueur'}</h3>
+            <p className="text-sm !text-white/90 truncate">{player.pseudo || '—'}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button
@@ -87,7 +87,7 @@ export const PlayerCard = ({
               className="p-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
               title="Modifier"
             >
-              <Edit2 size={14} className="text-white" />
+              <Edit2 size={14} className="!text-white" />
             </button>
             <button
               onClick={(e) => {
@@ -97,16 +97,16 @@ export const PlayerCard = ({
               className="p-1.5 bg-white/20 rounded-lg hover:bg-red-500/80 transition-colors"
               title="Supprimer"
             >
-              <Trash2 size={14} className="text-white" />
+              <Trash2 size={14} className="!text-white" />
             </button>
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <span className="px-2 py-0.5 rounded text-xs font-semibold text-white bg-white/20">
+          <span className="px-2 py-0.5 rounded text-xs font-semibold !text-white bg-white/20">
             {roleLabel}
           </span>
           {player.rank && (
-            <span className="px-2 py-0.5 rounded text-xs font-medium text-white bg-white/20 truncate max-w-[140px]">
+            <span className="px-2 py-0.5 rounded text-xs font-medium !text-white bg-white/20 truncate max-w-[140px]">
               {player.rank}
             </span>
           )}

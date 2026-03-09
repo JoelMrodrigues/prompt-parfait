@@ -5,6 +5,7 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { perf } from '../lib/logger'
 import {
   createTeam as createTeamQuery,
   updateTeam as updateTeamQuery,
@@ -55,10 +56,12 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchTeam = async () => {
     if (!supabase) { setLoading(false); return }
-    // setLoading(true) uniquement lors du premier chargement — pas sur les refreshs silencieux
     if (!initializedRef.current) setLoading(true)
+    perf.start('TeamContext.fetchTeam')
     try {
+      perf.start('fetchAllTeams')
       const { data: teamsData, error: teamsError } = await fetchAllTeams(user.id)
+      perf.end('fetchAllTeams')
       if (teamsError) {
         setTeam(null); setAllTeams([]); setPlayers([])
         setLoading(false); return
@@ -79,7 +82,9 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
 
       setTeam(activeTeam)
       if (activeTeam) {
+        perf.start('fetchPlayersByTeam')
         const { data: playersData, error: playersError } = await fetchPlayersByTeam(activeTeam.id)
+        perf.end('fetchPlayersByTeam')
         if (playersError) throw playersError
         setPlayers(playersData || [])
       } else {
@@ -91,13 +96,18 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       initializedRef.current = true
       setLoading(false)
+      perf.end('TeamContext.fetchTeam')
     }
   }
 
   const switchTeam = async (teamId: string) => {
     if (!user) return
+    perf.start('switchTeam.upsertProfile')
     await upsertProfile(user.id, { active_team_id: teamId })
+    perf.end('switchTeam.upsertProfile')
+    perf.start('switchTeam.refreshProfile')
     await refreshProfile()
+    perf.end('switchTeam.refreshProfile')
   }
 
   const createTeam = async (teamName: string) => {
@@ -147,6 +157,20 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     // Mise à jour locale O(n) sans roundtrip Supabase supplémentaire
     setPlayers(prev => prev.map(p => p.id === playerId ? { ...p, ...data[0] } : p))
     return data[0]
+  }
+
+  // Mise à jour silencieuse groupée — N joueurs, 1 seul setPlayers (évite N re-renders)
+  const batchUpdatePlayersSilent = async (updates: Array<{ id: string; data: Record<string, unknown> }>) => {
+    if (!updates.length) return
+    // Écriture parallèle en DB (silent = pas de setPlayers individuel)
+    await Promise.allSettled(updates.map(({ id, data }) => updatePlayerSilent(id, data)))
+    // Un seul setPlayers pour tous les joueurs
+    setPlayers((prev) =>
+      prev.map((p) => {
+        const u = updates.find((x) => x.id === p.id)
+        return u ? { ...p, ...u.data } : p
+      })
+    )
   }
 
   const deletePlayer = async (playerId) => {
@@ -199,7 +223,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     <TeamContext.Provider value={{
       team, allTeams, players, loading,
       createTeam, createNewTeam, switchTeam, updateTeam,
-      createPlayer, updatePlayer, deletePlayer,
+      createPlayer, updatePlayer, batchUpdatePlayersSilent, deletePlayer,
       addChampionToPool, removeChampionFromPool,
       refetch: fetchTeam,
       getInviteLink, joinTeamByToken,

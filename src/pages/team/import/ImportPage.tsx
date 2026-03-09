@@ -1,8 +1,9 @@
 /**
- * Page Import - 3 cartes : parties (JSON), timeline, à venir
+ * Page Import — 3 sections : Scrim | Tournament | Timeline
+ * Guide LCU Explorer inclus
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Upload, FileJson, AlertCircle, CheckCircle, Clock, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Upload, FileJson, AlertCircle, CheckCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ExternalLink, Swords, Trophy } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { importExaltyMatches } from '../../../lib/team/exaltyMatchImporter'
@@ -13,54 +14,90 @@ import {
 } from '../../../lib/team/exaltyTimelineParser'
 import { supabase } from '../../../lib/supabase'
 
-export const ImportPage = () => {
-  const { team, players = [], refetch: refetchTeam } = useTeam()
-  const { matches = [], refetch: refetchMatches } = useTeamMatches(team?.id)
+// ─── Composant drop zone réutilisable ─────────────────────────────────────────
 
-  // Help sections
-  const [showHelpGames, setShowHelpGames] = useState(false)
-  const [showHelpTimeline, setShowHelpTimeline] = useState(false)
+function DropZone({ files, onFiles, accept, color }: {
+  files: File[]
+  onFiles: (files: File[]) => void
+  accept: string
+  color: 'blue' | 'amber' | 'purple'
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const borderColor = { blue: 'hover:border-accent-blue/50', amber: 'hover:border-amber-500/50', purple: 'hover:border-purple-500/50' }[color]
 
-  // Card 1: Import parties
-  const [filesGames, setFilesGames] = useState([])
-  const [importingGames, setImportingGames] = useState(false)
-  const [errorGames, setErrorGames] = useState(null)
-  const [successGames, setSuccessGames] = useState(null)
-  const fileInputGamesRef = useRef(null)
-
-  // Card 2: Import timeline — support multi-fichiers avec détection auto par nom (game_id) ou par ordre
-  const [filesTimeline, setFilesTimeline] = useState([])
-  const [parsedTimelines, setParsedTimelines] = useState([]) // [{ file, parsed, demo, gameId, matchId, matchBy }]
-  const [timelineMatchId, setTimelineMatchId] = useState('') // pour le mode 1 seul fichier
-  const [savingTimeline, setSavingTimeline] = useState(false)
-  const [timelineSaveMsg, setTimelineSaveMsg] = useState(null)
-  const fileInputTimelineRef = useRef(null)
-
-  const handleFileChangeGames = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const items = Array.from(e.target?.files || []) as File[]
-    const jsons = items.filter((f: File) => f.name.endsWith('.json'))
-    if (jsons.length > 0) {
-      setFilesGames(jsons)
-      setErrorGames(null)
-    }
-    e.target.value = ''
-  }
-
-  const handleDropGames = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     const items = Array.from(e.dataTransfer?.files || []) as File[]
-    const jsons = items.filter((f: File) => f.name.endsWith('.json'))
-    if (jsons.length > 0) {
-      setFilesGames(jsons)
-      setErrorGames(null)
-    }
-  }, [])
+    if (items.length > 0) onFiles(items)
+  }, [onFiles])
 
-  const handleImportGames = async () => {
-    if (!team?.id || filesGames.length === 0) return
-    setImportingGames(true)
-    setErrorGames(null)
-    setSuccessGames(null)
+  return (
+    <>
+      <input ref={inputRef} type="file" accept={accept} multiple onChange={(e) => {
+        const items = Array.from(e.target?.files || []) as File[]
+        if (items.length > 0) onFiles(items)
+        e.target.value = ''
+      }} className="hidden" />
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onClick={() => inputRef.current?.click()}
+        className={`border-2 border-dashed border-dark-border rounded-xl p-6 text-center ${borderColor} transition-colors cursor-pointer`}
+      >
+        <Upload size={28} className="mx-auto text-gray-500 mb-2" />
+        <p className="text-gray-400 text-sm">
+          {files.length > 0
+            ? `${files.length} fichier(s) prêt(s)`
+            : `Glissez vos fichiers ici ou cliquez`}
+        </p>
+        <p className="text-gray-600 text-xs mt-1">{accept.replace(/,/g, ' · ')}</p>
+        {files.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
+            {files.map((f, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 bg-dark-bg rounded-lg text-gray-400">
+                {f.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+// ─── Carte d'import commune (Scrim + Tournament) ──────────────────────────────
+
+function MatchImportCard({
+  type,
+  players,
+  teamId,
+  onImported,
+}: {
+  type: 'scrim' | 'tournament'
+  players: any[]
+  teamId: string
+  onImported: () => void
+}) {
+  const [files, setFiles] = useState<File[]>([])
+  const [importing, setImporting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [showHelp, setShowHelp] = useState(false)
+
+  const isScrim = type === 'scrim'
+  const icon = isScrim ? <Swords size={22} className="text-accent-blue" /> : <Trophy size={22} className="text-amber-400" />
+  const label = isScrim ? 'Import Scrim' : 'Import Tournament'
+  const modelFile = isScrim ? 'Scrim1.json' : 'tr1.json'
+  const accent = isScrim ? 'accent-blue' : 'amber-400'
+  const borderHover = isScrim ? 'hover:border-accent-blue/40' : 'hover:border-amber-500/40'
+  const btnColor = isScrim ? 'bg-accent-blue hover:bg-accent-blue/90' : 'bg-amber-500 hover:bg-amber-500/90'
+  const helpStepColor = isScrim ? 'text-accent-blue' : 'text-amber-400'
+
+  const handleImport = async () => {
+    if (!teamId || files.length === 0) return
+    setImporting(true)
+    setError(null)
+    setSuccess(null)
     try {
       const teamPlayers = players.map((p) => ({
         id: p.id,
@@ -68,37 +105,109 @@ export const ImportPage = () => {
         secondary_account: p.secondary_account,
         position: p.position,
       }))
-      const originals = []
-      for (const f of filesGames) {
+      const originals: any[] = []
+      for (const f of files) {
         const text = await f.text()
         const json = JSON.parse(text)
         originals.push(...(Array.isArray(json) ? json : [json]))
       }
-      const res = await importExaltyMatches(originals, team.id, teamPlayers)
+      const res = await importExaltyMatches(originals, teamId, teamPlayers, type)
       if (res.errors?.length > 0) {
-        setErrorGames(res.errors.join(' — '))
-        setSuccessGames(null)
+        setError(res.errors.join(' — '))
       } else {
-        setErrorGames(null)
-        setSuccessGames(
-          `${res.imported} match(es) importé(s)${res.skipped > 0 ? `, ${res.skipped} déjà présents` : ''}`
+        setSuccess(
+          `${res.imported} match(es) importé(s) en tant que ${isScrim ? 'Scrim' : 'Tournament'}${res.skipped > 0 ? ` · ${res.skipped} déjà présents` : ''}`
         )
+        if (res.imported > 0) onImported()
       }
-      if (res.imported > 0) {
-        await refetchMatches()
-        refetchTeam?.()
-      }
-      setFilesGames([])
-    } catch (e) {
-      setErrorGames(e.message || "Erreur lors de l'import")
+      setFiles([])
+    } catch (e: any) {
+      setError(e.message || "Erreur lors de l'import")
     } finally {
-      setImportingGames(false)
+      setImporting(false)
     }
   }
 
-  /** Parse un fichier timeline et retourne { parsed, demo, gameId } */
-  async function parseOneTimelineFile(file) {
-    if (!file) return null
+  return (
+    <div className={`bg-dark-card border border-dark-border rounded-2xl p-6 hover:${borderHover} transition-colors`}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`p-2.5 rounded-xl ${isScrim ? 'bg-accent-blue/15' : 'bg-amber-500/15'}`}>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <h3 className="font-display text-lg font-semibold text-white">{label}</h3>
+          <p className="text-sm text-gray-500">Fichier JSON · Modèle : <code className="text-gray-400">{modelFile}</code></p>
+        </div>
+        <button
+          onClick={() => setShowHelp((v) => !v)}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded-lg hover:bg-dark-bg transition-colors"
+        >
+          <HelpCircle size={13} />
+          Aide
+          {showHelp ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+        </button>
+      </div>
+
+      {showHelp && (
+        <div className="mb-5 p-4 bg-dark-bg/60 border border-dark-border rounded-xl text-sm space-y-2">
+          <p className="font-medium text-gray-300">Comment obtenir le fichier ?</p>
+          <ol className="space-y-1.5 text-gray-400">
+            <li className="flex gap-2"><span className={`${helpStepColor} font-bold shrink-0`}>1.</span>Jouez votre {isScrim ? 'scrim' : 'tournoi'} sur League of Legends.</li>
+            <li className="flex gap-2"><span className={`${helpStepColor} font-bold shrink-0`}>2.</span>Ouvrez <span className="text-white font-medium">LCU Explorer</span> et récupérez l'ID de partie depuis <code className="bg-dark-card px-1 rounded">/lol-match-history/v1/games</code>.</li>
+            <li className="flex gap-2"><span className={`${helpStepColor} font-bold shrink-0`}>3.</span>Exportez le JSON et nommez-le <code className="bg-dark-card px-1 rounded">{modelFile}</code>.</li>
+            <li className="flex gap-2"><span className={`${helpStepColor} font-bold shrink-0`}>4.</span>Importez le fichier ici. Vous pouvez en déposer plusieurs.</li>
+          </ol>
+          <p className="text-xs text-gray-600 pt-1 border-t border-dark-border">Formats acceptés : <code>.json</code> · <code>.txt</code> · <code>.csv</code></p>
+        </div>
+      )}
+
+      <DropZone files={files} onFiles={setFiles} accept=".json,.txt,.csv" color={isScrim ? 'blue' : 'amber'} />
+
+      {error && (
+        <div className="mt-3 p-3 bg-red-500/15 border border-red-500/40 rounded-xl flex items-center gap-2 text-sm">
+          <AlertCircle size={15} className="text-red-400 shrink-0" />
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="mt-3 p-3 bg-green-500/15 border border-green-500/40 rounded-xl flex items-center gap-2 text-sm">
+          <CheckCircle size={15} className="text-green-400 shrink-0" />
+          {success}
+        </div>
+      )}
+
+      <button
+        onClick={handleImport}
+        disabled={importing || files.length === 0}
+        className={`mt-4 w-full py-2.5 ${btnColor} text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 transition-colors`}
+      >
+        {importing ? (
+          <><span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full inline-block" />Import en cours...</>
+        ) : (
+          <><CheckCircle size={16} />Importer en {isScrim ? 'Scrim' : 'Tournament'}</>
+        )}
+      </button>
+    </div>
+  )
+}
+
+// ─── Page principale ──────────────────────────────────────────────────────────
+
+export const ImportPage = () => {
+  const { team, players = [], refetch: refetchTeam } = useTeam()
+  const { matches = [], refetch: refetchMatches } = useTeamMatches(team?.id)
+
+  const [showLCUGuide, setShowLCUGuide] = useState(false)
+
+  // Timeline state
+  const [filesTimeline, setFilesTimeline] = useState<File[]>([])
+  const [parsedTimelines, setParsedTimelines] = useState<any[]>([])
+  const [timelineMatchId, setTimelineMatchId] = useState('')
+  const [savingTimeline, setSavingTimeline] = useState(false)
+  const [timelineSaveMsg, setTimelineSaveMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [showHelpTimeline, setShowHelpTimeline] = useState(false)
+
+  async function parseOneTimelineFile(file: File) {
     try {
       const text = await file.text()
       const parsed = parseTimeline(text, { filename: file.name })
@@ -111,73 +220,34 @@ export const ImportPage = () => {
     }
   }
 
-  /** Associe chaque timeline à un match : d'abord par game_id (nom/JSON), sinon par ordre (1er fichier = 1er match, etc.) */
-  function resolveTimelineMatches(items, matchesList) {
+  function resolveTimelineMatches(items: any[], matchesList: any[]) {
     if (!items.length || !matchesList?.length) return items
     return items.map((item, index) => {
       let matchId = null
       let matchBy = null
       if (item.gameId) {
         const m = matchesList.find((m) => String(m.game_id) === String(item.gameId))
-        if (m) {
-          matchId = m.id
-          matchBy = 'nom'
-        }
+        if (m) { matchId = m.id; matchBy = 'nom' }
       }
       if (!matchId && index < matchesList.length) {
-        matchId = matchesList[index].id
-        matchBy = 'ordre'
+        matchId = matchesList[index].id; matchBy = 'ordre'
       }
       return { ...item, matchId, matchBy }
     })
   }
 
-  const handleFileChangeTimeline = (e) => {
-    const items = Array.from(e.target?.files || [])
-    if (items.length > 0) {
-      setFilesTimeline(items)
-      setTimelineSaveMsg(null)
-      Promise.all(items.map((f) => parseOneTimelineFile(f))).then((results) => {
-        const withFile = results
-          .map((r, i) => (r ? { file: items[i], ...r } : null))
-          .filter(Boolean)
-        const resolved = resolveTimelineMatches(withFile, matches)
-        setParsedTimelines(resolved)
-        if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
-        else if (resolved.length === 1) setTimelineMatchId('')
-      })
-    } else {
-      setParsedTimelines([])
-      setTimelineMatchId('')
-    }
-    e.target.value = ''
-  }
+  const handleFilesTimeline = useCallback((items: File[]) => {
+    setFilesTimeline(items)
+    setTimelineSaveMsg(null)
+    Promise.all(items.map((f) => parseOneTimelineFile(f))).then((results) => {
+      const withFile = results.map((r, i) => (r ? { file: items[i], ...r } : null)).filter(Boolean)
+      const resolved = resolveTimelineMatches(withFile, matches)
+      setParsedTimelines(resolved)
+      if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
+      else if (resolved.length === 1) setTimelineMatchId('')
+    })
+  }, [matches])
 
-  const handleDropTimeline = useCallback(
-    (e) => {
-      e.preventDefault()
-      const items = Array.from(e.dataTransfer?.files || [])
-      if (items.length > 0) {
-        setFilesTimeline(items)
-        setTimelineSaveMsg(null)
-        Promise.all(items.map((f) => parseOneTimelineFile(f))).then((results) => {
-          const withFile = results
-            .map((r, i) => (r ? { file: items[i], ...r } : null))
-            .filter(Boolean)
-          const resolved = resolveTimelineMatches(withFile, matches)
-          setParsedTimelines(resolved)
-          if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
-          else if (resolved.length === 1) setTimelineMatchId('')
-        })
-      } else {
-        setParsedTimelines([])
-        setTimelineMatchId('')
-      }
-    },
-    [matches]
-  )
-
-  // Re-résoudre les matchs quand la liste des matchs change (ex. après import de parties)
   useEffect(() => {
     if (parsedTimelines.length === 0 || !matches?.length) return
     const resolved = resolveTimelineMatches(
@@ -188,7 +258,7 @@ export const ImportPage = () => {
     if (resolved.length === 1 && resolved[0].matchId) setTimelineMatchId(resolved[0].matchId)
   }, [matches?.length])
 
-  const handleSaveTimelineForMatch = async () => {
+  const handleSaveTimeline = async () => {
     const single = parsedTimelines[0]
     if (!single?.parsed || !timelineMatchId) return
     setSavingTimeline(true)
@@ -199,13 +269,10 @@ export const ImportPage = () => {
         .from('team_match_timeline')
         .upsert({ match_id: timelineMatchId, snapshot }, { onConflict: 'match_id' })
       if (error) throw error
-      setTimelineSaveMsg({
-        ok: true,
-        text: 'Timeline enregistrée pour ce match. Consultez l’onglet "Stats timeline" sur la page du match.',
-      })
+      setTimelineSaveMsg({ ok: true, text: 'Timeline enregistrée. Consultez "Stats timeline" sur la page du match.' })
       refetchMatches()
-    } catch (e) {
-      setTimelineSaveMsg({ ok: false, text: e.message || 'Erreur lors de l’enregistrement.' })
+    } catch (e: any) {
+      setTimelineSaveMsg({ ok: false, text: e.message || 'Erreur lors de l\'enregistrement.' })
     } finally {
       setSavingTimeline(false)
     }
@@ -213,7 +280,7 @@ export const ImportPage = () => {
 
   const handleSaveAllTimelines = async () => {
     const toSave = parsedTimelines.filter((t) => t.matchId)
-    if (toSave.length === 0) return
+    if (!toSave.length) return
     setSavingTimeline(true)
     setTimelineSaveMsg(null)
     try {
@@ -224,13 +291,10 @@ export const ImportPage = () => {
           .upsert({ match_id: t.matchId, snapshot }, { onConflict: 'match_id' })
         if (error) throw error
       }
-      setTimelineSaveMsg({
-        ok: true,
-        text: `${toSave.length} timeline(s) enregistrée(s) pour les matchs correspondants.`,
-      })
+      setTimelineSaveMsg({ ok: true, text: `${toSave.length} timeline(s) enregistrée(s).` })
       refetchMatches()
-    } catch (e) {
-      setTimelineSaveMsg({ ok: false, text: e.message || 'Erreur lors de l’enregistrement.' })
+    } catch (e: any) {
+      setTimelineSaveMsg({ ok: false, text: e.message || 'Erreur.' })
     } finally {
       setSavingTimeline(false)
     }
@@ -244,270 +308,176 @@ export const ImportPage = () => {
     )
   }
 
-  return (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="font-display text-3xl font-bold mb-2">Import</h2>
-      <p className="text-gray-400 mb-6">
-        Importez vos données de match depuis Exalty pour analyser vos parties en équipe.
-      </p>
+  const handleImported = async () => {
+    await refetchMatches()
+    refetchTeam?.()
+  }
 
-      {/* Guide rapide */}
-      <div className="mb-8 bg-dark-card border border-dark-border rounded-xl p-5">
-        <h3 className="font-semibold text-sm text-gray-300 mb-4">Comment ça marche</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-xs font-bold">1</div>
-            <div>
-              <p className="text-sm font-medium text-white">Jouez avec Exalty</p>
-              <p className="text-xs text-gray-500 mt-0.5">Activez Exalty avant votre partie en équipe pour capturer toutes les données.</p>
-            </div>
+  return (
+    <div className="max-w-[1600px] mx-auto space-y-5 px-2">
+
+      {/* Header */}
+      <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
+        <div className="flex items-center gap-5">
+          <div className={`shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center overflow-hidden ${team.logo_url ? 'border-dark-border bg-white' : 'border-dark-border bg-dark-bg/80'}`}>
+            {team.logo_url ? (
+              <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-contain p-1.5" />
+            ) : (
+              <span className="text-xl font-bold text-gray-600">{(team.team_name || 'E').charAt(0)}</span>
+            )}
           </div>
-          <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-xs font-bold">2</div>
-            <div>
-              <p className="text-sm font-medium text-white">Exportez en JSON</p>
-              <p className="text-xs text-gray-500 mt-0.5">En fin de partie, cliquez "Exporter" dans Exalty pour télécharger les fichiers JSON.</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-xs font-bold">3</div>
-            <div>
-              <p className="text-sm font-medium text-white">Importez ici</p>
-              <p className="text-xs text-gray-500 mt-0.5">Glissez les fichiers dans les cartes ci-dessous. L'import est instantané.</p>
-            </div>
+          <div>
+            <h1 className="font-display text-2xl font-bold text-white leading-tight">{team.team_name}</h1>
+            <h2 className="font-display text-xl font-semibold text-gray-300 mt-0.5">Import</h2>
+            <p className="text-gray-500 text-sm mt-0.5">Importez vos parties d'équipe pour alimenter les statistiques</p>
           </div>
         </div>
       </div>
 
+      {/* Guide LCU Explorer */}
+      <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setShowLCUGuide((v) => !v)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-dark-bg/30 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center">
+              <HelpCircle size={16} className="text-accent-blue" />
+            </div>
+            <span className="font-semibold text-white">Comment ça marche — Guide LCU Explorer</span>
+          </div>
+          {showLCUGuide ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+        </button>
+
+        {showLCUGuide && (
+          <div className="px-6 pb-6 border-t border-dark-border">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-sm font-bold">1</div>
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">Jouez votre partie</p>
+                  <p className="text-xs text-gray-500">Jouez un scrim ou un tournoi sur League of Legends avec votre équipe.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-sm font-bold">2</div>
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">Récupérez le JSON</p>
+                  <p className="text-xs text-gray-500">Via <span className="text-white font-medium">LCU Explorer</span>, renseignez l'ID de partie et exportez le fichier <code className="bg-dark-bg px-1 rounded">.json</code> (+ timeline si souhaité).</p>
+                  <a
+                    href="https://github.com/HextechDocs/lcu-explorer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 mt-2 text-xs text-accent-blue hover:underline"
+                  >
+                    <ExternalLink size={11} />
+                    Télécharger LCU Explorer
+                  </a>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-sm font-bold">3</div>
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">Importez ici</p>
+                  <p className="text-xs text-gray-500">Glissez les fichiers dans les sections ci-dessous selon le type de partie. L'import est instantané.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 p-4 bg-dark-bg/60 border border-dark-border rounded-xl">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Modèles de fichiers attendus</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { label: 'Scrim', file: 'Scrim1.json', color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+                  { label: 'Tournament', file: 'tr1.json', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                  { label: 'Timeline', file: 'timeline1.json', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                ].map(({ label, file, color, bg }) => (
+                  <div key={label} className={`${bg} rounded-xl p-3 flex items-center gap-3`}>
+                    <FileJson size={18} className={color} />
+                    <div>
+                      <p className={`text-xs font-semibold ${color}`}>{label}</p>
+                      <code className="text-xs text-gray-400">{file}</code>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 mt-3">Formats acceptés : <code>.json</code> · <code>.txt</code> · <code>.csv</code></p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {players?.length === 0 && (
-        <div className="mb-6 p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg flex items-center gap-3">
-          <AlertCircle size={20} className="text-amber-400" />
-          <span>
-            Ajoutez vos joueurs (pseudo format: Nom#Tag) pour que l'import des parties associe les
-            bons joueurs.
-          </span>
+        <div className="p-4 bg-amber-500/15 border border-amber-500/40 rounded-2xl flex items-center gap-3">
+          <AlertCircle size={18} className="text-amber-400 shrink-0" />
+          <span className="text-sm">Ajoutez vos joueurs (pseudo format : Nom#Tag) pour que l'import associe les bons joueurs.</span>
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-1">
-        {/* Card 1: Importer des parties */}
-        <div className="bg-dark-card border border-dark-border rounded-xl p-6">
+      {/* 3 sections d'import */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Import Scrim */}
+        <MatchImportCard type="scrim" players={players} teamId={team.id} onImported={handleImported} />
+
+        {/* Import Tournament */}
+        <MatchImportCard type="tournament" players={players} teamId={team.id} onImported={handleImported} />
+
+        {/* Import Timeline */}
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-accent-blue/20 rounded-lg">
-              <FileJson size={24} className="text-accent-blue" />
+            <div className="p-2.5 rounded-xl bg-purple-500/15">
+              <Clock size={22} className="text-purple-400" />
             </div>
             <div className="flex-1">
-              <h3 className="font-display text-lg font-semibold">Importer des parties</h3>
-              <p className="text-sm text-gray-500">Fichiers JSON Exalty — résumé de fin de partie</p>
-            </div>
-            <button
-              onClick={() => setShowHelpGames((v) => !v)}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-dark-bg"
-            >
-              <HelpCircle size={14} />
-              Aide
-              {showHelpGames ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            </button>
-          </div>
-
-          {/* Section d'aide dépliable */}
-          {showHelpGames && (
-            <div className="mb-5 p-4 bg-dark-bg/60 border border-dark-border rounded-lg text-sm space-y-3">
-              <p className="font-medium text-gray-300">Comment obtenir le fichier JSON ?</p>
-              <ol className="space-y-2 text-gray-400">
-                <li className="flex gap-2">
-                  <span className="text-accent-blue font-bold shrink-0">1.</span>
-                  Installez <span className="text-white font-medium">Exalty</span> (outil tiers de suivi de parties LoL) et jouez votre partie en équipe.
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-accent-blue font-bold shrink-0">2.</span>
-                  En fin de partie, ouvrez Exalty et cliquez sur <span className="text-white font-medium">"Exporter"</span> ou <span className="text-white font-medium">"Export JSON"</span>.
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-accent-blue font-bold shrink-0">3.</span>
-                  Téléchargez le fichier <code className="bg-dark-card px-1 rounded">.json</code> — il contient les stats de fin de partie de tous les joueurs.
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-accent-blue font-bold shrink-0">4.</span>
-                  Glissez ce fichier ici. Vous pouvez en importer plusieurs en même temps.
-                </li>
-              </ol>
-              <div className="pt-1 border-t border-dark-border">
-                <p className="text-xs text-gray-500">
-                  <span className="text-amber-400">Note :</span> Assurez-vous que vos joueurs sont ajoutés dans l'onglet "Joueurs" avec les bons pseudos (format <code className="bg-dark-card px-1 rounded">Pseudo#Tag</code>) pour que l'import les associe correctement.
-                </p>
-              </div>
-            </div>
-          )}
-          <input
-            ref={fileInputGamesRef}
-            type="file"
-            accept=".json"
-            multiple
-            onChange={handleFileChangeGames}
-            className="hidden"
-          />
-          <div
-            onDrop={handleDropGames}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() => fileInputGamesRef.current?.click?.()}
-            className="border-2 border-dashed border-dark-border rounded-lg p-8 text-center hover:border-accent-blue/50 transition-colors cursor-pointer mb-4"
-          >
-            <Upload size={32} className="mx-auto text-gray-500 mb-2" />
-            <p className="text-gray-400 text-sm">
-              {filesGames.length > 0
-                ? `${filesGames.length} fichier(s) prêt(s)`
-                : 'Glissez vos JSON ici ou cliquez'}
-            </p>
-            {filesGames.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2 justify-center">
-                {filesGames.map((f, i) => (
-                  <span key={i} className="text-xs px-2 py-1 bg-dark-bg rounded">
-                    {f.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          {errorGames && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2 text-sm">
-              <AlertCircle size={16} className="text-red-400" />
-              {errorGames}
-            </div>
-          )}
-          {successGames && (
-            <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg flex items-center gap-2 text-sm">
-              <CheckCircle size={16} className="text-green-400" />
-              {successGames}
-            </div>
-          )}
-          <button
-            onClick={handleImportGames}
-            disabled={importingGames || filesGames.length === 0}
-            className="w-full py-2.5 bg-accent-blue hover:bg-accent-blue/90 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {importingGames ? (
-              <>
-                <span className="animate-spin">⟳</span>
-                Import en cours...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={18} />
-                Importer les parties
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Card 2: Importer la timeline */}
-        <div className="bg-dark-card border border-dark-border rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Clock size={24} className="text-purple-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-display text-lg font-semibold">Importer la timeline</h3>
-              <p className="text-sm text-gray-500">Fichier timeline Exalty — données minute par minute</p>
+              <h3 className="font-display text-lg font-semibold text-white">Import Timeline</h3>
+              <p className="text-sm text-gray-500">Modèle : <code className="text-gray-400">timeline1.json</code></p>
             </div>
             <button
               onClick={() => setShowHelpTimeline((v) => !v)}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 rounded-lg hover:bg-dark-bg"
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded-lg hover:bg-dark-bg transition-colors"
             >
-              <HelpCircle size={14} />
+              <HelpCircle size={13} />
               Aide
-              {showHelpTimeline ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showHelpTimeline ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             </button>
           </div>
 
-          {/* Section d'aide timeline */}
           {showHelpTimeline && (
-            <div className="mb-5 p-4 bg-dark-bg/60 border border-dark-border rounded-lg text-sm space-y-3">
+            <div className="mb-5 p-4 bg-dark-bg/60 border border-dark-border rounded-xl text-sm space-y-2">
               <p className="font-medium text-gray-300">À quoi sert la timeline ?</p>
-              <p className="text-gray-400">
-                La timeline capture l'état de la partie <span className="text-white font-medium">minute par minute</span> : or, XP, CS, objectifs (dragon, baron, tours), kills. Elle permet d'analyser les avantages/désavantages dans le temps.
-              </p>
-              <p className="font-medium text-gray-300 pt-1">Comment l'obtenir ?</p>
-              <ol className="space-y-2 text-gray-400">
-                <li className="flex gap-2">
-                  <span className="text-purple-400 font-bold shrink-0">1.</span>
-                  Dans Exalty, exportez le fichier <span className="text-white font-medium">"Timeline"</span> (distinct du résumé de partie).
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-purple-400 font-bold shrink-0">2.</span>
-                  <span>Le fichier peut être <code className="bg-dark-card px-1 rounded">.json</code> ou <code className="bg-dark-card px-1 rounded">.txt</code>. Nommez-le avec l'ID de game pour une association automatique (ex. <code className="bg-dark-card px-1 rounded">timeline_7704801020.json</code>).</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-purple-400 font-bold shrink-0">3.</span>
-                  Importez d'abord les <span className="text-white font-medium">parties</span> (carte ci-dessus), puis déposez la timeline et sélectionnez le match correspondant.
-                </li>
+              <p className="text-gray-400 text-xs">Capture l'état minute par minute : or, XP, CS, objectifs, kills. Permet d'analyser les avantages dans le temps (5/10/15/20/25 min).</p>
+              <p className="font-medium text-gray-300">Comment l'obtenir ?</p>
+              <ol className="space-y-1 text-gray-400 text-xs">
+                <li className="flex gap-2"><span className="text-purple-400 font-bold shrink-0">1.</span>Via LCU Explorer, récupérez la timeline de la partie.</li>
+                <li className="flex gap-2"><span className="text-purple-400 font-bold shrink-0">2.</span>Nommez le fichier avec l'ID de game pour association auto (ex. <code className="bg-dark-card px-1 rounded">timeline1.json</code>).</li>
+                <li className="flex gap-2"><span className="text-purple-400 font-bold shrink-0">3.</span>Importez d'abord les parties, puis déposez la timeline ici.</li>
               </ol>
-              <div className="pt-1 border-t border-dark-border">
-                <p className="text-xs text-gray-500">
-                  Vous pouvez importer plusieurs timelines en même temps — elles seront associées automatiquement par Game ID ou par ordre.
-                </p>
-              </div>
             </div>
           )}
-          <input
-            ref={fileInputTimelineRef}
-            type="file"
-            accept=".json,.txt"
-            multiple
-            onChange={handleFileChangeTimeline}
-            className="hidden"
-          />
-          <div
-            onDrop={handleDropTimeline}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() => fileInputTimelineRef.current?.click?.()}
-            className="border-2 border-dashed border-dark-border rounded-lg p-8 text-center hover:border-purple-500/50 transition-colors cursor-pointer mb-4"
-          >
-            <Upload size={32} className="mx-auto text-gray-500 mb-2" />
-            <p className="text-gray-400 text-sm">
-              {filesTimeline.length > 0
-                ? `${filesTimeline.length} fichier(s) déposé(s)`
-                : 'Glissez un fichier timeline (.json ou .txt) ici ou cliquez'}
-            </p>
-            {filesTimeline.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2 justify-center">
-                {filesTimeline.map((f, i) => (
-                  <span key={i} className="text-xs px-2 py-1 bg-dark-bg rounded">
-                    {f.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          {parsedTimelines.length > 0 ? (
-            <div className="rounded-lg border border-dark-border bg-dark-bg/50 p-4 text-sm space-y-4">
-              <h4 className="font-semibold text-purple-300">
-                {parsedTimelines.length === 1
-                  ? 'Démo — Stats extraites de la timeline'
-                  : `${parsedTimelines.length} timelines — association automatique`}
+
+          <DropZone files={filesTimeline} onFiles={handleFilesTimeline} accept=".json,.txt" color="purple" />
+
+          {parsedTimelines.length > 0 && (
+            <div className="mt-4 rounded-xl border border-dark-border bg-dark-bg/50 p-4 text-sm space-y-3">
+              <h4 className="font-semibold text-purple-300 text-sm">
+                {parsedTimelines.length === 1 ? 'Timeline détectée' : `${parsedTimelines.length} timelines — association auto`}
               </h4>
+
               {parsedTimelines.length > 1 && (
                 <>
-                  <p className="text-gray-400 text-xs">
-                    Chaque fichier associé par nom (ex. timeline1.txt → Game #1) ou par ordre (1er
-                    fichier = match le plus récent).
-                  </p>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {parsedTimelines.map((t, i) => {
-                      const m = t.matchId && matches.find((x) => x.id === t.matchId)
+                      const m = t.matchId && matches.find((x: any) => x.id === t.matchId)
                       return (
-                        <li key={i} className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs text-gray-300">{t.file.name}</span>
-                          <span className="text-gray-500">→</span>
+                        <li key={i} className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="font-mono text-gray-300">{t.file.name}</span>
+                          <span className="text-gray-600">→</span>
                           {m ? (
-                            <span className="text-purple-200">
-                              Game #{m.game_id} {m.our_win ? '(V)' : '(D)'}
-                              <span className="text-gray-500 text-xs ml-1">
-                                ({t.matchBy === 'nom' ? 'nom' : 'ordre'})
-                              </span>
-                            </span>
+                            <span className="text-purple-300">Game #{m.game_id} {m.our_win ? '(V)' : '(D)'} <span className="text-gray-500">({t.matchBy})</span></span>
                           ) : (
-                            <span className="text-amber-400 text-xs">Aucun match</span>
+                            <span className="text-amber-400">Aucun match</span>
                           )}
                         </li>
                       )
@@ -517,198 +487,61 @@ export const ImportPage = () => {
                     type="button"
                     onClick={handleSaveAllTimelines}
                     disabled={savingTimeline || parsedTimelines.every((t) => !t.matchId)}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium disabled:opacity-50"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl text-sm font-medium disabled:opacity-50 w-full"
                   >
-                    {savingTimeline
-                      ? 'Enregistrement…'
-                      : `Enregistrer les ${parsedTimelines.filter((t) => t.matchId).length} timeline(s)`}
+                    {savingTimeline ? 'Enregistrement…' : `Enregistrer ${parsedTimelines.filter((t) => t.matchId).length} timeline(s)`}
                   </button>
                 </>
               )}
-              {parsedTimelines.length === 1 && parsedTimelines[0].demo?.gameId != null && (
-                <p className="text-purple-200/90">
-                  <span className="text-gray-500">Game ID associé :</span>{' '}
-                  <code className="bg-dark-card px-1.5 py-0.5 rounded">
-                    {parsedTimelines[0]?.demo?.gameId}
-                  </code>
-                  {typeof parsedTimelines[0]?.demo?.gameId === 'string' &&
-                    parsedTimelines[0].demo.gameId.match(/^\d+$/) && (
-                      <span className="text-gray-500 text-xs ml-2">
-                        (détecté depuis le nom du fichier)
-                      </span>
-                    )}
-                </p>
-              )}
-              {parsedTimelines[0]?.demo?.gameId === '13' && (
-                <p className="text-amber-200/80 text-xs">
-                  Mode test : timeline13 = timeline de la game 1 (premier match). Le match est
-                  présélectionné pour valider le format.
-                </p>
-              )}
-              {parsedTimelines[0]?.demo?.gameId != null &&
-                parsedTimelines[0].demo.gameId !== '13' && (
-                  <p className="text-gray-500 text-xs">
-                    Associer au match correspondant dans la liste ci-dessous.
-                  </p>
-                )}
-              {parsedTimelines[0]?.demo?.gameId == null && (
-                <p className="text-amber-200/80 text-xs">
-                  Aucun game ID dans le JSON. Renommer le fichier avec l’ID (ex.
-                  timeline_7704801020.txt) pour lier la timeline à un match.
-                </p>
-              )}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-gray-300">
-                <div>
-                  <span className="text-gray-500">Durée</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.duree}
-                </div>
-                <div>
-                  <span className="text-gray-500">Frames</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.frames}
-                </div>
-                <div>
-                  <span className="text-gray-500">Événements</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.evenements}
-                </div>
-                <div>
-                  <span className="text-gray-500">Kills</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.kills}
-                </div>
-                <div>
-                  <span className="text-gray-500">Dragons</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.dragons} ({parsedTimelines[0]?.demo?.typesDragons})
-                </div>
-                <div>
-                  <span className="text-gray-500">Baron</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.baron}
-                </div>
-                <div>
-                  <span className="text-gray-500">Heralds</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.heralds}
-                </div>
-                <div>
-                  <span className="text-gray-500">Tours</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.tours}
-                </div>
-                <div>
-                  <span className="text-gray-500">Inhibiteurs</span>
-                  <br />
-                  {parsedTimelines[0]?.demo?.inhibs}
-                </div>
-              </div>
-              <div>
-                <p className="text-gray-500 mb-1">Kills par joueur (participantId)</p>
-                <pre className="bg-dark-card p-2 rounded text-xs overflow-x-auto">
-                  {JSON.stringify(parsedTimelines[0]?.demo?.killsParJoueur, null, 0)}
-                </pre>
-              </div>
-              {parsedTimelines[0]?.demo?.objectifsDragons?.length > 0 && (
-                <div>
-                  <p className="text-gray-500 mb-1">Objectifs dragons (ordre chrono)</p>
-                  <ul className="list-disc list-inside text-gray-400">
-                    {parsedTimelines[0]?.demo?.objectifsDragons.map((d, i) => (
-                      <li key={i}>
-                        {d.label} à {d.timeMin} min (joueur {d.killerId})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {parsedTimelines[0]?.demo?.toursDetruites?.length > 0 && (
-                <div>
-                  <p className="text-gray-500 mb-1">Tours détruites</p>
-                  <ul className="list-disc list-inside text-gray-400">
-                    {parsedTimelines[0]?.demo?.toursDetruites.map((t, i) => (
-                      <li key={i}>
-                        {t.label} à {t.timeMin} min (équipe {t.teamId} perd la tour)
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+
               {parsedTimelines.length === 1 && (
-                <div className="border-t border-dark-border pt-4 mt-4">
-                  <p className="text-gray-500 text-sm mb-2">Associer cette timeline à un match :</p>
-                  <div className="flex flex-wrap items-center gap-2">
+                <>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
+                    {[
+                      ['Durée', parsedTimelines[0]?.demo?.duree],
+                      ['Frames', parsedTimelines[0]?.demo?.frames],
+                      ['Kills', parsedTimelines[0]?.demo?.kills],
+                      ['Dragons', parsedTimelines[0]?.demo?.dragons],
+                    ].map(([label, val]) => (
+                      <div key={label} className="bg-dark-card rounded-lg p-2">
+                        <span className="text-gray-500 block">{label}</span>
+                        <span className="font-medium">{val ?? '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-dark-border pt-3">
+                    <p className="text-gray-500 text-xs mb-2">Associer à un match :</p>
                     <select
                       value={timelineMatchId}
                       onChange={(e) => setTimelineMatchId(e.target.value)}
-                      className="bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white min-w-[200px]"
+                      className="w-full bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-sm text-white mb-2"
                     >
                       <option value="">Choisir un match…</option>
-                      {matches.map((m) => (
+                      {matches.map((m: any) => (
                         <option key={m.id} value={m.id}>
-                          Game #{m.game_id} — {m.our_win ? 'Victoire' : 'Défaite'} (
-                          {m.game_creation
-                            ? new Date(m.game_creation).toLocaleDateString('fr-FR')
-                            : ''}
-                          )
+                          Game #{m.game_id} — {m.our_win ? 'Victoire' : 'Défaite'}{m.game_creation ? ` · ${new Date(m.game_creation).toLocaleDateString('fr-FR')}` : ''}
                         </option>
                       ))}
                     </select>
                     <button
                       type="button"
-                      onClick={handleSaveTimelineForMatch}
+                      onClick={handleSaveTimeline}
                       disabled={savingTimeline || !timelineMatchId}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium disabled:opacity-50"
+                      className="w-full px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-sm font-medium disabled:opacity-50"
                     >
-                      {savingTimeline ? 'Enregistrement…' : 'Enregistrer la timeline pour ce match'}
+                      {savingTimeline ? 'Enregistrement…' : 'Enregistrer la timeline'}
                     </button>
                   </div>
-                </div>
+                </>
               )}
+
               {timelineSaveMsg && (
-                <p
-                  className={`mt-2 text-sm ${timelineSaveMsg.ok ? 'text-green-400' : 'text-red-400'}`}
-                >
+                <p className={`text-xs ${timelineSaveMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
                   {timelineSaveMsg.text}
                 </p>
               )}
-              <p className="text-gray-500 text-xs border-t border-dark-border pt-2 mt-4">
-                Ce qu’on peut en faire : courbes or/XP par équipe, timeline des objectifs,
-                kills/morts/assists par participant, CS/jungle par frame, position (heatmap).
-              </p>
             </div>
-          ) : (
-            <p className="text-gray-500 text-sm">
-              Format Exalty/Riot : JSON avec <code className="text-gray-400">frames</code>{' '}
-              (timestamp, participantFrames, events). Dépose un fichier pour voir la démo des stats.
-            </p>
           )}
-        </div>
-
-        {/* Card 3: À venir */}
-        <div className="bg-dark-card border border-dark-border rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-gray-500/20 rounded-lg">
-              <Upload size={24} className="text-gray-500" />
-            </div>
-            <div>
-              <h3 className="font-display text-lg font-semibold text-gray-400">Import personnalisé</h3>
-              <p className="text-sm text-gray-600">D'autres formats à venir</p>
-            </div>
-            <span className="ml-auto text-[10px] font-semibold px-2 py-1 rounded bg-dark-bg border border-dark-border text-gray-600">
-              Bientôt
-            </span>
-          </div>
-          <div className="border-2 border-dashed border-dark-border/50 rounded-lg p-6 text-center space-y-2">
-            <p className="text-gray-600 text-sm font-medium">Formats prévus</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {['Leaguepedia', 'OP.GG Team', 'Tracker.gg', 'CSV custom'].map((f) => (
-                <span key={f} className="text-xs px-2.5 py-1 rounded-full bg-dark-bg border border-dark-border text-gray-600">
-                  {f}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

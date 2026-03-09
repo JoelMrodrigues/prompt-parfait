@@ -3,21 +3,23 @@
  * Drag & drop + mode clic (colonne sélectionnée puis clic sur champion)
  */
 import { getChampionImage } from '../../../../lib/championImages'
-import { TIER_KEYS } from '../constants/tiers'
-import { X } from 'lucide-react'
+import { TIER_KEYS, FIXED_TIER } from '../constants/tiers'
+import { X, Dumbbell } from 'lucide-react'
 
 export const TierTable = ({
-  tiers = { S: [], A: [], B: [], C: [] },
+  tiers = {},
   activeTier,
   onColumnSelect,
   onDrop,
   onRemove,
+  columnLabels = {},
 }: {
-  tiers?: { S: any[]; A: any[]; B: any[]; C: any[] }
+  tiers?: Record<string, any[]>
   activeTier?: any
   onColumnSelect?: any
   onDrop?: any
   onRemove?: any
+  columnLabels?: Record<string, string>
 }) => {
   const handleDragOver = (e) => {
     e.preventDefault()
@@ -40,24 +42,30 @@ export const TierTable = ({
       <table className="w-full table-fixed">
         <thead className="sticky top-0 bg-dark-bg/95 z-10">
           <tr className="border-b border-dark-border">
-            {TIER_KEYS.map((tier) => (
-              <th
-                key={tier}
-                className={`px-4 py-3 text-center text-sm font-semibold w-[25%] cursor-pointer transition-colors ${
-                  activeTier === tier
-                    ? 'bg-accent-blue/20 text-accent-blue border-b-2 border-accent-blue'
-                    : 'text-gray-300 hover:bg-dark-bg/80'
-                }`}
-                onClick={() => onColumnSelect?.(tier)}
-                title={
-                  activeTier === tier
-                    ? "Cliquez sur un champion pour l'ajouter"
-                    : 'Sélectionner cette colonne'
-                }
-              >
-                {tier}
-              </th>
-            ))}
+            {TIER_KEYS.map((tier) => {
+              const isFixed = tier === FIXED_TIER
+              const label = isFixed ? tier : (columnLabels[tier] || tier)
+              return (
+                <th
+                  key={tier}
+                  className={`px-4 py-3 text-center text-sm font-semibold cursor-pointer transition-colors ${
+                    isFixed
+                      ? 'text-emerald-400 bg-emerald-500/5 border-b-2 border-emerald-500/30'
+                      : activeTier === tier
+                        ? 'bg-accent-blue/20 text-accent-blue border-b-2 border-accent-blue'
+                        : 'text-gray-300 hover:bg-dark-bg/80'
+                  }`}
+                  style={{ width: `${100 / TIER_KEYS.length}%` }}
+                  onClick={() => isFixed ? onColumnSelect?.(tier) : onColumnSelect?.(tier)}
+                  title={isFixed ? 'Champions à travailler (colonne fixe)' : activeTier === tier ? "Cliquez sur un champion pour l'ajouter" : 'Sélectionner cette colonne'}
+                >
+                  <span className="flex items-center justify-center gap-1.5">
+                    {isFixed && <Dumbbell size={13} />}
+                    {label}
+                  </span>
+                </th>
+              )
+            })}
           </tr>
         </thead>
         <tbody>

@@ -35,6 +35,19 @@ export interface Participant {
   teamId: number
   teamPosition?: string
   individualPosition?: string
+  totalDamageDealtToChampions?: number
+  totalMinionsKilled?: number
+  neutralMinionsKilled?: number
+  visionScore?: number
+  goldEarned?: number
+  item0?: number
+  item1?: number
+  item2?: number
+  item3?: number
+  item4?: number
+  item5?: number
+  item6?: number
+  perks?: unknown
 }
 
 export interface MatchInfo {
@@ -59,6 +72,13 @@ export interface ParticipantData {
   assists: number
   gameDuration: number
   gameCreation: number
+  totalDamage?: number
+  cs?: number
+  visionScore?: number
+  goldEarned?: number
+  items?: number[]
+  runes?: unknown
+  matchJson?: unknown
 }
 
 export interface ChampionAggregate {

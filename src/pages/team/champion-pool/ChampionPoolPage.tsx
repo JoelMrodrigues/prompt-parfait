@@ -11,7 +11,8 @@ import { ChampionGrid } from './components/ChampionGrid'
 import { TierTable } from './components/TierTable'
 import { FILTER_TO_CHAMPION_ROLE } from './utils/roleToChampionRole'
 import { TIER_KEYS } from './constants/tiers'
-import { Save, Search } from 'lucide-react'
+import { Save, Search, Settings2, X } from 'lucide-react'
+import { FIXED_TIER } from './constants/tiers'
 
 const emptyTiers = () => Object.fromEntries(TIER_KEYS.map((k) => [k, []]))
 
@@ -27,6 +28,13 @@ export const ChampionPoolPage = () => {
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState(null)
   const hasHydrated = useRef(false)
+
+  // Column labels (renommables, sauf Training)
+  const renamableTiers = TIER_KEYS.filter((k) => k !== FIXED_TIER)
+  const defaultLabels = Object.fromEntries(renamableTiers.map((k) => [k, k]))
+  const [columnLabels, setColumnLabels] = useState<Record<string, string>>(defaultLabels)
+  const [showColumnsModal, setShowColumnsModal] = useState(false)
+  const [labelDraft, setLabelDraft] = useState<Record<string, string>>(defaultLabels)
 
   useEffect(() => {
     if (players.length > 0 && selectedPlayerId === null) {
@@ -126,29 +134,39 @@ export const ChampionPoolPage = () => {
               sélectionnez une colonne puis cliquez sur un champion.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={async () => {
-              setSaving(true)
-              setSaveMessage(null)
-              try {
-                await saveAllChampionPools(tiersByPlayer)
-                await refetch()
-                setSaveMessage('Pool sauvegardé !')
-                setTimeout(() => setSaveMessage(null), 3000)
-              } catch (err) {
-                console.error('Erreur sauvegarde pool:', err)
-                setSaveMessage(`Erreur: ${err.message}`)
-              } finally {
-                setSaving(false)
-              }
-            }}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-          >
-            <Save size={18} />
-            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setLabelDraft({ ...columnLabels }); setShowColumnsModal(true) }}
+              className="flex items-center gap-2 px-4 py-2 bg-dark-bg border border-dark-border hover:border-accent-blue/50 text-gray-300 font-medium rounded-lg transition-colors"
+            >
+              <Settings2 size={16} />
+              Colonnes
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                setSaving(true)
+                setSaveMessage(null)
+                try {
+                  await saveAllChampionPools(tiersByPlayer)
+                  await refetch()
+                  setSaveMessage('Pool sauvegardé !')
+                  setTimeout(() => setSaveMessage(null), 3000)
+                } catch (err) {
+                  console.error('Erreur sauvegarde pool:', err)
+                  setSaveMessage(`Erreur: ${err.message}`)
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            >
+              <Save size={18} />
+              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </button>
+          </div>
         </div>
         {saveMessage && (
           <p
@@ -158,13 +176,14 @@ export const ChampionPoolPage = () => {
           </p>
         )}
 
-        {/* Tableau S A B C */}
+        {/* Tableau Training S A B C */}
         <TierTable
           tiers={tiers}
           activeTier={activeTier}
           onColumnSelect={handleColumnSelect}
           onDrop={handleDrop}
           onRemove={removeChampionFromTier}
+          columnLabels={columnLabels}
         />
 
         {/* Champions avec filtre par rôle */}
@@ -203,6 +222,62 @@ export const ChampionPoolPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Gérer colonnes */}
+      {showColumnsModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          onClick={() => setShowColumnsModal(false)}
+        >
+          <div
+            className="bg-dark-card border border-dark-border rounded-2xl shadow-xl w-full max-w-sm p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-display font-semibold text-white text-lg">Renommer les colonnes</h3>
+              <button type="button" onClick={() => setShowColumnsModal(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-bg transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              La colonne <span className="text-emerald-400 font-semibold">Training</span> est fixe et ne peut pas être renommée.
+            </p>
+            <div className="space-y-3">
+              {renamableTiers.map((tier) => (
+                <div key={tier} className="flex items-center gap-3">
+                  <span className="text-sm text-gray-400 w-8 text-center font-semibold">{tier}</span>
+                  <input
+                    type="text"
+                    value={labelDraft[tier] || tier}
+                    onChange={(e) => setLabelDraft((prev) => ({ ...prev, [tier]: e.target.value }))}
+                    maxLength={12}
+                    className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-blue"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button
+                type="button"
+                onClick={() => setShowColumnsModal(false)}
+                className="flex-1 px-4 py-2 rounded-xl border border-dark-border text-gray-400 text-sm hover:text-white transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setColumnLabels({ ...labelDraft })
+                  setShowColumnsModal(false)
+                }}
+                className="flex-1 px-4 py-2 rounded-xl bg-accent-blue/20 border border-accent-blue/40 text-accent-blue text-sm font-medium hover:bg-accent-blue/30 transition-colors"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

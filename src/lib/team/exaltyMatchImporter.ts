@@ -11,7 +11,7 @@ import { parseExaltyMatch } from './exaltyMatchParser'
  * @param {Array} teamPlayers - Liste des joueurs (pseudo, secondary_account, position, id)
  * @returns {Promise<{ imported: number, skipped: number, errors: string[] }>}
  */
-export async function importExaltyMatches(matchesJson, teamId, teamPlayers) {
+export async function importExaltyMatches(matchesJson, teamId, teamPlayers, matchType: 'scrim' | 'tournament' = 'scrim') {
   const results = { imported: 0, skipped: 0, errors: [] }
   if (!supabase || !teamId || !teamPlayers?.length) {
     results.errors.push('Team ou joueurs manquants')
@@ -50,6 +50,7 @@ export async function importExaltyMatches(matchesJson, teamId, teamPlayers) {
             our_win: parsed.match.ourWin,
             objectives: parsed.match.objectives ?? null,
             match_json: matchJson,
+            match_type: matchType,
           })
           .eq('id', existing.id)
         if (updateErr) {
@@ -70,6 +71,7 @@ export async function importExaltyMatches(matchesJson, teamId, teamPlayers) {
             our_win: parsed.match.ourWin,
             objectives: parsed.match.objectives ?? null,
             match_json: matchJson,
+            match_type: matchType,
           })
           .select('id')
           .single()

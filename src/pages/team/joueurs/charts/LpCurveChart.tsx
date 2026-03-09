@@ -1,6 +1,6 @@
 const PAD = { top: 30, right: 80, bottom: 44, left: 60 }
 const W = 720
-const H = 220
+const H = 260
 const INNER_W = W - PAD.left - PAD.right
 const INNER_H = H - PAD.top - PAD.bottom
 
@@ -26,10 +26,9 @@ export function LpCurveChart({
 }) {
   if (points.length < 2) return null
 
-  // Échelle LP : bas = min exact, haut = max + 500 (range visuelle large)
-  const minLp   = Math.min(...points.map((x) => x.lp))
+  // Échelle LP : bas = 0 (Diamond territory), haut = max + 500
   const maxLp   = Math.max(...points.map((x) => x.lp))
-  const lpMin   = minLp
+  const lpMin   = 0
   const lpMax   = maxLp + 500
   const lpRange = lpMax - lpMin
 

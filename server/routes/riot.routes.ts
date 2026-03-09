@@ -283,6 +283,43 @@ router.get('/match-count', requireApiKey, requirePseudo, async (req: Request, re
   }
 })
 
+// ─── TIMELINE D'UN MATCH (gold diff, CS, events par minute) ─────────────────
+
+router.get('/match-timeline', requireApiKey, async (req: Request, res: Response) => {
+  const matchId = (req.query.matchId as string || '').trim()
+  if (!matchId) {
+    return res.status(400).json({ success: false, error: 'Paramètre matchId requis' })
+  }
+
+  const cacheKey = `timeline:${matchId}`
+  const cached = cache.get(cacheKey)
+  if (cached) return res.json({ success: true, timeline: cached['timeline'], cached: true })
+
+  // Région routing : EUW1/EUN1 → europe, NA1 → americas, KR/JP1 → asia
+  const region = (req.query.region as string || 'euw1').trim().toLowerCase()
+  const routingMap: Record<string, string> = {
+    euw1: 'europe', eun1: 'europe', tr1: 'europe', ru: 'europe',
+    na1: 'americas', br1: 'americas', la1: 'americas', la2: 'americas',
+    kr: 'asia', jp1: 'asia', oc1: 'sea',
+  }
+  const routing = routingMap[region] ?? 'europe'
+
+  try {
+    const { data } = await axios.get(
+      `https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`,
+      { headers: { 'X-Riot-Token': getApiKey() }, timeout: 10000 },
+    )
+    cache.set(cacheKey, { timeline: data })
+    res.json({ success: true, timeline: data, cached: false })
+  } catch (err: unknown) {
+    const e = err as { response?: { status?: number; data?: { status?: { message?: string } } }; message?: string }
+    const status = e.response?.status ?? 500
+    const msg = e.response?.data?.status?.message ?? e.message ?? 'Erreur serveur'
+    console.error('match-timeline error:', msg)
+    res.status(status).json({ success: false, error: msg })
+  }
+})
+
 // ─── GAMES SEMAINE (soloq ranked, 7 derniers jours) ─────────────────────────
 
 router.get('/weekly-games', requireApiKey, requirePseudo, async (req: Request, res: Response) => {

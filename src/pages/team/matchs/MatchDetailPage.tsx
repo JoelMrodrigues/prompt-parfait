@@ -2,8 +2,8 @@
  * Détail d'un match - Résumé (équipes), Stats globales, Stats timeline, Timeline global
  */
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, BarChart3, TrendingUp, Map, Wrench } from 'lucide-react'
-import { useState, useEffect, Fragment } from 'react'
+import { ArrowLeft, BarChart3, TrendingUp, Map } from 'lucide-react'
+import { useState, useEffect, Fragment, useCallback } from 'react'
 import {
   fetchMatchById,
   fetchParticipantsByMatch,
@@ -12,7 +12,6 @@ import {
 } from '../../../services/supabase/matchQueries'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { loadItems, getItemImageUrl, getItemName } from '../../../lib/items'
-import { computeEnemyRoleFixes } from '../../../lib/team/fixEnemyRolesFromDb'
 
 const TABS = [
   { id: 'resume', label: 'Résumé', icon: BarChart3 },
@@ -21,7 +20,43 @@ const TABS = [
   { id: 'timeline-global', label: 'Timeline global', icon: Map },
 ]
 
-function ParticipantTable({ participants, itemsLoaded }) {
+const ROLES = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']
+
+function RoleSelect({ participantId, currentRole, onRoleChange }: {
+  participantId: string
+  currentRole: string | null
+  onRoleChange: (id: string, role: string) => void
+}) {
+  const [saving, setSaving] = useState(false)
+
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const role = e.target.value
+    setSaving(true)
+    await updateParticipantRole(participantId, role)
+    onRoleChange(participantId, role)
+    setSaving(false)
+  }
+
+  return (
+    <select
+      value={currentRole || ''}
+      onChange={handleChange}
+      disabled={saving}
+      className={`bg-dark-bg border border-dark-border rounded px-1.5 py-0.5 text-xs text-gray-300 hover:border-accent-blue/50 focus:border-accent-blue focus:outline-none transition-colors ${saving ? 'opacity-50' : ''}`}
+    >
+      <option value="">—</option>
+      {ROLES.map((r) => (
+        <option key={r} value={r}>{r}</option>
+      ))}
+    </select>
+  )
+}
+
+function ParticipantTable({ participants, itemsLoaded, onRoleChange }: {
+  participants: any[]
+  itemsLoaded: boolean
+  onRoleChange: (id: string, role: string) => void
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -59,7 +94,13 @@ function ParticipantTable({ participants, itemsLoaded }) {
                   </div>
                 </div>
               </td>
-              <td className="py-3 px-4 text-gray-400">{p.role || '—'}</td>
+              <td className="py-3 px-4">
+                <RoleSelect
+                  participantId={p.id}
+                  currentRole={p.role}
+                  onRoleChange={onRoleChange}
+                />
+              </td>
               <td className="py-3 px-4 text-center">
                 {p.kills}/{p.deaths}/{p.assists}
               </td>
@@ -115,8 +156,6 @@ export const MatchDetailPage = () => {
   const [itemsLoaded, setItemsLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('resume')
-  const [fixingRoles, setFixingRoles] = useState(false)
-  const [fixRolesMessage, setFixRolesMessage] = useState(null)
 
   useEffect(() => {
     if (!matchId) {
@@ -188,6 +227,10 @@ export const MatchDetailPage = () => {
     }
   }, [matchId])
 
+  const handleRoleChange = useCallback((id: string, role: string) => {
+    setParticipants((prev) => prev.map((p) => p.id === id ? { ...p, role } : p))
+  }, [])
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -213,41 +256,6 @@ export const MatchDetailPage = () => {
   const ourTeam = participants.filter((p) => p.team_side === 'our' || !p.team_side)
   const enemyTeam = participants.filter((p) => p.team_side === 'enemy')
   const durationMin = match.game_duration ? Math.round(match.game_duration / 60) : null
-
-  const refetchParticipants = async () => {
-    const { data: parts, error } = await fetchParticipantsByMatch(matchId)
-    if (error || !parts) return
-    const roleOrder = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']
-    const sortParts = (a, b) => {
-      const sideA = a.team_side === 'enemy' ? 1 : 0
-      const sideB = b.team_side === 'enemy' ? 1 : 0
-      if (sideA !== sideB) return sideA - sideB
-      return roleOrder.indexOf(a.role || '') - roleOrder.indexOf(b.role || '')
-    }
-    setParticipants([...parts].sort(sortParts))
-  }
-
-  const handleFixEnemyRoles = async () => {
-    setFixingRoles(true)
-    setFixRolesMessage(null)
-    try {
-      const updates = computeEnemyRoleFixes(enemyTeam)
-      if (updates.length === 0) {
-        setFixRolesMessage('Aucune correction nécessaire.')
-        setFixingRoles(false)
-        return
-      }
-      for (const u of updates) {
-        await updateParticipantRole(u.id, u.role)
-      }
-      await refetchParticipants()
-      setFixRolesMessage(`${updates.length} rôle(s) corrigé(s).`)
-    } catch {
-      setFixRolesMessage('Erreur lors de la correction.')
-    } finally {
-      setFixingRoles(false)
-    }
-  }
 
   // Agrégats par équipe (stats globales)
   const ourGold = ourTeam.reduce((s, p) => s + (p.gold_earned ?? 0), 0)
@@ -334,37 +342,17 @@ export const MatchDetailPage = () => {
                 Notre équipe
               </h3>
               {ourTeam.length > 0 ? (
-                <ParticipantTable participants={ourTeam} itemsLoaded={itemsLoaded} />
+                <ParticipantTable participants={ourTeam} itemsLoaded={itemsLoaded} onRoleChange={handleRoleChange} />
               ) : (
                 <p className="text-gray-500 text-sm">Aucun participant (import ancien format).</p>
               )}
             </div>
             <div className="p-4">
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <h3 className="font-display text-lg font-semibold text-red-400/90">
-                  Équipe adverse
-                </h3>
-                {enemyTeam.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleFixEnemyRoles}
-                    disabled={fixingRoles}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue/50 disabled:opacity-50 text-gray-300"
-                  >
-                    <Wrench size={14} />
-                    {fixingRoles ? 'Correction…' : 'Corriger les rôles'}
-                  </button>
-                )}
-              </div>
-              {fixRolesMessage && (
-                <p
-                  className={`text-sm mb-2 ${fixRolesMessage.startsWith('Erreur') ? 'text-red-400' : 'text-green-400'}`}
-                >
-                  {fixRolesMessage}
-                </p>
-              )}
+              <h3 className="font-display text-lg font-semibold text-red-400/90 mb-3">
+                Équipe adverse
+              </h3>
               {enemyTeam.length > 0 ? (
-                <ParticipantTable participants={enemyTeam} itemsLoaded={itemsLoaded} />
+                <ParticipantTable participants={enemyTeam} itemsLoaded={itemsLoaded} onRoleChange={handleRoleChange} />
               ) : (
                 <p className="text-gray-500 text-sm">
                   Équipe adverse non enregistrée. Réimportez le match pour inclure les adversaires.

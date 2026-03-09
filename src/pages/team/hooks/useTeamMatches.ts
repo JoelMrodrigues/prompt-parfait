@@ -1,49 +1,77 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchTeamMatches } from '../../../services/supabase/matchQueries'
+import { fetchTeamMatchesList, fetchTeamMatches } from '../../../services/supabase/matchQueries'
 
-// Cache module-level : données immédiatement disponibles entre navigations (stale-while-revalidate)
-const matchCache = new Map<string, any[]>()
+// Cache légère — liste des matchs (MatchsPage, ImportPage, overview)
+const listCache = new Map<string, any[]>()
+// Cache complète — matchs avec toutes les stats participants (TeamStatsPage)
+const fullCache = new Map<string, any[]>()
 
-export const useTeamMatches = (teamId: string | null | undefined) => {
-  const cached = teamId ? matchCache.get(teamId) : undefined
-  const [matches, setMatches] = useState<any[]>(cached ?? [])
-  // Pas de spinner si on a déjà des données en cache
-  const [loading, setLoading] = useState(!cached)
+// Déduplication — si une requête est en vol pour un teamId, tous les appelants
+// attendent la même Promise au lieu de lancer N requêtes identiques en parallèle.
+const listInflight = new Map<string, Promise<any[]>>()
+const fullInflight = new Map<string, Promise<any[]>>()
 
-  const fetchMatches = useCallback(async () => {
-    if (!teamId) {
-      setMatches([])
-      setLoading(false)
-      return
-    }
-    // Ne pas afficher le spinner si on a déjà des données (rafraîchissement silencieux)
-    if (!matchCache.has(teamId)) setLoading(true)
-    try {
-      const { data, error } = await fetchTeamMatches(teamId)
-      if (error) {
-        console.warn('useTeamMatches:', error.message)
-        if (!matchCache.has(teamId)) setMatches([])
-      } else {
-        const fresh = data || []
-        matchCache.set(teamId, fresh)
-        setMatches(fresh)
+function makeHook(
+  fetcher: (id: string) => Promise<any>,
+  cache: Map<string, any[]>,
+  inflight: Map<string, Promise<any[]>>
+) {
+  return (teamId: string | null | undefined) => {
+    const cached = teamId ? cache.get(teamId) : undefined
+    const [matches, setMatches] = useState<any[]>(cached ?? [])
+    const [loading, setLoading] = useState(!cached)
+
+    const run = useCallback(async () => {
+      if (!teamId) { setMatches([]); setLoading(false); return }
+
+      // Données déjà en cache → pas de réseau
+      if (cache.has(teamId)) {
+        setMatches(cache.get(teamId)!)
+        setLoading(false)
+        return
       }
-    } catch {
-      if (!matchCache.has(teamId)) setMatches([])
-    } finally {
-      setLoading(false)
-    }
-  }, [teamId])
 
-  useEffect(() => {
-    fetchMatches()
-  }, [fetchMatches])
+      setLoading(true)
 
-  const refetch = useCallback(async () => {
-    // Refetch forcé : vider le cache pour forcer un rechargement frais
-    if (teamId) matchCache.delete(teamId)
-    await fetchMatches()
-  }, [fetchMatches, teamId])
+      // Requête déjà en vol → réutiliser la même Promise (déduplication)
+      if (!inflight.has(teamId)) {
+        const promise = fetcher(teamId)
+          .then(({ data, error }) => {
+            const result = error ? [] : (data ?? [])
+            if (!error) cache.set(teamId, result)
+            inflight.delete(teamId)
+            return result
+          })
+          .catch(() => { inflight.delete(teamId); return [] })
+        inflight.set(teamId, promise)
+      }
 
-  return { matches, loading, refetch }
+      try {
+        const result = await inflight.get(teamId)!
+        setMatches(result)
+      } finally {
+        setLoading(false)
+      }
+    }, [teamId])
+
+    useEffect(() => { run() }, [run])
+
+    const refetch = useCallback(async () => {
+      if (teamId) { cache.delete(teamId); inflight.delete(teamId) }
+      await run()
+    }, [run, teamId])
+
+    return { matches, loading, refetch }
+  }
+}
+
+// Hook léger — par défaut partout
+export const useTeamMatches = makeHook(fetchTeamMatchesList, listCache, listInflight)
+
+// Hook complet — pour les pages de statistiques
+export const useTeamMatchesFull = makeHook(fetchTeamMatches, fullCache, fullInflight)
+
+// Lecture directe du cache liste (sans abonnement React) — pour les hooks de sync
+export function getListCachedMatches(teamId: string): any[] | null {
+  return listCache.get(teamId) ?? null
 }

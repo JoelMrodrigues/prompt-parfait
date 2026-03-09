@@ -13,8 +13,8 @@
 const PRIMARY = (import.meta.env.VITE_DPM_API_URL || 'http://localhost:3001').replace(/\/$/, '')
 const FALLBACK = (import.meta.env.VITE_DPM_API_URL_FALLBACK || '').replace(/\/$/, '')
 
-/** Timeout avant bascule fallback : 6 secondes */
-const PRIMARY_TIMEOUT_MS = 6000
+/** Timeout avant bascule fallback : 2 secondes (réduit de 6s — évite le gel au démarrage) */
+const PRIMARY_TIMEOUT_MS = 2000
 
 /** URL backend active pour la session (primary → fallback si primary inaccessible) */
 let activeUrl = PRIMARY

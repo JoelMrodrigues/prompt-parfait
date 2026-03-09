@@ -3,8 +3,7 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Link2, Check, X, Crown } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Plus, Link2, Check, X, Crown, Loader2 } from 'lucide-react'
 import { useTeam } from '../team/hooks/useTeam'
 import { useAuth } from '../../contexts/AuthContext'
 import { getOrCreateInviteToken } from '../../services/supabase/teamQueries'
@@ -54,6 +53,7 @@ export const TeamsPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [switchingTeamId, setSwitchingTeamId] = useState<string | null>(null)
 
   const toggleCreate = () => {
     setShowCreateForm((v) => !v)
@@ -112,9 +112,14 @@ export const TeamsPage = () => {
   const handleCardClick = async (t: any) => {
     if (t.id === activeTeam?.id) {
       navigate('/team')
-    } else {
+      return
+    }
+    setSwitchingTeamId(t.id)
+    try {
       await switchTeam(t.id)
       navigate('/team')
+    } finally {
+      setSwitchingTeamId(null)
     }
   }
 
@@ -246,17 +251,17 @@ export const TeamsPage = () => {
           const initials = getInitials(t.team_name)
 
           return (
-            <motion.div
+            <div
               key={t.id}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => handleCardClick(t)}
-              className={`group bg-dark-card rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+              onClick={() => !switchingTeamId && handleCardClick(t)}
+              className={`animate-scale-in group bg-dark-card rounded-2xl overflow-hidden border transition-[transform,box-shadow,border-color,opacity] duration-200 ${
+                switchingTeamId === t.id ? 'cursor-wait opacity-60' : 'cursor-pointer'
+              } ${
                 isActive
                   ? 'border-accent-blue/50 shadow-[0_0_24px_rgba(59,130,246,0.1)]'
                   : 'border-dark-border hover:border-gray-600 hover:shadow-lg hover:-translate-y-0.5'
               }`}
+              style={{ animationDelay: `${i * 50}ms` }}
             >
               {/* Zone logo / fond */}
               <div className="relative h-36 overflow-hidden">
@@ -271,6 +276,13 @@ export const TeamsPage = () => {
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${color.gradient}`}
                 />
+
+                {/* Spinner switch */}
+                {switchingTeamId === t.id && (
+                  <div className="absolute inset-0 flex items-center justify-center z-20 bg-dark-bg/40 backdrop-blur-sm">
+                    <Loader2 size={28} className="animate-spin text-accent-blue" />
+                  </div>
+                )}
 
                 {/* Badges */}
                 <div className="absolute top-3 left-3 flex gap-1.5 z-10">
@@ -292,7 +304,7 @@ export const TeamsPage = () => {
                   <button
                     onClick={(e) => handleCopyInvite(e, t.id)}
                     title="Copier le lien d'invitation"
-                    className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-black/30 text-gray-400 hover:text-white hover:bg-black/50 backdrop-blur-sm transition-colors opacity-0 group-hover:opacity-100"
+                    className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-black/50 text-gray-400 hover:text-white hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100"
                   >
                     <Link2 size={13} />
                   </button>
@@ -318,18 +330,16 @@ export const TeamsPage = () => {
               <div className="px-4 py-3 text-center">
                 <h3 className="font-semibold text-white text-sm truncate">{t.team_name}</h3>
               </div>
-            </motion.div>
+            </div>
           )
         })}
 
         {/* Card "+" pour créer une nouvelle équipe */}
         {allTeams.length < MAX_TEAMS && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: allTeams.length * 0.05 }}
+          <div
             onClick={toggleCreate}
-            className="bg-dark-card border-2 border-dashed border-dark-border hover:border-gray-500 rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 group flex flex-col"
+            className="animate-scale-in bg-dark-card border-2 border-dashed border-dark-border hover:border-gray-500 rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color,opacity] duration-200 hover:shadow-lg hover:-translate-y-0.5 group flex flex-col"
+            style={{ animationDelay: `${allTeams.length * 50}ms` }}
           >
             {/* Zone du + */}
             <div className="flex-1 h-36 flex items-center justify-center">
@@ -344,7 +354,7 @@ export const TeamsPage = () => {
                 Nouvelle équipe
               </p>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

@@ -4,7 +4,7 @@
  */
 import { useState, useMemo } from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { useTeamMatches } from '../hooks/useTeamMatches'
+import { useTeamMatchesFull } from '../hooks/useTeamMatches'
 import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
@@ -103,6 +103,45 @@ function computePlayerChampionStats(playerId: string, matches: any[]) {
       avgDamage: s.games > 0 ? Math.round(s.damage / s.games) : 0,
     }))
     .sort((a, b) => b.games - a.games)
+}
+
+// ─── Combo / Compos ───────────────────────────────────────────────────────────
+
+function getCombinations<T>(arr: T[], size: number): T[][] {
+  if (size === 1) return arr.map((item) => [item])
+  const result: T[][] = []
+  for (let i = 0; i <= arr.length - size; i++) {
+    const rest = getCombinations(arr.slice(i + 1), size - 1)
+    for (const combo of rest) result.push([arr[i], ...combo])
+  }
+  return result
+}
+
+function computeComboStats(matches: any[], size: number, side: 'our' | 'enemy') {
+  const byCombo = new Map<string, { games: number; wins: number; names: string[] }>()
+  for (const m of matches) {
+    const parts = m.team_match_participants || []
+    const players =
+      side === 'our'
+        ? parts.filter((p: any) => p.team_side === 'our' || !p.team_side)
+        : parts.filter((p: any) => p.team_side === 'enemy')
+    const names: string[] = players.map((p: any) => p.champion_name).filter(Boolean)
+    if (names.length < size) continue
+    const combos = getCombinations(names, size)
+    for (const combo of combos) {
+      const sorted = [...combo].sort()
+      const key = sorted.join('|')
+      if (!byCombo.has(key)) byCombo.set(key, { games: 0, wins: 0, names: sorted })
+      const s = byCombo.get(key)!
+      s.games++
+      if (side === 'our' ? m.our_win : !m.our_win) s.wins++
+    }
+  }
+  return Array.from(byCombo.values())
+    .filter((c) => c.games >= 1)
+    .map((c) => ({ ...c, winrate: Math.round((c.wins / c.games) * 100), losses: c.games - c.wins }))
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 20)
 }
 
 // ─── Composants champions ─────────────────────────────────────────────────────
@@ -839,9 +878,24 @@ function SoloQPlaceholder() {
   )
 }
 
-function StatsCategoryPlaceholder({ categoryLabel, onBack }) {
+const COMBO_SIZES = [
+  { size: 2, label: 'Duos' },
+  { size: 3, label: 'Trios' },
+  { size: 4, label: 'Quartettes' },
+  { size: 5, label: 'Cinq' },
+]
+
+function ComposSection({ matches, onBack }: { matches: any[]; onBack: () => void }) {
+  const [comboSize, setComboSize] = useState(2)
+  const [showAdversary, setShowAdversary] = useState(false)
+
+  const combos = useMemo(
+    () => computeComboStats(matches, comboSize, showAdversary ? 'enemy' : 'our'),
+    [matches, comboSize, showAdversary]
+  )
+
   return (
-    <div className="max-w-2xl">
+    <div>
       <button
         type="button"
         onClick={onBack}
@@ -850,10 +904,282 @@ function StatsCategoryPlaceholder({ categoryLabel, onBack }) {
         <ArrowLeft size={18} />
         Retour au choix
       </button>
-      <div className="bg-dark-card border border-dark-border rounded-lg p-12 text-center">
-        <h3 className="font-display text-2xl font-bold text-white mb-2">{categoryLabel}</h3>
-        <p className="text-gray-500">Bientôt disponible.</p>
+      <div className="mb-6">
+        <h2 className="font-display text-3xl font-bold mb-1">Statistiques · Compos</h2>
+        <p className="text-gray-400">Combinaisons de champions les plus jouées et leur winrate.</p>
       </div>
+
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex gap-1">
+          {COMBO_SIZES.map(({ size, label }) => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => setComboSize(size)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                comboSize === size
+                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                  : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => setShowAdversary(false)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              !showAdversary
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+            }`}
+          >
+            Notre équipe
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAdversary(true)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              showAdversary
+                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+            }`}
+          >
+            Adversaires
+          </button>
+        </div>
+        <span className="text-xs text-gray-500">
+          {showAdversary
+            ? 'Combos adverses contre lesquels on a gagné'
+            : 'Combos de notre équipe'}
+        </span>
+      </div>
+
+      {combos.length === 0 ? (
+        <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
+          <p className="text-gray-500 text-sm">
+            Aucune combinaison trouvée. Importez des matchs avec des participants depuis la page
+            Matchs.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dark-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-dark-bg/80 text-gray-400 text-left">
+                <th className="px-4 py-3 w-8">#</th>
+                <th className="px-4 py-3">Combinaison</th>
+                <th className="px-4 py-3 text-center">Joué</th>
+                <th className="px-4 py-3 text-center">Winrate</th>
+                <th className="px-4 py-3 text-center">V / D</th>
+              </tr>
+            </thead>
+            <tbody>
+              {combos.map((c, idx) => (
+                <tr
+                  key={c.names.join('|')}
+                  className="border-t border-dark-border/50 hover:bg-dark-bg/40 transition-colors"
+                >
+                  <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {c.names.map((n) => (
+                        <img
+                          key={n}
+                          src={getChampionImage(n)}
+                          alt={n}
+                          title={getChampionDisplayName(n) || n}
+                          className="w-7 h-7 rounded object-cover border border-dark-border"
+                        />
+                      ))}
+                      <span className="text-gray-300 text-xs ml-1">
+                        {c.names.map((n) => getChampionDisplayName(n) || n).join(' + ')}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center text-gray-300">{c.games}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span
+                      className={`font-semibold ${c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}
+                    >
+                      {c.winrate}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="text-emerald-400">{c.wins}V</span>
+                    <span className="text-gray-500 mx-1">/</span>
+                    <span className="text-rose-400">{c.losses}D</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SideSection({
+  matches,
+  players,
+  onBack,
+}: {
+  matches: any[]
+  players: any[]
+  onBack: () => void
+}) {
+  const playerSideStats = useMemo(() => {
+    return players.map((player) => {
+      const pm = matches.filter((m) =>
+        (m.team_match_participants || []).some((p: any) => p.player_id === player.id)
+      )
+      const blue = pm.filter((m) => m.our_team_id === 100)
+      const red = pm.filter((m) => m.our_team_id === 200)
+      const blueWins = blue.filter((m) => m.our_win).length
+      const redWins = red.filter((m) => m.our_win).length
+
+      const getKda = (ms: any[]) => {
+        let k = 0, d = 0, a = 0
+        for (const m of ms) {
+          const p = (m.team_match_participants || []).find((p: any) => p.player_id === player.id)
+          if (p) { k += p.kills ?? 0; d += p.deaths ?? 0; a += p.assists ?? 0 }
+        }
+        const n = ms.length || 1
+        return { avgK: k / n, avgD: d / n, avgA: a / n, kda: d > 0 ? (k + a) / d : k + a }
+      }
+
+      return {
+        player,
+        total: pm.length,
+        blue: { games: blue.length, wins: blueWins, wr: blue.length ? Math.round((blueWins / blue.length) * 100) : null, ...getKda(blue) },
+        red: { games: red.length, wins: redWins, wr: red.length ? Math.round((redWins / red.length) * 100) : null, ...getKda(red) },
+      }
+    })
+  }, [matches, players])
+
+  const globalBlue = matches.filter((m) => m.our_team_id === 100)
+  const globalRed = matches.filter((m) => m.our_team_id === 200)
+  const globalBlueWins = globalBlue.filter((m) => m.our_win).length
+  const globalRedWins = globalRed.filter((m) => m.our_win).length
+  const globalBlueWR = globalBlue.length ? Math.round((globalBlueWins / globalBlue.length) * 100) : null
+  const globalRedWR = globalRed.length ? Math.round((globalRedWins / globalRed.length) * 100) : null
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 text-sm"
+      >
+        <ArrowLeft size={18} />
+        Retour au choix
+      </button>
+      <div className="mb-6">
+        <h2 className="font-display text-3xl font-bold mb-1">Statistiques · Side</h2>
+        <p className="text-gray-400">Performances en Blue side et Red side par joueur.</p>
+      </div>
+
+      {matches.length === 0 ? (
+        <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
+          <p className="text-gray-500 text-sm">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-dark-card border border-blue-500/20 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full bg-blue-400" />
+                <h3 className="font-semibold text-white">Blue Side</h3>
+              </div>
+              <div className="text-3xl font-bold text-blue-400">
+                {globalBlueWR != null ? `${globalBlueWR}%` : '—'}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {globalBlueWins}V / {globalBlue.length} partie{globalBlue.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="bg-dark-card border border-rose-500/20 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full bg-rose-400" />
+                <h3 className="font-semibold text-white">Red Side</h3>
+              </div>
+              <div className="text-3xl font-bold text-rose-400">
+                {globalRedWR != null ? `${globalRedWR}%` : '—'}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {globalRedWins}V / {globalRed.length} partie{globalRed.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          </div>
+
+          {players.length > 0 && (
+            <div className="rounded-xl border border-dark-border overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-dark-bg/80 text-gray-400 text-left">
+                    <th className="px-4 py-3">Joueur</th>
+                    <th className="px-4 py-3 text-center text-blue-400">Blue WR</th>
+                    <th className="px-4 py-3 text-center text-blue-400/70 hidden md:table-cell">Blue KDA</th>
+                    <th className="px-4 py-3 text-center text-rose-400">Red WR</th>
+                    <th className="px-4 py-3 text-center text-rose-400/70 hidden md:table-cell">Red KDA</th>
+                    <th className="px-4 py-3 text-center">Parties</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {playerSideStats.map(({ player, blue, red, total }) => (
+                    <tr
+                      key={player.id}
+                      className="border-t border-dark-border/50 hover:bg-dark-bg/40 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-white">
+                        {player.player_name || player.pseudo}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {blue.wr != null ? (
+                          <>
+                            <span className={`font-semibold ${blue.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {blue.wr}%
+                            </span>
+                            <div className="text-xs text-gray-500">{blue.wins}V/{blue.games}</div>
+                          </>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-300 text-xs hidden md:table-cell">
+                        {blue.games > 0
+                          ? `${blue.kda.toFixed(1)} (${blue.avgK.toFixed(1)}/${blue.avgD.toFixed(1)}/${blue.avgA.toFixed(1)})`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {red.wr != null ? (
+                          <>
+                            <span className={`font-semibold ${red.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {red.wr}%
+                            </span>
+                            <div className="text-xs text-gray-500">{red.wins}V/{red.games}</div>
+                          </>
+                        ) : (
+                          <span className="text-gray-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-300 text-xs hidden md:table-cell">
+                        {red.games > 0
+                          ? `${red.kda.toFixed(1)} (${red.avgK.toFixed(1)}/${red.avgD.toFixed(1)}/${red.avgA.toFixed(1)})`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-500">{total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -862,7 +1188,7 @@ function StatsCategoryPlaceholder({ categoryLabel, onBack }) {
 
 export const TeamStatsPage = () => {
   const { team, players = [] } = useTeam()
-  const { matches, loading: matchesLoading } = useTeamMatches(team?.id)
+  const { matches, loading: matchesLoading } = useTeamMatchesFull(team?.id)
   const matchIds = useMemo(() => (matches || []).map((m) => m.id), [matches])
   const { timelines, loading: timelinesLoading } = useTeamTimelines(matchIds)
   const [statsCategory, setStatsCategory] = useState(null)
@@ -921,7 +1247,7 @@ export const TeamStatsPage = () => {
       <div className="max-w-4xl">
         <h2 className="font-display text-3xl font-bold mb-2">Statistiques</h2>
         <p className="text-gray-400 mb-8">Choisissez une catégorie à analyser.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {STATS_CARDS.map((card) => {
             const Icon = card.icon
             return (
@@ -929,13 +1255,17 @@ export const TeamStatsPage = () => {
                 key={card.id}
                 type="button"
                 onClick={() => setStatsCategory(card.id)}
-                className="bg-dark-card border border-dark-border rounded-xl p-6 text-left hover:border-primary/50 hover:bg-dark-card/80 transition-all group"
+                className="bg-dark-card border border-dark-border rounded-2xl p-6 text-left hover:border-accent-blue/50 hover:bg-dark-card/80 transition-all group cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-lg bg-dark-bg flex items-center justify-center mb-4 group-hover:bg-primary/20">
-                  <Icon className="text-primary" size={24} />
+                <div className="w-11 h-11 rounded-xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mb-4 group-hover:bg-accent-blue/20 transition-colors">
+                  <Icon className="text-accent-blue" size={22} />
                 </div>
-                <h3 className="font-display text-lg font-semibold text-white mb-2">{card.label}</h3>
-                <p className="text-gray-500 text-sm">{card.description}</p>
+                <h3 className="font-display text-lg font-semibold text-white mb-1">{card.label}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{card.description}</p>
+                <div className="mt-4 flex items-center gap-1 text-xs text-accent-blue opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Analyser</span>
+                  <span>→</span>
+                </div>
               </button>
             )
           })}
@@ -944,11 +1274,18 @@ export const TeamStatsPage = () => {
     )
   }
 
-  if (statsCategory === STATS_CATEGORY_COMPOS || statsCategory === STATS_CATEGORY_SIDE) {
-    const label = STATS_CARDS.find((c) => c.id === statsCategory)?.label ?? statsCategory
+  if (statsCategory === STATS_CATEGORY_COMPOS) {
     return (
-      <div className="max-w-7xl">
-        <StatsCategoryPlaceholder categoryLabel={label} onBack={() => setStatsCategory(null)} />
+      <div className="max-w-5xl">
+        <ComposSection matches={matches} onBack={() => setStatsCategory(null)} />
+      </div>
+    )
+  }
+
+  if (statsCategory === STATS_CATEGORY_SIDE) {
+    return (
+      <div className="max-w-5xl">
+        <SideSection matches={matches} players={players} onBack={() => setStatsCategory(null)} />
       </div>
     )
   }

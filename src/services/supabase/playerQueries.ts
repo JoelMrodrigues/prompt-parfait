@@ -119,6 +119,28 @@ export async function fetchSoloqTopChampions(playerId, accountSource, seasonStar
   return { data, error }
 }
 
+/**
+ * Compte les parties SoloQ jouées depuis le lundi de la semaine courante.
+ * Aucun appel API Riot — données déjà en base.
+ */
+export async function fetchWeeklySoloqCount(playerId: string): Promise<number> {
+  const now = new Date()
+  const dayOfWeek = now.getDay() // 0=dim, 1=lun, …
+  const diffToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diffToMonday)
+  monday.setHours(0, 0, 0, 0)
+
+  const { count, error } = await supabase
+    .from('player_soloq_matches')
+    .select('id', { count: 'exact', head: true })
+    .eq('player_id', playerId)
+    .gte('game_creation', monday.getTime())
+
+  if (error || count == null) return 0
+  return count
+}
+
 export async function upsertSoloqMatches(rows) {
   const { error } = await supabase
     .from('player_soloq_matches')

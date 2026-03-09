@@ -192,6 +192,15 @@ function extractParticipantData(info: MatchInfo, puuid: string): ParticipantData
   const opponent = info.participants?.find(
     (p) => p.teamId !== myTeamId && (p.teamPosition === myPos || p.individualPosition === myPos),
   )
+  const items = [
+    participant.item0 ?? 0,
+    participant.item1 ?? 0,
+    participant.item2 ?? 0,
+    participant.item3 ?? 0,
+    participant.item4 ?? 0,
+    participant.item5 ?? 0,
+    participant.item6 ?? 0,
+  ]
   return {
     championId: participant.championId,
     championName: participant.championName || String(participant.championId),
@@ -202,6 +211,15 @@ function extractParticipantData(info: MatchInfo, puuid: string): ParticipantData
     assists: participant.assists ?? 0,
     gameDuration: info.gameDuration ?? 0,
     gameCreation: info.gameCreation ?? 0,
+    totalDamage: participant.totalDamageDealtToChampions ?? undefined,
+    cs: participant.totalMinionsKilled != null
+      ? (participant.totalMinionsKilled ?? 0) + (participant.neutralMinionsKilled ?? 0)
+      : undefined,
+    visionScore: participant.visionScore ?? undefined,
+    goldEarned: participant.goldEarned ?? undefined,
+    items,
+    runes: participant.perks ?? undefined,
+    matchJson: participant,
   }
 }
 

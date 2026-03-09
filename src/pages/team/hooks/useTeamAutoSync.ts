@@ -35,6 +35,7 @@ import {
   DELAY_BETWEEN_PLAYERS_MS,
 } from '../../../lib/constants'
 import { apiFetch } from '../../../lib/apiFetch'
+import { logger } from '../../../lib/logger'
 
 const SYNC_LOOP_INTERVAL_MS = AUTOSYNC_LOOP_INTERVAL_MS
 const DELAY_BEFORE_FIRST_RUN_MS = 2000
@@ -51,14 +52,12 @@ function hasValidPseudo(p: { pseudo?: string | null }) {
 }
 
 export function useTeamAutoSync() {
-  const { team, players, updatePlayer, refetch } = useTeam()
+  const { team, players, updatePlayer } = useTeam()
   const runningRef = useRef(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const updatePlayerRef = useRef(updatePlayer)
-  const refetchRef = useRef(refetch)
   const playersRef = useRef(players)
   updatePlayerRef.current = updatePlayer
-  refetchRef.current = refetch
   playersRef.current = players
 
   useEffect(() => {
@@ -70,11 +69,10 @@ export function useTeamAutoSync() {
     const runLoop = async () => {
       const currentPlayers = playersRef.current
       const updatePlayerFn = updatePlayerRef.current
-      const refetchFn = refetchRef.current
       const listToSync = (currentPlayers || []).filter(hasValidPseudo)
 
       runningRef.current = true
-      console.log(LOG_PREFIX, '--- Début du cycle ---', listToSync.length, 'joueur(s)')
+      logger.debug(LOG_PREFIX, '--- Début du cycle ---', listToSync.length, 'joueur(s)')
 
       try {
         for (let i = 0; i < listToSync.length; i++) {
@@ -109,7 +107,7 @@ export function useTeamAutoSync() {
               countData = await countRes.json().catch(() => ({}))
             }
             if (!countData.success || typeof countData.total !== 'number') {
-              console.warn(LOG_PREFIX, name, '| match-count erreur:', countData.error || countRes.status)
+              logger.warn(LOG_PREFIX, name, '| match-count erreur:', countData.error || countRes.status)
               await delay(DELAY_BETWEEN_PLAYERS_MS)
               continue
             }
@@ -120,7 +118,7 @@ export function useTeamAutoSync() {
               cachedPuuid = countData.puuid
               await updatePlayerFn(player.id, { puuid: cachedPuuid })
             } else if (!countData.puuid && !cachedPuuid) {
-              console.warn(LOG_PREFIX, name, '| match-count sans puuid (Railway ancien code?) — match-ids re-lookupera le joueur')
+              logger.warn(LOG_PREFIX, name, '| match-count sans puuid (Railway ancien code?) — match-ids re-lookupera le joueur')
             }
 
             await delay(DELAY_BETWEEN_REQUESTS_MS)
@@ -148,12 +146,12 @@ export function useTeamAutoSync() {
               // Retry unique sur 404 (joueur introuvable transient côté Riot)
               if (idsRes.status === 404 && idsRetry404 < 1) {
                 idsRetry404++
-                console.warn(LOG_PREFIX, name, '| match-ids 404 — retry dans 3s...')
+                logger.warn(LOG_PREFIX, name, '| match-ids 404 — retry dans 3s...')
                 await delay(3000)
                 continue
               }
               if (!idsData.success || !Array.isArray(idsData.matchIds)) {
-                console.warn(LOG_PREFIX, name, '| match-ids erreur:', idsData.error || idsRes.status)
+                logger.warn(LOG_PREFIX, name, '| match-ids erreur:', idsData.error || idsRes.status)
                 break
               }
               // Mise en cache du PUUID si pas encore connu
@@ -217,10 +215,10 @@ export function useTeamAutoSync() {
                       game_creation: m.gameCreation ?? 0,
                     }))
                     const { error: upsertErr } = await upsertSoloqMatches(rows)
-                    if (upsertErr) console.warn(LOG_PREFIX, name, '| upsert erreur:', upsertErr)
+                    if (upsertErr) logger.warn(LOG_PREFIX, name, '| upsert erreur:', upsertErr)
                   }
                 } catch (err) {
-                  console.warn(LOG_PREFIX, name, '| erreur match-details:', err)
+                  logger.warn(LOG_PREFIX, name, '| erreur match-details:', err)
                 }
                 await delay(DELAY_BETWEEN_REQUESTS_MS)
               }
@@ -250,7 +248,7 @@ export function useTeamAutoSync() {
                 rank_updated_at: new Date().toISOString(),
               })
             } else {
-              console.warn(LOG_PREFIX, name, '| sync-rank erreur:', rankData.error || rankRes.status)
+              logger.warn(LOG_PREFIX, name, '| sync-rank erreur:', rankData.error || rankRes.status)
             }
 
             // ─── 6) Top 5 via Supabase, hors remakes ───
@@ -284,15 +282,16 @@ export function useTeamAutoSync() {
 
             await delay(DELAY_BETWEEN_PLAYERS_MS)
           } catch (e) {
-            console.warn(LOG_PREFIX, 'Erreur joueur', name, e)
+            logger.warn(LOG_PREFIX, 'Erreur joueur', name, e)
             await delay(DELAY_BETWEEN_PLAYERS_MS)
           }
         }
 
-        await refetchFn()
-        console.log(LOG_PREFIX, '--- Fin du cycle ---')
+        // Pas de refetchFn() — les updatePlayer locaux maintiennent l'état React à jour
+        // sans déclencher de refetch global (2 requêtes Supabase + re-render complet évités)
+        logger.debug(LOG_PREFIX, '--- Fin du cycle ---')
       } catch (e) {
-        console.warn(LOG_PREFIX, 'Erreur boucle', e)
+        logger.warn(LOG_PREFIX, 'Erreur boucle', e)
       } finally {
         runningRef.current = false
       }
@@ -303,7 +302,7 @@ export function useTeamAutoSync() {
     const t = setTimeout(() => {
       runLoop()
     }, DELAY_BEFORE_FIRST_RUN_MS)
-    console.log(LOG_PREFIX, 'Démarré (premier cycle dans', DELAY_BEFORE_FIRST_RUN_MS / 1000, 's)')
+    logger.debug(LOG_PREFIX, 'Démarré (premier cycle dans', DELAY_BEFORE_FIRST_RUN_MS / 1000, 's)')
 
     return () => {
       clearTimeout(t)

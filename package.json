@@ -8,7 +8,7 @@
     "postinstall": "node -e \"if(!process.env.VERCEL){require('child_process').execSync('cd server && npm install --omit=dev',{stdio:'inherit'})}\"",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
-    "dev:server": "cd server && tsx --watch index.ts",
+    "dev:server": "cd server && npx tsx --watch index.ts",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "biome lint .",

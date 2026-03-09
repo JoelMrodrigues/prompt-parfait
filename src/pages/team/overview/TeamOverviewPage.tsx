@@ -32,9 +32,52 @@ import { PlayerModal } from '../components/PlayerModal'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { supabase } from '../../../lib/supabase'
 import { getChampionImage } from '../../../lib/championImages'
-import { fetchWeeklyGames } from '../../../lib/riotSync'
+import { fetchWeeklySoloqCount } from '../../../services/supabase/playerQueries'
 import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
 import { getRankColorText } from '../joueurs/utils/playerDetailHelpers'
+
+// ── Color extraction ──────────────────────────────────────────────────────────
+
+async function extractDominantColor(imgUrl: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = 50
+        canvas.height = 50
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { resolve(null); return }
+        ctx.drawImage(img, 0, 0, 50, 50)
+        const data = ctx.getImageData(0, 0, 50, 50).data
+        const colorMap: Record<string, number> = {}
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3]
+          if (a < 100) continue
+          if (r > 210 && g > 210 && b > 210) continue // near-white
+          if (r < 30 && g < 30 && b < 30) continue // near-black
+          const rb = Math.round(r / 32) * 32
+          const gb = Math.round(g / 32) * 32
+          const bb = Math.round(b / 32) * 32
+          if (Math.max(rb, gb, bb) - Math.min(rb, gb, bb) < 30) continue // gray
+          const key = `${rb} ${gb} ${bb}`
+          colorMap[key] = (colorMap[key] || 0) + 1
+        }
+        const sorted = Object.entries(colorMap).sort((a, b) => b[1] - a[1])
+        resolve(sorted.length ? sorted[0][0] : null)
+      } catch {
+        resolve(null)
+      }
+    }
+    img.onerror = () => resolve(null)
+    img.src = imgUrl
+  })
+}
+
+function applyAccentColor(rgbStr: string) {
+  document.documentElement.style.setProperty('--color-accent', rgbStr)
+}
 
 // ── Rank helpers ───────────────────────────────────────────────────────────────
 
@@ -102,20 +145,21 @@ export const TeamOverviewPage = () => {
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [suggestedColor, setSuggestedColor] = useState<string | null>(null)
+  const [colorApplying, setColorApplying] = useState(false)
 
   // ── Weekly SoloQ ─────────────────────────────────────────────────────────────
   const [weeklyGames, setWeeklyGames] = useState<Record<string, number | null>>({})
   const [weeklyLoading, setWeeklyLoading] = useState(false)
 
   const refreshWeeklyGames = async () => {
-    const playersWithPseudo = players.filter((p) => p.pseudo)
-    if (!playersWithPseudo.length) return
+    if (!players.length) return
     setWeeklyLoading(true)
     try {
       const results = await Promise.all(
-        playersWithPseudo.map(async (p) => ({
+        players.map(async (p) => ({
           id: p.id,
-          count: await fetchWeeklyGames(p.pseudo),
+          count: await fetchWeeklySoloqCount(p.id),
         })),
       )
       const map: Record<string, number | null> = {}
@@ -178,10 +222,12 @@ export const TeamOverviewPage = () => {
         return
       }
       const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path)
-      console.log('[Logo] URL générée :', urlData.publicUrl)
       try {
         await updateTeam(team.id, { logo_url: urlData.publicUrl })
-        toastSuccess(`Logo uploadé. Ouvre cette URL pour vérifier : ${urlData.publicUrl}`)
+        toastSuccess('Logo uploadé !')
+        // Extract dominant color from logo
+        const color = await extractDominantColor(urlData.publicUrl)
+        if (color) setSuggestedColor(color)
       } catch {
         toastError("Image uploadée mais non sauvegardée. Exécutez supabase/supabase-team-logo.sql dans le SQL Editor Supabase pour ajouter la colonne logo_url.")
       }
@@ -191,6 +237,27 @@ export const TeamOverviewPage = () => {
       setLogoUploading(false)
     }
   }
+
+  // ── Accent color ─────────────────────────────────────────────────────────────
+  const handleApplyColor = async (rgbStr: string) => {
+    if (!team?.id) return
+    setColorApplying(true)
+    applyAccentColor(rgbStr)
+    try {
+      await updateTeam(team.id, { accent_color: rgbStr })
+      toastSuccess('Couleur appliquée !')
+      setSuggestedColor(null)
+    } catch {
+      toastError("Couleur appliquée localement mais non sauvegardée (colonne accent_color manquante).")
+    } finally {
+      setColorApplying(false)
+    }
+  }
+
+  // Apply saved color on mount
+  useEffect(() => {
+    if (team?.accent_color) applyAccentColor(team.accent_color)
+  }, [team?.accent_color])
 
   // ── Computed data ────────────────────────────────────────────────────────────
   const sortedPlayersByLP = useMemo(
@@ -440,6 +507,31 @@ export const TeamOverviewPage = () => {
                 {' · '}
                 {players.length} joueur{players.length > 1 ? 's' : ''}
               </p>
+              {/* Suggested color from logo */}
+              {suggestedColor && isTeamOwner && (
+                <div className="flex items-center gap-2 mt-2">
+                  <div
+                    className="w-5 h-5 rounded border border-white/20 shrink-0"
+                    style={{ backgroundColor: `rgb(${suggestedColor})` }}
+                  />
+                  <span className="text-xs text-gray-400">Couleur détectée du logo</span>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyColor(suggestedColor)}
+                    disabled={colorApplying}
+                    className="text-xs text-accent-blue hover:text-accent-blue/80 font-medium disabled:opacity-50 transition-colors"
+                  >
+                    {colorApplying ? 'Application...' : 'Appliquer comme thème'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSuggestedColor(null)}
+                    className="text-gray-600 hover:text-gray-400"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
             </div>
         </div>
 
@@ -726,15 +818,15 @@ export const TeamOverviewPage = () => {
                 </h3>
                 {Object.keys(weeklyGames).length > 0 && (
                   <span className="text-[10px] text-gray-600 bg-dark-bg px-1.5 py-0.5 rounded-md border border-dark-border/40">
-                    7 jours
+                    Lun → Auj
                   </span>
                 )}
               </div>
               <button
                 type="button"
                 onClick={refreshWeeklyGames}
-                disabled={weeklyLoading || !players.some((p) => p.pseudo)}
-                title="Charger les games jouées cette semaine via Riot API"
+                disabled={weeklyLoading || !players.length}
+                title="Compter les parties SoloQ depuis lundi (données en base)"
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-400 border border-dark-border/60 rounded-lg hover:border-accent-blue/50 hover:text-accent-blue transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <RefreshCw className={`w-3 h-3 ${weeklyLoading ? 'animate-spin' : ''}`} />
@@ -832,7 +924,7 @@ export const TeamOverviewPage = () => {
                   <span className="text-white font-semibold">
                     {Object.values(weeklyGames).reduce((s, v) => s + (v ?? 0), 0)}
                   </span>
-                  {' games cette semaine'}
+                  {' parties cette semaine'}
                 </span>
               ) : (
                 <span className="text-gray-700">
