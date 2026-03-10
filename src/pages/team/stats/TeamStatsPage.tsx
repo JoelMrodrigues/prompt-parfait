@@ -8,6 +8,7 @@ import { useTeamMatchesFull } from '../hooks/useTeamMatches'
 import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
+import { SoloQStatsSection } from './SoloQStatsSection'
 import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 
@@ -801,20 +802,6 @@ const STATS_CARDS = [
   },
 ]
 
-function SoloQPlaceholder() {
-  return (
-    <div className="space-y-6">
-      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
-        <h3 className="font-display text-base font-semibold text-white mb-4">Stats globales</h3>
-        <p className="text-gray-500 text-sm">Remontée des données Solo Q à venir.</p>
-      </div>
-      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
-        <h3 className="font-display text-base font-semibold text-white mb-4">Best champions</h3>
-        <p className="text-gray-500 text-sm">Remontée des données Solo Q à venir.</p>
-      </div>
-    </div>
-  )
-}
 
 const COMBO_SIZES = [
   { size: 2, label: 'Duos' },
@@ -1150,7 +1137,7 @@ export const TeamStatsPage = () => {
   }, [matches, selectedId])
 
   const renderContent = () => {
-    if (statsMode === STATS_MODE_SOLOQ) return <SoloQPlaceholder />
+    if (statsMode === STATS_MODE_SOLOQ) return <SoloQStatsSection selectedId={selectedId} players={players} />
 
     if (teamStatsSub === 'timeline') {
       if (selectedId === ALL_ID) {
