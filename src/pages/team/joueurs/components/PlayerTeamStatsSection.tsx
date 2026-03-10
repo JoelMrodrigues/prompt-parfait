@@ -283,165 +283,180 @@ export function PlayerTeamStatsSection({
   const useFullStatsByFamily = showStats && aggregatedByKey.gamesWithJson > 0 && Object.keys(aggregatedByKey.avg).length > 0
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-3">
       {showStats && (
         <>
-          {/* Performance — Résultats (toujours affiché) */}
-          <SectionBlock title="Performance" icon={Trophy}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard icon={Trophy} label="Parties jouées" value={n} accent="blue" />
-              <StatCard
-                icon={Trophy}
-                label="Winrate global"
-                value={`${winrate.toFixed(1)}%`}
-                subtext={`${wins}V / ${n - wins}D`}
-                accent={winrate >= 50 ? 'green' : 'red'}
-              />
-              <StatCard
-                icon={Trophy}
-                label="Winrate côté Bleu"
-                value={blueGames ? `${winrateBlue.toFixed(1)}%` : '—'}
-                subtext={blueGames ? `${blueWins}V · ${blueGames} parties` : undefined}
-                accent="blue"
-              />
-              <StatCard
-                icon={Trophy}
-                label="Winrate côté Rouge"
-                value={redGames ? `${winrateRed.toFixed(1)}%` : '—'}
-                subtext={redGames ? `${redWins}V · ${redGames} parties` : undefined}
-                accent="red"
-              />
+          {/* Hero row — 4 grandes stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">Parties</p>
+              <p className="text-3xl font-bold text-white tabular-nums">{n}</p>
+              <p className="text-xs text-gray-500">{wins}V · {n - wins}D</p>
             </div>
-          </SectionBlock>
 
-          {useFullStatsByFamily ? (
-            <>
-              <p className="text-sm text-gray-500 -mt-4">
-                Moyennes sur <strong>{aggregatedByKey.gamesWithJson}</strong> partie{aggregatedByKey.gamesWithJson > 1 ? 's' : ''} (données complètes du JSON).
-              </p>
-              {/* Toutes les stats par famille (depuis match_json) */}
-              {STAT_FAMILY_ORDER.map((familyName) => {
-              const keys = familyMap.get(familyName)
-              if (!keys?.length) return null
-              const Icon = FAMILY_ICONS[familyName] ?? Layers
-              return (
-                <SectionBlock key={familyName} title={familyName} icon={Icon}>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {keys.map((key) => {
-                      const raw = aggregatedByKey.avg[key]
-                      const val =
-                        typeof raw === 'boolean'
-                          ? raw
-                            ? 'Oui'
-                            : 'Non'
-                          : formatStatValue(key, raw, true)
-                      return (
-                        <div
-                          key={key}
-                          className="rounded-lg p-3 border border-dark-border bg-dark-bg/40 hover:bg-dark-bg/60 transition-colors"
-                        >
-                          <p className="text-xs text-gray-500 truncate" title={getStatLabel(key)}>
-                            {getStatLabel(key)}
-                          </p>
-                          <p className="text-lg font-semibold text-white mt-0.5 truncate">{val}</p>
-                        </div>
-                      )
-                    })}
+            <div className={`rounded-2xl border bg-dark-card/60 p-5 flex flex-col gap-1 ${winrate >= 50 ? 'border-emerald-500/40' : 'border-rose-500/40'}`}>
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">Winrate</p>
+              <p className={`text-3xl font-bold tabular-nums ${winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{winrate.toFixed(1)}%</p>
+              <div className="h-1 rounded-full bg-dark-bg overflow-hidden mt-1">
+                <div className={`h-full rounded-full ${winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${winrate}%` }} />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">KDA</p>
+              <p className="text-3xl font-bold text-white tabular-nums">{kdaRatio.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 tabular-nums">{avgK.toFixed(1)} · {avgD.toFixed(1)} · {avgA.toFixed(1)}</p>
+            </div>
+
+            <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">CS / min</p>
+              <p className="text-3xl font-bold text-white tabular-nums">{avgCsPerMin.toFixed(1)}</p>
+              <p className="text-xs text-gray-500">Minions par minute</p>
+            </div>
+          </div>
+
+          {/* Côté + Impact — 2 colonnes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">Côté</p>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-blue-400 font-medium">Bleu</span>
+                  <span className="text-xs text-gray-500 tabular-nums">{blueGames ? `${blueWins}V · ${blueGames} parties` : '—'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 rounded-full bg-dark-bg overflow-hidden flex-1">
+                    <div className={`h-full rounded-full ${winrateBlue >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: blueGames ? `${winrateBlue}%` : '0%' }} />
                   </div>
-                </SectionBlock>
-              )
-            })}
-            </>
-          ) : (
-            /* Fallback : stats classiques (DB uniquement) */
-            <>
-              <SectionBlock title="Combat" icon={Swords}>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <StatCard
-                    icon={Swords}
-                    label="KDA ratio"
-                    value={kdaRatio.toFixed(1)}
-                    subtext={`${avgK.toFixed(1)} / ${avgD.toFixed(1)} / ${avgA.toFixed(1)} par partie`}
-                    accent="red"
-                  />
-                  <StatCard icon={Target} label="CS / minute" value={avgCsPerMin.toFixed(1)} accent="gold" />
+                  <span className={`text-sm font-bold tabular-nums w-12 text-right ${winrateBlue >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{blueGames ? `${winrateBlue.toFixed(0)}%` : '—'}</span>
                 </div>
-              </SectionBlock>
-              <SectionBlock title="Impact sur l'équipe" icon={Target}>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <StatCard icon={Target} label="Participation aux kills (KP%)" value={`${avgKp.toFixed(1)}%`} accent="purple" />
-                  <StatCard icon={Target} label="Part de l'or équipe" value={`${avgGoldPct.toFixed(1)}%`} accent="gold" />
-                  <StatCard icon={Target} label="Part des dégâts équipe" value={`${avgDmgPct.toFixed(1)}%`} accent="red" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-rose-400 font-medium">Rouge</span>
+                  <span className="text-xs text-gray-500 tabular-nums">{redGames ? `${redWins}V · ${redGames} parties` : '—'}</span>
                 </div>
-              </SectionBlock>
-              <SectionBlock title="Vision" icon={Eye}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard icon={Eye} label="Score de vision (moy.)" value={avgVision.toFixed(1)} accent="purple" />
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 rounded-full bg-dark-bg overflow-hidden flex-1">
+                    <div className={`h-full rounded-full ${winrateRed >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: redGames ? `${winrateRed}%` : '0%' }} />
+                  </div>
+                  <span className={`text-sm font-bold tabular-nums w-12 text-right ${winrateRed >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{redGames ? `${winrateRed.toFixed(0)}%` : '—'}</span>
                 </div>
-              </SectionBlock>
-            </>
-          )}
-        </>
-      )}
+              </div>
+            </div>
 
-      {showChampions && (
-        <SectionBlock title="Champions les plus joués" icon={Sparkles}>
-          <div className="rounded-xl border border-dark-border overflow-hidden bg-dark-card/30">
-            <div className="divide-y divide-dark-border">
-              {championList.map((c) => {
-                const wr = c.games ? (c.wins / c.games) * 100 : 0
-                const kda = c.deaths > 0 ? (c.kills + c.assists) / c.deaths : c.kills + c.assists
-                const avgCsMin = c.csPerMinCount ? c.csPerMinSum / c.csPerMinCount : 0
-                const avgK = c.games ? c.kills / c.games : 0
-                const avgD = c.games ? c.deaths / c.games : 0
-                const avgA = c.games ? c.assists / c.games : 0
+            <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 space-y-2">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">Impact équipe</p>
+              <div className="flex justify-between items-center border-b border-dark-border pb-2">
+                <span className="text-xs text-gray-400">KP%</span>
+                <span className="text-sm font-bold text-white tabular-nums">{avgKp.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-dark-border pb-2">
+                <span className="text-xs text-gray-400">Part or équipe</span>
+                <span className="text-sm font-bold text-white tabular-nums">{avgGoldPct.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-dark-border pb-2">
+                <span className="text-xs text-gray-400">Part dégâts équipe</span>
+                <span className="text-sm font-bold text-white tabular-nums">{avgDmgPct.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-xs text-gray-400">Vision (moy.)</span>
+                <span className="text-sm font-bold text-white tabular-nums">{avgVision.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats détaillées par famille (si JSON dispo) */}
+          {useFullStatsByFamily && (
+            <div className="space-y-3 pt-1">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500 px-1">
+                Statistiques détaillées · {aggregatedByKey.gamesWithJson} partie{aggregatedByKey.gamesWithJson > 1 ? 's' : ''} (JSON)
+              </p>
+              {STAT_FAMILY_ORDER.map((familyName) => {
+                const keys = familyMap.get(familyName)
+                if (!keys?.length) return null
+                const Icon = FAMILY_ICONS[familyName] ?? Layers
                 return (
-                  <div
-                    key={c.champion_name}
-                    className="flex items-center gap-4 p-4 hover:bg-dark-bg/30 transition-colors"
-                  >
-                    <img
-                      src={getChampionImage(c.champion_name)}
-                      alt={getChampionDisplayName(c.champion_name) || c.champion_name}
-                      className="w-12 h-12 rounded-lg object-cover border border-dark-border shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-white">
-                        {getChampionDisplayName(c.champion_name) || c.champion_name}
-                      </p>
-                      <p className="text-sm text-gray-500 sm:hidden">
-                        {c.games} partie{c.games > 1 ? 's' : ''} · {wr.toFixed(0)}% · KDA {kda.toFixed(1)}
-                      </p>
-                      <p className="text-sm text-gray-500 hidden sm:block">
-                        {c.games} partie{c.games > 1 ? 's' : ''} · Winrate {wr.toFixed(0)}%
-                      </p>
+                  <div key={familyName} className="rounded-2xl border border-dark-border bg-dark-card/60 p-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Icon size={13} className="text-gray-500 shrink-0" />
+                      <p className="text-[10px] uppercase tracking-widest text-gray-500">{familyName}</p>
                     </div>
-                    <div className="hidden sm:flex items-center gap-6 text-sm">
-                      <div>
-                        <p className="text-gray-500 text-xs">K/D/A</p>
-                        <p className="text-white">
-                          {avgK.toFixed(1)} / {avgD.toFixed(1)} / {avgA.toFixed(1)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-xs">KDA</p>
-                        <p className="text-white">{kda.toFixed(1)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-xs">CS/min</p>
-                        <p className="text-white">{avgCsMin.toFixed(1)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-xs">Winrate</p>
-                        <p className={wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{wr.toFixed(0)}%</p>
-                      </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-3">
+                      {keys.map((key) => {
+                        const raw = aggregatedByKey.avg[key]
+                        const val = typeof raw === 'boolean' ? (raw ? 'Oui' : 'Non') : formatStatValue(key, raw, true)
+                        return (
+                          <div key={key} className="flex flex-col gap-0.5 min-w-0">
+                            <p className="text-[10px] text-gray-500 truncate" title={getStatLabel(key)}>{getStatLabel(key)}</p>
+                            <p className="text-sm font-semibold text-white tabular-nums">{val}</p>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )
               })}
             </div>
+          )}
+        </>
+      )}
+
+      {showChampions && (
+        <div className="rounded-2xl border border-dark-border bg-dark-card/60 overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <p className="text-[10px] uppercase tracking-widest text-gray-500">Champions les plus joués</p>
           </div>
-        </SectionBlock>
+          <div className="divide-y divide-dark-border">
+            {championList.map((c) => {
+              const wr = c.games ? (c.wins / c.games) * 100 : 0
+              const kda = c.deaths > 0 ? (c.kills + c.assists) / c.deaths : c.kills + c.assists
+              const avgCsMin = c.csPerMinCount ? c.csPerMinSum / c.csPerMinCount : 0
+              const avgK = c.games ? c.kills / c.games : 0
+              const avgD = c.games ? c.deaths / c.games : 0
+              const avgA = c.games ? c.assists / c.games : 0
+              return (
+                <div key={c.champion_name} className="flex items-center gap-4 px-5 py-3 hover:bg-dark-bg/30 transition-colors">
+                  <img
+                    src={getChampionImage(c.champion_name)}
+                    alt={getChampionDisplayName(c.champion_name) || c.champion_name}
+                    className="w-10 h-10 rounded-lg object-cover border border-dark-border shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white">
+                      {getChampionDisplayName(c.champion_name) || c.champion_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {c.games} partie{c.games > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-5 text-xs">
+                    <div className="text-right">
+                      <p className="text-gray-500">K/D/A</p>
+                      <p className="text-white tabular-nums">{avgK.toFixed(1)} / {avgD.toFixed(1)} / {avgA.toFixed(1)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-500">KDA</p>
+                      <p className="text-white tabular-nums">{kda.toFixed(1)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-500">CS/min</p>
+                      <p className="text-white tabular-nums">{avgCsMin.toFixed(1)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-gray-500">Winrate</p>
+                      <p className={`font-bold tabular-nums ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr.toFixed(0)}%</p>
+                    </div>
+                  </div>
+                  <div className="sm:hidden text-right">
+                    <p className={`text-xs font-bold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr.toFixed(0)}%</p>
+                    <p className="text-xs text-gray-500">KDA {kda.toFixed(1)}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
     </div>
   )

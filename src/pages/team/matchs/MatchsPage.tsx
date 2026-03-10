@@ -111,7 +111,7 @@ export const MatchsPage = () => {
               <button
                 key={id}
                 onClick={() => setFilter(id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   filter === id
                     ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
                     : 'text-gray-400 hover:text-white'
@@ -168,7 +168,7 @@ export const MatchsPage = () => {
               <Link
                 key={m.id}
                 to={`/team/matchs/${m.id}`}
-                className="block bg-dark-card border border-dark-border rounded-2xl p-4 hover:border-accent-blue/40 hover:bg-dark-card/80 transition-all group"
+                className="block bg-dark-card border border-dark-border rounded-2xl p-4 hover:border-accent-blue/40 hover:bg-dark-card/80 transition-[border-color,background-color] group"
               >
                 {/* Ligne du haut : résultat + infos + date */}
                 <div className="flex flex-wrap items-center gap-3 mb-3">

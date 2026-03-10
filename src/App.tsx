@@ -25,7 +25,6 @@ const ChampionPoolPage = lazy(() => import('./pages/team/champion-pool/ChampionP
 const MatchsPage = lazy(() => import('./pages/team/matchs/MatchsPage').then(m => ({ default: m.MatchsPage })))
 const MatchDetailPage = lazy(() => import('./pages/team/matchs/MatchDetailPage').then(m => ({ default: m.MatchDetailPage })))
 const TeamStatsPage = lazy(() => import('./pages/team/stats/TeamStatsPage').then(m => ({ default: m.TeamStatsPage })))
-const ImportPage = lazy(() => import('./pages/team/import/ImportPage').then(m => ({ default: m.ImportPage })))
 const DraftsPage = lazy(() => import('./pages/team/drafts/DraftsPage').then(m => ({ default: m.DraftsPage })))
 const CoachingPage = lazy(() => import('./pages/team/coaching/CoachingPage').then(m => ({ default: m.CoachingPage })))
 const PlanningPage = lazy(() => import('./pages/team/planning/PlanningPage').then(m => ({ default: m.PlanningPage })))
@@ -85,7 +84,6 @@ function AppRoutes() {
             <Route path="matchs" element={<MatchsPage />} />
             <Route path="matchs/:matchId" element={<MatchDetailPage />} />
             <Route path="planning" element={<PlanningPage />} />
-            <Route path="import" element={<ImportPage />} />
             <Route path="stats" element={<TeamStatsPage />} />
             <Route path="drafts" element={<DraftsPage />} />
             <Route path="coaching" element={<CoachingPage />} />

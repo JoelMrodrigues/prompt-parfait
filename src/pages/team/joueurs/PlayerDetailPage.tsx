@@ -4,6 +4,7 @@
  */
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import {
   ArrowLeft,
   ExternalLink,
@@ -14,7 +15,6 @@ import {
   BarChart3,
   Sparkles,
   History,
-  Download,
   ChevronDown,
   TrendingUp,
   X,
@@ -49,7 +49,6 @@ const SOLOQ_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
   { id: 'champions', label: 'Champions', icon: Sparkles },
   { id: 'historiques', label: 'Historiques', icon: History },
-  { id: 'import', label: 'Import', icon: Download },
 ]
 
 const TEAM_SUB = [
@@ -197,8 +196,8 @@ export const PlayerDetailPage = () => {
         </div>
       </div>
 
-      {/* 4 cartes principales */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 cartes principales — une seule ligne */}
+      <div className="grid grid-cols-5 gap-3">
         {MAIN_CARDS.map((card) => {
           const Icon = card.icon
           const isActive = d.selectedCard === card.id
@@ -207,16 +206,16 @@ export const PlayerDetailPage = () => {
               key={card.id}
               type="button"
               onClick={() => d.setSelectedCard(card.id)}
-              className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-colors text-left ${
+              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-colors text-left ${
                 isActive
                   ? 'border-accent-blue bg-accent-blue/10 shadow-lg shadow-accent-blue/20'
                   : 'border-dark-border bg-dark-card/50 hover:border-dark-border/80 hover:bg-dark-card/70'
               }`}
             >
-              <div className={`p-3 rounded-xl ${isActive ? 'bg-accent-blue/20' : 'bg-dark-bg/50'}`}>
-                <Icon size={28} className={isActive ? 'text-accent-blue' : 'text-gray-400'} />
+              <div className={`p-2.5 rounded-xl ${isActive ? 'bg-accent-blue/20' : 'bg-dark-bg/50'}`}>
+                <Icon size={22} className={isActive ? 'text-accent-blue' : 'text-gray-400'} />
               </div>
-              <span className={`font-display font-semibold ${isActive ? 'text-white' : 'text-gray-400'}`}>
+              <span className={`font-display font-semibold text-sm ${isActive ? 'text-white' : 'text-gray-400'}`}>
                 {card.label}
               </span>
             </button>
@@ -539,10 +538,10 @@ export const PlayerDetailPage = () => {
                     </button>
                   ))}
                 </div>
-                {d.filteredTeamStatsSubSub === 'general' && (
+                {d.teamStatsSubSub === 'general' && (
                   <PlayerTeamStatsSection playerId={playerId} mode="stats" matchesWithJson={d.allTeamMatches} />
                 )}
-                {d.filteredTeamStatsSubSub === 'timeline' && (
+                {d.teamStatsSubSub === 'timeline' && (
                   <PlayerTimelineAdvantageSection
                     playerId={playerId!}
                     matches={d.allTeamMatches}
@@ -710,8 +709,8 @@ export const PlayerDetailPage = () => {
         )}
 
         {/* Modal Champion (matchups solo Q) */}
-        {d.championModalChampion && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={d.closeChampionModal}>
+        {d.championModalChampion && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70" onClick={d.closeChampionModal}>
             <div className="bg-dark-card border border-dark-border rounded-2xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between p-4 border-b border-dark-border">
                 <div className="flex items-center gap-3">
@@ -750,7 +749,8 @@ export const PlayerDetailPage = () => {
                 )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
       </div>
@@ -1034,48 +1034,161 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
     ? Object.values(player.champion_pools as Record<string, any[]>).flat().length
     : null
 
+  // Win streak color bars
+  const last10 = sorted.slice(-10)
+
   return (
-    <div className="space-y-4">
-      {/* 4 mini-cards résumé */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* SoloQ last 5 */}
-        <div className="bg-dark-bg border border-dark-border rounded-xl p-3 flex flex-col gap-1">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">SoloQ — 5 der.</span>
-          {sq5Total > 0 ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold text-sm">{sq5Wins}W</span>
-              <span className="text-gray-600">–</span>
-              <span className="text-rose-400 font-bold text-sm">{sq5Losses}L</span>
-              {mood?.kda && mood.kda !== '—' && (
-                <span className="text-xs text-gray-400 ml-auto">{mood.kda} KDA</span>
-              )}
-            </div>
-          ) : (
-            <span className="text-gray-500 text-xs">—</span>
+    <div className="space-y-5">
+      {/* ── Bloc SoloQ ── */}
+      <div className="rounded-2xl border border-dark-border bg-dark-bg/40 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-dark-border/60">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-5 rounded-full bg-accent-blue" />
+            <span className="font-semibold text-white text-sm">Solo Q · Saison en cours</span>
+          </div>
+          {player.rank && (
+            <span className="text-xs font-semibold text-violet-400 bg-violet-400/10 border border-violet-400/20 px-2.5 py-1 rounded-full">
+              {player.rank}
+            </span>
           )}
         </div>
 
-        {/* Team last 5 */}
-        <div className="bg-dark-bg border border-dark-border rounded-xl p-3 flex flex-col gap-1">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Team — 5 der.</span>
+        {d.lpGraphLoading ? (
+          <div className="p-6 text-center text-gray-500 text-sm">Chargement…</div>
+        ) : realGames.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 text-sm">Aucune partie Solo Q enregistrée.</div>
+        ) : (
+          <div className="p-5 space-y-4">
+            {/* Stats key row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-dark-card border border-dark-border rounded-xl p-3 text-center">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Parties</p>
+                <p className="text-xl font-bold text-white">{realGames.length}</p>
+              </div>
+              <div className={`bg-dark-card border rounded-xl p-3 text-center ${wr != null && wr >= 50 ? 'border-emerald-500/30' : 'border-rose-500/30'}`}>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Winrate</p>
+                <p className={`text-xl font-bold ${wr != null && wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr ?? '—'}%</p>
+                {wr != null && <p className="text-[10px] text-gray-500 mt-0.5">{wins}V · {realGames.length - wins}D</p>}
+              </div>
+              <div className="bg-dark-card border border-dark-border rounded-xl p-3 text-center">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">KDA moy.</p>
+                <p className="text-xl font-bold text-white">{avgKda ?? '—'}</p>
+              </div>
+              <div className="bg-dark-card border border-dark-border rounded-xl p-3 text-center">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Dernières 5</p>
+                {sq5Total > 0 ? (
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="text-emerald-400 font-bold text-base">{sq5Wins}W</span>
+                    <span className="text-gray-600 text-sm">–</span>
+                    <span className="text-rose-400 font-bold text-base">{sq5Losses}L</span>
+                  </div>
+                ) : <p className="text-xl font-bold text-gray-600">—</p>}
+              </div>
+            </div>
+
+            {/* Extra stats (si data) */}
+            {(avgDmg != null || avgCsPMin != null || avgVision != null || peakLp != null) && (
+              <div className="flex flex-wrap gap-2">
+                {peakLp != null && (
+                  <div className="flex items-center gap-1.5 bg-dark-card/60 border border-dark-border rounded-lg px-3 py-1.5">
+                    <span className="text-[11px] text-gray-500">Peak</span>
+                    <span className="text-xs font-semibold text-white">{peakLp} LP</span>
+                  </div>
+                )}
+                {lpDelta != null && (
+                  <div className="flex items-center gap-1.5 bg-dark-card/60 border border-dark-border rounded-lg px-3 py-1.5">
+                    <span className="text-[11px] text-gray-500">Δ LP</span>
+                    <span className={`text-xs font-semibold ${lpDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{lpDelta >= 0 ? '+' : ''}{lpDelta}</span>
+                  </div>
+                )}
+                {avgCsPMin != null && (
+                  <div className="flex items-center gap-1.5 bg-dark-card/60 border border-dark-border rounded-lg px-3 py-1.5">
+                    <span className="text-[11px] text-gray-500">CS/min</span>
+                    <span className="text-xs font-semibold text-white">{avgCsPMin}</span>
+                  </div>
+                )}
+                {avgDmg != null && (
+                  <div className="flex items-center gap-1.5 bg-dark-card/60 border border-dark-border rounded-lg px-3 py-1.5">
+                    <span className="text-[11px] text-gray-500">DMG/game</span>
+                    <span className="text-xs font-semibold text-white">{avgDmg.toLocaleString('fr-FR')}</span>
+                  </div>
+                )}
+                {avgVision != null && (
+                  <div className="flex items-center gap-1.5 bg-dark-card/60 border border-dark-border rounded-lg px-3 py-1.5">
+                    <span className="text-[11px] text-gray-500">Vision</span>
+                    <span className="text-xs font-semibold text-white">{avgVision}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* LP Chart compact */}
+            {d.lpCurvePoints.length >= 2 && (
+              <div className="w-full rounded-xl bg-dark-card/50 border border-dark-border p-3" style={{ height: '130px' }}>
+                <LpCurveChart points={d.lpCurvePoints} />
+              </div>
+            )}
+
+            {/* Last 10 games streak */}
+            {last10.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider shrink-0">10 der.</span>
+                <div className="flex gap-1">
+                  {last10.map((m: any, i: number) => (
+                    <div
+                      key={i}
+                      title={m.win ? 'Victoire' : 'Défaite'}
+                      className={`w-6 h-2 rounded-full ${m.win ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Bloc Team + Pool + Coach ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Team dernières 5 */}
+        <div className="rounded-2xl border border-dark-border bg-dark-bg/40 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-4 rounded-full bg-violet-500" />
+            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Team · 5 der.</span>
+          </div>
           {last5Team.length > 0 ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-emerald-400 font-bold text-sm">{t5Wins}W</span>
-              <span className="text-gray-600">–</span>
-              <span className="text-rose-400 font-bold text-sm">{t5Losses}L</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-emerald-400">{t5Wins}V</span>
+                <span className="text-gray-600">–</span>
+                <span className="text-2xl font-bold text-rose-400">{t5Losses}D</span>
+              </div>
+              <div className="flex gap-1 mt-1">
+                {last5Team.map((s: any, i: number) => {
+                  const win = s.win || s.team_matches?.our_win
+                  return <div key={i} className={`flex-1 h-1.5 rounded-full ${win ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                })}
+              </div>
             </div>
           ) : (
-            <span className="text-gray-500 text-xs">—</span>
+            <p className="text-gray-500 text-sm">Aucune partie équipe</p>
           )}
         </div>
 
         {/* Pool Champ */}
-        <div className="bg-dark-bg border border-dark-border rounded-xl p-3 flex flex-col gap-1">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Pool Champ</span>
-          {poolCount != null ? (
-            <span className="text-white font-bold text-sm">{poolCount} champions</span>
+        <div className="rounded-2xl border border-dark-border bg-dark-bg/40 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-4 rounded-full bg-amber-400" />
+            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Pool Champ</span>
+          </div>
+          {poolCount != null && poolCount > 0 ? (
+            <div>
+              <span className="text-2xl font-bold text-white">{poolCount}</span>
+              <span className="text-gray-400 text-sm ml-2">champion{poolCount > 1 ? 's' : ''}</span>
+            </div>
           ) : (
-            <span className="text-gray-500 text-xs">—</span>
+            <p className="text-gray-500 text-sm">Aucun champion</p>
           )}
         </div>
 
@@ -1083,91 +1196,17 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
         <button
           type="button"
           onClick={() => d.setSelectedCard('coach')}
-          className="bg-dark-bg border border-dark-border rounded-xl p-3 flex flex-col gap-1 text-left hover:border-accent-blue/50 transition-colors group"
+          className="rounded-2xl border border-dark-border bg-dark-bg/40 p-4 text-left hover:border-accent-blue/40 hover:bg-accent-blue/5 transition-all group"
         >
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">Coach</span>
-          <span className="text-xs text-gray-400 group-hover:text-accent-blue transition-colors">
-            Voir les notes →
-          </span>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-4 rounded-full bg-accent-blue group-hover:bg-accent-blue transition-colors" />
+            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Coach</span>
+          </div>
+          <p className="text-sm text-gray-400 group-hover:text-accent-blue transition-colors">
+            Voir les notes du coach →
+          </p>
         </button>
       </div>
-
-      {/* Résumé saison */}
-      {!d.lpGraphLoading && realGames.length > 0 && (
-        <div className="rounded-xl border border-dark-border bg-dark-bg/50 p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            {player.rank && (
-              <span className="text-sm font-semibold text-purple-500">{player.rank}</span>
-            )}
-            {peakLp != null && (
-              <span className="text-xs text-gray-400">Peak : <span className="text-white font-medium">{peakLp} LP</span></span>
-            )}
-            <span className="text-xs text-gray-400">{realGames.length} parties</span>
-            {wr != null && (
-              <span className={`text-xs font-semibold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr}% WR</span>
-            )}
-            <span className="text-xs text-gray-500">{lpDateRange}</span>
-          </div>
-
-          {/* Stats clés */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              ['KDA moy.', avgKda],
-              ['DMG/partie', avgDmg != null ? avgDmg.toLocaleString('fr-FR') : null],
-              ['CS/min', avgCsPMin],
-              ['Vision moy.', avgVision],
-            ].map(([label, val]) =>
-              val != null ? (
-                <div key={label as string} className="flex flex-col items-center bg-dark-card/60 border border-dark-border rounded-lg px-3 py-2 min-w-[72px]">
-                  <span className="text-[11px] text-gray-500">{label}</span>
-                  <span className="text-sm font-semibold text-white">{val}</span>
-                </div>
-              ) : null
-            )}
-          </div>
-
-          {/* Progression LP + WR début vs fin */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
-            {lpDelta != null && (
-              <span>
-                LP :{' '}
-                <span className={`font-semibold ${lpDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {lpDelta >= 0 ? '+' : ''}{lpDelta} LP sur la période
-                </span>
-              </span>
-            )}
-            {wrFirst != null && wrLast != null && sorted.length >= 4 && (
-              <span>
-                WR : <span className={wrFirst >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{wrFirst}%</span>
-                {' → '}
-                <span className={wrLast >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{wrLast}%</span>
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Graphique LP */}
-      <div className="flex items-center gap-3">
-        <div className="w-1 h-6 rounded-full bg-cyan-400" />
-        <div>
-          <h3 className="font-display text-lg font-semibold text-white">Rank History</h3>
-          <p className="text-gray-500 text-sm mt-0.5">{lpDateRange}</p>
-        </div>
-      </div>
-      {d.lpGraphLoading ? (
-        <p className="text-gray-500 text-sm">Chargement des parties…</p>
-      ) : d.lpCurvePoints.length < 2 ? (
-        <p className="text-gray-500 text-sm">
-          {parseLpFromRank(player.rank) != null
-            ? 'Chargez des parties Solo Q (onglet Solo Q → Import) pour afficher la courbe des LP.'
-            : 'Rang sans LP affiché ou aucune partie. Faites une mise à jour du rang en haut de page.'}
-        </p>
-      ) : (
-        <div className="w-full rounded-xl bg-dark-bg/80 border border-dark-border p-4 max-h-44 overflow-hidden">
-          <LpCurveChart points={d.lpCurvePoints} />
-        </div>
-      )}
     </div>
   )
 }
@@ -1428,17 +1467,10 @@ function SoloqStatistiquesSection({ d, player }: { d: any; player: any }) {
                 sub={avgK && avgD && avgA ? `${avgK} / ${avgD} / ${avgA}` : undefined}
                 valueColor={avgKda && parseFloat(avgKda) >= 3 ? 'text-emerald-400' : avgKda && parseFloat(avgKda) >= 2 ? 'text-white' : 'text-rose-300'}
               />
-              <StatBox label="Avg K/D/A" value={avgK && avgD && avgA ? `${avgK}/${avgD}/${avgA}` : '—'} />
+              <StatBox label="Kills / Morts / Assists" value={avgK && avgD && avgA ? `${avgK} / ${avgD} / ${avgA}` : '—'} sub="Moyenne par partie" />
             </div>
 
-            {/* Rang 2 : Kills/Deaths/Assists totaux */}
-            <div className="grid grid-cols-3 gap-3">
-              <StatBox label="Kills totaux" value={String(totalK)} sub={`Moy. ${avgK ?? '—'}/game`} />
-              <StatBox label="Deaths totaux" value={String(totalD)} sub={`Moy. ${avgD ?? '—'}/game`} valueColor="text-rose-300" />
-              <StatBox label="Assists totaux" value={String(totalA)} sub={`Moy. ${avgA ?? '—'}/game`} />
-            </div>
-
-            {/* Rang 3 : Perf stats (seulement si données disponibles) */}
+            {/* Rang 2 : Perf stats (seulement si données disponibles) */}
             {(avgDmg != null || avgCsPMin != null || avgVision != null || avgGold != null) && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {avgDmg != null && (
@@ -1454,12 +1486,6 @@ function SoloqStatistiquesSection({ d, player }: { d: any; player: any }) {
                   <StatBox label="Or/partie" value={`${(avgGold / 1000).toFixed(1)}k`} />
                 )}
               </div>
-            )}
-
-            {avgDmg == null && (
-              <p className="text-xs text-gray-600 italic">
-                Stats avancées (DMG, CS, Vision) disponibles après ré-import avec la nouvelle version.
-              </p>
             )}
           </div>
 

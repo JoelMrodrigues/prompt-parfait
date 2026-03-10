@@ -5,130 +5,25 @@
  *    coach_text text, player_links text, updated_at timestamptz)
  */
 import { useState, useEffect } from 'react'
-import { Save, X, ChevronDown, ExternalLink } from 'lucide-react'
+import { Save, ExternalLink, Shield } from 'lucide-react'
 import { supabase } from '../../../../lib/supabase'
 import { getChampionImage, getChampionDisplayName } from '../../../../lib/championImages'
+import { fetchTrainingPool } from '../../../../services/supabase/championQueries'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface CoachNote {
   id?: string
   player_id: string
-  champ_1: string | null
-  champ_2: string | null
-  champ_3: string | null
   coach_text: string | null
   player_links: string | null
-}
-
-// ─── Champion picker ──────────────────────────────────────────────────────────
-
-const POPULAR_CHAMPS = [
-  'Aatrox','Ahri','Akali','Alistar','Amumu','Ashe','Azir','Bard','Blitzcrank',
-  'Caitlyn','Camille','Darius','Diana','Draven','Ekko','Elise','Ezreal','Fiora',
-  'Garen','Graves','Hecarim','Irelia','Janna','Jax','Jinx','Kalista','Karma',
-  'Katarina','Kayn','Kennen','KogMaw','Leblanc','LeeSin','Leona','Lissandra',
-  'Lucian','Lux','Malphite','Maokai','MasterYi','MissFortune','Nautilus',
-  'Nidalee','Nunu','Orianna','Pantheon','Pyke','Riven','Ryze','Samira',
-  'Sejuani','Senna','Seraphine','Sivir','Sona','Soraka','Syndra','Thresh',
-  'Tristana','Tryndamere','Twisted Fate','Twitch','Varus','Vayne','Veigar',
-  'Vi','Viktor','Yasuo','Yone','Yuumi','Zed','Ziggs','Zilean','Zyra',
-]
-
-function ChampionSlot({ value, onSelect, label }: {
-  value: string | null
-  onSelect: (champ: string | null) => void
-  label: string
-}) {
-  const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
-
-  const filtered = POPULAR_CHAMPS.filter((c) =>
-    c.toLowerCase().includes(search.toLowerCase())
-  )
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-xl hover:border-accent-blue/50 transition-colors text-sm"
-      >
-        {value ? (
-          <>
-            <img
-              src={getChampionImage(value)}
-              alt={value}
-              className="w-7 h-7 rounded-lg object-cover"
-            />
-            <span className="font-medium text-white flex-1 text-left">
-              {getChampionDisplayName(value) || value}
-            </span>
-          </>
-        ) : (
-          <>
-            <div className="w-7 h-7 rounded-lg bg-dark-card border border-dashed border-dark-border flex items-center justify-center text-gray-600 text-xs">
-              ?
-            </div>
-            <span className="text-gray-500 flex-1 text-left">{label}</span>
-          </>
-        )}
-        <ChevronDown size={14} className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-dark-card border border-dark-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-dark-border">
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher…"
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue"
-            />
-          </div>
-          <div className="max-h-48 overflow-y-auto">
-            {value && (
-              <button
-                type="button"
-                onClick={() => { onSelect(null); setOpen(false); setSearch('') }}
-                className="flex items-center gap-2 w-full px-3 py-2 hover:bg-dark-bg text-red-400 text-sm"
-              >
-                <X size={14} />
-                Retirer
-              </button>
-            )}
-            {filtered.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => { onSelect(c); setOpen(false); setSearch('') }}
-                className="flex items-center gap-2 w-full px-3 py-2 hover:bg-dark-bg text-sm text-left"
-              >
-                <img
-                  src={getChampionImage(c)}
-                  alt={c}
-                  className="w-6 h-6 rounded object-cover"
-                />
-                {getChampionDisplayName(c) || c}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CoachCard({ playerId }: { playerId: string }) {
-  const [note, setNote] = useState<CoachNote>({
-    player_id: playerId,
-    champ_1: null, champ_2: null, champ_3: null,
-    coach_text: null, player_links: null,
-  })
+  const [note, setNote] = useState<CoachNote>({ player_id: playerId, coach_text: null, player_links: null })
+  const [trainingChamps, setTrainingChamps] = useState<{ id: string; champion_id: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -138,21 +33,19 @@ export function CoachCard({ playerId }: { playerId: string }) {
   useEffect(() => {
     if (!playerId || !supabase) { setLoading(false); return }
     let cancelled = false
-    supabase
-      .from('player_coach_notes')
-      .select('*')
-      .eq('player_id', playerId)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) { setLoading(false); return }
-        if (data) {
-          setNote(data)
-          setCoachText(data.coach_text || '')
-          setPlayerLinks(data.player_links || '')
-        }
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.from('player_coach_notes').select('*').eq('player_id', playerId).maybeSingle(),
+      fetchTrainingPool(playerId),
+    ]).then(([{ data }, { data: trainingData }]) => {
+      if (cancelled) return
+      if (data) {
+        setNote(data)
+        setCoachText(data.coach_text || '')
+        setPlayerLinks(data.player_links || '')
+      }
+      if (trainingData) setTrainingChamps(trainingData as any)
+      setLoading(false)
+    })
     return () => { cancelled = true }
   }, [playerId])
 
@@ -162,9 +55,6 @@ export function CoachCard({ playerId }: { playerId: string }) {
     try {
       const payload = {
         player_id: playerId,
-        champ_1: note.champ_1,
-        champ_2: note.champ_2,
-        champ_3: note.champ_3,
         coach_text: coachText || null,
         player_links: playerLinks || null,
         updated_at: new Date().toISOString(),
@@ -190,29 +80,32 @@ export function CoachCard({ playerId }: { playerId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Champions à travailler */}
+      {/* Champions à travailler — sync Training pool */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-5 rounded-full bg-violet-500" />
-          <h4 className="font-semibold text-white text-sm">Champions à travailler</h4>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 rounded-full bg-violet-500" />
+            <h4 className="font-semibold text-white text-sm">Champions à travailler</h4>
+          </div>
+          <span className="text-xs text-gray-500">Gérez depuis Pool Champ → Training ou Coaching</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <ChampionSlot
-            value={note.champ_1}
-            onSelect={(v) => setNote((prev) => ({ ...prev, champ_1: v }))}
-            label="Champion 1"
-          />
-          <ChampionSlot
-            value={note.champ_2}
-            onSelect={(v) => setNote((prev) => ({ ...prev, champ_2: v }))}
-            label="Champion 2"
-          />
-          <ChampionSlot
-            value={note.champ_3}
-            onSelect={(v) => setNote((prev) => ({ ...prev, champ_3: v }))}
-            label="Champion 3"
-          />
-        </div>
+        {trainingChamps.length === 0 ? (
+          <p className="text-sm text-gray-600 bg-dark-bg border border-dashed border-dark-border rounded-xl p-4 text-center">
+            Aucun champion assigné. Ajoutez-en depuis l&apos;onglet <span className="text-accent-blue">Coaching → Train Champ</span> ou <span className="text-accent-blue">Pool Champ</span>.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {trainingChamps.map((c) => (
+              <div key={c.champion_id} className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 bg-dark-bg border border-dark-border rounded-xl">
+                <img src={getChampionImage(c.champion_id)} alt={c.champion_id} className="w-9 h-9 rounded-lg object-cover border border-dark-border" />
+                <div className="flex flex-col">
+                  <span className="text-sm text-white font-medium leading-tight">{getChampionDisplayName(c.champion_id) || c.champion_id}</span>
+                  <span className="text-[10px] text-accent-blue flex items-center gap-0.5"><Shield size={9} /> Training</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Message coach */}

@@ -13,7 +13,6 @@ import {
   FileText,
   MessageSquare,
   Gamepad2,
-  Upload,
   CalendarDays,
   ChevronDown,
   Plus,
@@ -36,7 +35,6 @@ const SIDEBAR_GROUPS = [
     items: [
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
-      { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
     ],
   },
   {

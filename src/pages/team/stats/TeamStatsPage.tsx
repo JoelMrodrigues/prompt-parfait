@@ -627,197 +627,135 @@ function TeamGlobalStats({ matches, loading }: { matches: any[]; loading: boolea
     )
   }
 
-  const rows: { label: string; value: string | number; sub?: string }[] = [
-    {
-      label: 'Kills / Morts / Assists moy. par partie',
-      value: `${stats.avgKills.toFixed(1)} / ${stats.avgDeaths.toFixed(1)} / ${stats.avgAssists.toFixed(1)}`,
-    },
-    { label: 'Or moyen par partie', value: Math.round(stats.avgGold).toLocaleString() },
-    { label: 'Dégâts moyens par partie', value: Math.round(stats.avgDamage).toLocaleString() },
-    { label: 'CS moyen par partie', value: Math.round(stats.avgCs).toLocaleString() },
-    { label: 'Vision moyenne par partie', value: stats.avgVision.toFixed(1) },
-    ...(stats.objectivesMatchCount > 0
-      ? [
-          { label: 'Tours (moy.)', value: stats.avgTowers.toFixed(1) },
-          { label: 'Inhibiteurs (moy.)', value: stats.avgInhibs.toFixed(1) },
-          { label: 'First inhib %', value: `${stats.firstInhibPct.toFixed(0)}%` },
-        ]
-      : []),
-  ]
-
   return (
-    <div className="space-y-6">
-      {/* Games */}
-      <div>
-        <h3 className="font-display text-base font-semibold text-white mb-2">Games</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Parties</div>
-            <div className="text-xl font-semibold text-white">{stats.games}</div>
+    <div className="space-y-4">
+
+      {/* ── Hero row : 4 stats clés ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Parties</p>
+          <p className="text-3xl font-bold text-white leading-none">{stats.games}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            <span className="text-emerald-400">{stats.wins}V</span>
+            <span className="mx-1 text-gray-600">·</span>
+            <span className="text-rose-400">{stats.games - stats.wins}D</span>
+          </p>
+        </div>
+        <div className={`bg-dark-card border rounded-2xl p-5 ${stats.winrate >= 50 ? 'border-emerald-500/25' : 'border-rose-500/25'}`}>
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Winrate</p>
+          <p className={`text-3xl font-bold leading-none ${stats.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.winrate.toFixed(1)}%</p>
+          <div className="mt-3 h-1 rounded-full bg-dark-bg overflow-hidden">
+            <div className={`h-full rounded-full ${stats.winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(stats.winrate, 100)}%` }} />
           </div>
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Winrate</div>
-            <div className="text-xl font-semibold text-white">{stats.winrate.toFixed(1)}%</div>
-            <div className="text-xs text-gray-500">
-              {stats.wins}V - {stats.games - stats.wins}D
-            </div>
-          </div>
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Temps moy. partie</div>
-            <div className="text-xl font-semibold text-white">
-              {stats.avgDurationMin.toFixed(1)} min
-            </div>
-          </div>
+        </div>
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">KDA équipe</p>
+          <p className="text-3xl font-bold text-white leading-none">{stats.kdaRatio.toFixed(2)}</p>
+          <p className="text-xs text-gray-500 mt-2 font-mono">{stats.avgKills.toFixed(1)} / {stats.avgDeaths.toFixed(1)} / {stats.avgAssists.toFixed(1)}</p>
+        </div>
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Durée moy.</p>
+          <p className="text-3xl font-bold text-white leading-none">{stats.avgDurationMin.toFixed(1)}<span className="text-lg text-gray-500 font-normal"> min</span></p>
         </div>
       </div>
 
-      {/* Side */}
-      <div>
-        <h3 className="font-display text-base font-semibold text-white mb-2">Side</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Blue side</div>
-            <div className="text-lg font-semibold text-blue-400">
-              {stats.blueWR != null ? `${stats.blueWR.toFixed(1)}%` : '—'}
-            </div>
-            {stats.blueGames ? (
-              <div className="text-xs text-gray-500">
-                {stats.blueWins}V / {stats.blueGames}
+      {/* ── Side + Économie ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Side */}
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5 space-y-4">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest">Side</p>
+          {[
+            { label: 'Blue Side', color: 'bg-blue-400', wr: stats.blueWR, wins: stats.blueWins, games: stats.blueGames },
+            { label: 'Red Side', color: 'bg-rose-400', wr: stats.redWR, wins: stats.redWins, games: stats.redGames },
+          ].map(({ label, color, wr, wins, games }) => (
+            <div key={label}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${color}`} />
+                  <span className="text-sm text-gray-300">{label}</span>
+                  {games > 0 && <span className="text-xs text-gray-600">{wins}V/{games}</span>}
+                </div>
+                <span className={`text-sm font-bold ${wr != null && wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {wr != null ? `${wr.toFixed(0)}%` : '—'}
+                </span>
               </div>
-            ) : null}
-          </div>
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Red side</div>
-            <div className="text-lg font-semibold text-red-400">
-              {stats.redWR != null ? `${stats.redWR.toFixed(1)}%` : '—'}
-            </div>
-            {stats.redGames ? (
-              <div className="text-xs text-gray-500">
-                {stats.redWins}V / {stats.redGames}
+              <div className="h-1.5 rounded-full bg-dark-bg overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${wr != null && wr >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: wr != null ? `${Math.min(wr, 100)}%` : '0%' }} />
               </div>
-            ) : null}
+            </div>
+          ))}
+        </div>
+
+        {/* Économie */}
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Économie & Vision</p>
+          <div className="space-y-0">
+            {[
+              { label: 'K / D / A moy.', value: `${stats.avgKills.toFixed(1)} / ${stats.avgDeaths.toFixed(1)} / ${stats.avgAssists.toFixed(1)}` },
+              { label: 'Or moyen', value: `${(stats.avgGold / 1000).toFixed(1)}k` },
+              { label: 'Dégâts moyens', value: Math.round(stats.avgDamage).toLocaleString('fr-FR') },
+              { label: 'CS moyen', value: Math.round(stats.avgCs).toLocaleString('fr-FR') },
+              { label: 'Vision moyenne', value: stats.avgVision.toFixed(1) },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex items-center justify-between py-2 border-b border-dark-border/30 last:border-0">
+                <span className="text-sm text-gray-400">{label}</span>
+                <span className="text-sm font-semibold text-white tabular-nums">{value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* KDA */}
-      <div>
-        <h3 className="font-display text-base font-semibold text-white mb-2">KDA</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">KDA équipe</div>
-            <div className="text-xl font-semibold text-white">{stats.kdaRatio.toFixed(1)}</div>
-          </div>
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Kills (total)</div>
-            <div className="text-xl font-semibold text-white">
-              {stats.totalKills.toLocaleString()}
-            </div>
-          </div>
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Morts (total)</div>
-            <div className="text-xl font-semibold text-white">
-              {stats.totalDeaths.toLocaleString()}
-            </div>
-          </div>
-          <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-            <div className="text-gray-400 text-sm">Assists (total)</div>
-            <div className="text-xl font-semibold text-white">
-              {stats.totalAssists.toLocaleString()}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Objectifs & First */}
+      {/* ── Objectifs ── */}
       {stats.objectivesMatchCount > 0 && (
-        <>
-          <div>
-            <h3 className="font-display text-base font-semibold text-white mb-2">Objectifs</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">🐉 Dragons (moy.)</div>
-                <div className="text-xl font-semibold text-white">
-                  {stats.avgDragons.toFixed(1)}
-                </div>
-                <div className="text-xs text-gray-500">
-                  sur {stats.objectivesMatchCount} parties
-                </div>
-              </div>
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">🪲 Grubs (moy.)</div>
-                <div className="text-xl font-semibold text-white">{stats.avgGrubs.toFixed(1)}</div>
-              </div>
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">🦀 Herald (moy.)</div>
-                <div className="text-xl font-semibold text-white">
-                  {stats.avgHeralds.toFixed(1)}
-                </div>
-              </div>
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">👑 Nashor (moy.)</div>
-                <div className="text-xl font-semibold text-white">{stats.avgBarons.toFixed(1)}</div>
-              </div>
-            </div>
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest">Objectifs moy.</p>
+            <span className="text-xs text-gray-600">{stats.objectivesMatchCount} parties</span>
           </div>
-          <div>
-            <h3 className="font-display text-base font-semibold text-white mb-2">First</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">First tower %</div>
-                <div className="text-xl font-semibold text-white">
-                  {stats.firstTowerPct.toFixed(0)}%
-                </div>
-              </div>
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">First blood %</div>
-                <div className="text-xl font-semibold text-white">
-                  {stats.firstBloodPct.toFixed(0)}%
-                </div>
-              </div>
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">First dragon %</div>
-                <div className="text-xl font-semibold text-white">
-                  {stats.firstDragonPct.toFixed(0)}%
-                </div>
-              </div>
-              <div className="bg-dark-card border border-dark-border rounded-lg p-4">
-                <div className="text-gray-400 text-sm">First baron %</div>
-                <div className="text-xl font-semibold text-white">
-                  {stats.firstBaronPct.toFixed(0)}%
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
 
-      <div className="bg-dark-card border border-dark-border rounded-lg overflow-hidden">
-        <h3 className="font-display text-base font-semibold text-white px-4 py-3 border-b border-dark-border">
-          Détail des stats globales
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-400 border-b border-dark-border bg-dark-bg/50">
-                <th className="py-3 px-4">Indicateur</th>
-                <th className="py-3 px-4 text-right">Valeur</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.label} className="border-b border-dark-border/50">
-                  <td className="py-3 px-4 text-gray-300">{r.label}</td>
-                  <td className="py-3 px-4 text-right text-white font-medium">
-                    {r.value}
-                    {r.sub && <span className="text-gray-500 font-normal ml-1">{r.sub}</span>}
-                  </td>
-                </tr>
+          {/* Objectifs en ligne */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-6">
+            {[
+              { emoji: '🐉', label: 'Dragons', value: stats.avgDragons },
+              { emoji: '🪲', label: 'Grubs', value: stats.avgGrubs },
+              { emoji: '🦀', label: 'Herald', value: stats.avgHeralds },
+              { emoji: '👑', label: 'Nashor', value: stats.avgBarons },
+              { emoji: '🏰', label: 'Tours', value: stats.avgTowers },
+              { emoji: '🚪', label: 'Inhibs', value: stats.avgInhibs },
+            ].map(({ emoji, label, value }) => (
+              <div key={label} className="text-center">
+                <div className="text-2xl mb-1">{emoji}</div>
+                <div className="text-lg font-bold text-white">{value.toFixed(1)}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Premier objectif */}
+          <div className="border-t border-dark-border/40 pt-4">
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Premier objectif</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: 'First Blood', pct: stats.firstBloodPct },
+                { label: 'First Tower', pct: stats.firstTowerPct },
+                { label: 'First Dragon', pct: stats.firstDragonPct },
+                { label: 'First Baron', pct: stats.firstBaronPct },
+              ].map(({ label, pct }) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-400">{label}</span>
+                    <span className={`text-xs font-bold ${pct >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-dark-bg overflow-hidden">
+                    <div className={`h-full rounded-full ${pct >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -1244,10 +1182,12 @@ export const TeamStatsPage = () => {
 
   if (statsCategory === null) {
     return (
-      <div className="max-w-4xl">
-        <h2 className="font-display text-3xl font-bold mb-2">Statistiques</h2>
-        <p className="text-gray-400 mb-8">Choisissez une catégorie à analyser.</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="mb-12 text-center">
+          <h2 className="font-display text-4xl font-bold mb-3">Statistiques</h2>
+          <p className="text-gray-400 text-lg">Choisissez une catégorie à analyser.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {STATS_CARDS.map((card) => {
             const Icon = card.icon
             return (
@@ -1255,14 +1195,14 @@ export const TeamStatsPage = () => {
                 key={card.id}
                 type="button"
                 onClick={() => setStatsCategory(card.id)}
-                className="bg-dark-card border border-dark-border rounded-2xl p-6 text-left hover:border-accent-blue/50 hover:bg-dark-card/80 transition-all group cursor-pointer"
+                className="bg-dark-card border border-dark-border rounded-2xl p-8 text-left hover:border-accent-blue/50 hover:bg-dark-card/80 transition-all group cursor-pointer"
               >
-                <div className="w-11 h-11 rounded-xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mb-4 group-hover:bg-accent-blue/20 transition-colors">
-                  <Icon className="text-accent-blue" size={22} />
+                <div className="w-14 h-14 rounded-2xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mb-6 group-hover:bg-accent-blue/20 transition-colors">
+                  <Icon className="text-accent-blue" size={26} />
                 </div>
-                <h3 className="font-display text-lg font-semibold text-white mb-1">{card.label}</h3>
+                <h3 className="font-display text-xl font-semibold text-white mb-2">{card.label}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{card.description}</p>
-                <div className="mt-4 flex items-center gap-1 text-xs text-accent-blue opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="mt-6 flex items-center gap-1 text-xs text-accent-blue opacity-0 group-hover:opacity-100 transition-opacity">
                   <span>Analyser</span>
                   <span>→</span>
                 </div>
@@ -1276,7 +1216,7 @@ export const TeamStatsPage = () => {
 
   if (statsCategory === STATS_CATEGORY_COMPOS) {
     return (
-      <div className="max-w-5xl">
+      <div className="w-full max-w-5xl mx-auto">
         <ComposSection matches={matches} onBack={() => setStatsCategory(null)} />
       </div>
     )
@@ -1284,7 +1224,7 @@ export const TeamStatsPage = () => {
 
   if (statsCategory === STATS_CATEGORY_SIDE) {
     return (
-      <div className="max-w-5xl">
+      <div className="w-full max-w-5xl mx-auto">
         <SideSection matches={matches} players={players} onBack={() => setStatsCategory(null)} />
       </div>
     )
