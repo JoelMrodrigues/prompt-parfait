@@ -147,3 +147,17 @@ export async function upsertSoloqMatches(rows) {
     .upsert(rows, { onConflict: 'player_id,riot_match_id' })
   return { error }
 }
+
+/** Met à jour match_json et/ou timeline_json pour une partie existante */
+export async function updateSoloqMatchEnrichment(
+  playerId: string,
+  riotMatchId: string,
+  updates: { match_json?: any; timeline_json?: any; total_damage?: number | null; cs?: number | null; vision_score?: number | null; gold_earned?: number | null },
+) {
+  const { error } = await supabase
+    .from('player_soloq_matches')
+    .update(updates)
+    .eq('player_id', playerId)
+    .eq('riot_match_id', riotMatchId)
+  return { error }
+}

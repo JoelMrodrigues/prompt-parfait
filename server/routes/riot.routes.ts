@@ -283,6 +283,48 @@ router.get('/match-count', requireApiKey, requirePseudo, async (req: Request, re
   }
 })
 
+// ─── ROUTING MAP (région → cluster) ────────────────────────────────────────
+const ROUTING_MAP: Record<string, string> = {
+  euw1: 'europe', eun1: 'europe', tr1: 'europe', ru: 'europe',
+  na1: 'americas', br1: 'americas', la1: 'americas', la2: 'americas',
+  kr: 'asia', jp1: 'asia', oc1: 'sea',
+}
+
+function getRouting(region: string): string {
+  return ROUTING_MAP[(region || 'euw1').trim().toLowerCase()] ?? 'europe'
+}
+
+// ─── DÉTAIL COMPLET D'UN MATCH ────────────────────────────────────────────────
+
+router.get('/match-detail', requireApiKey, async (req: Request, res: Response) => {
+  const matchId = (req.query.matchId as string || '').trim()
+  if (!matchId) {
+    return res.status(400).json({ success: false, error: 'Paramètre matchId requis' })
+  }
+
+  const cacheKey = `match-detail:${matchId}`
+  const cached = cache.get(cacheKey)
+  if (cached) return res.json({ success: true, info: cached['info'], cached: true })
+
+  const routing = getRouting(req.query.region as string || 'euw1')
+
+  try {
+    const { data } = await axios.get(
+      `https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}`,
+      { headers: { 'X-Riot-Token': getApiKey() }, timeout: 15000 },
+    )
+    const info = data?.info ?? null
+    cache.set(cacheKey, { info })
+    res.json({ success: true, info, cached: false })
+  } catch (err: unknown) {
+    const e = err as { response?: { status?: number; data?: { status?: { message?: string } } }; message?: string }
+    const status = e.response?.status ?? 500
+    const msg = e.response?.data?.status?.message ?? e.message ?? 'Erreur serveur'
+    console.error('match-detail error:', msg)
+    res.status(status).json({ success: false, error: msg })
+  }
+})
+
 // ─── TIMELINE D'UN MATCH (gold diff, CS, events par minute) ─────────────────
 
 router.get('/match-timeline', requireApiKey, async (req: Request, res: Response) => {
@@ -295,14 +337,7 @@ router.get('/match-timeline', requireApiKey, async (req: Request, res: Response)
   const cached = cache.get(cacheKey)
   if (cached) return res.json({ success: true, timeline: cached['timeline'], cached: true })
 
-  // Région routing : EUW1/EUN1 → europe, NA1 → americas, KR/JP1 → asia
-  const region = (req.query.region as string || 'euw1').trim().toLowerCase()
-  const routingMap: Record<string, string> = {
-    euw1: 'europe', eun1: 'europe', tr1: 'europe', ru: 'europe',
-    na1: 'americas', br1: 'americas', la1: 'americas', la2: 'americas',
-    kr: 'asia', jp1: 'asia', oc1: 'sea',
-  }
-  const routing = routingMap[region] ?? 'europe'
+  const routing = getRouting(req.query.region as string || 'euw1')
 
   try {
     const { data } = await axios.get(

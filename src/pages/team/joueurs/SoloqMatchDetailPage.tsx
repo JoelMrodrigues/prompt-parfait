@@ -70,8 +70,16 @@ export function SoloqMatchDetailPage() {
     ? ((m.kills + m.assists) / m.deaths).toFixed(2)
     : (m.kills + m.assists).toFixed(2)
 
-  const csPMin = m.cs && m.game_duration
-    ? (m.cs / (m.game_duration / 60)).toFixed(1)
+  // Fallback sur match_json si les colonnes DB sont nulles (vieilles parties)
+  const totalDmg = m.total_damage ?? matchJson?.totalDamageDealtToChampions ?? null
+  const cs = m.cs ?? (matchJson
+    ? (matchJson.totalMinionsKilled ?? 0) + (matchJson.neutralMinionsKilled ?? 0)
+    : null)
+  const visionScore = m.vision_score ?? matchJson?.visionScore ?? null
+  const goldEarned = m.gold_earned ?? matchJson?.goldEarned ?? null
+
+  const csPMin = cs && m.game_duration
+    ? (cs / (m.game_duration / 60)).toFixed(1)
     : null
 
   const puuid = matchJson?.puuid as string | undefined
@@ -161,11 +169,11 @@ export function SoloqMatchDetailPage() {
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
-              {statCard('Dégâts', m.total_damage ? m.total_damage.toLocaleString('fr-FR') : null)}
-              {statCard('CS', m.cs)}
+              {statCard('Dégâts', totalDmg ? totalDmg.toLocaleString('fr-FR') : null)}
+              {statCard('CS', cs)}
               {statCard('CS/min', csPMin)}
-              {statCard('Vision', m.vision_score)}
-              {statCard('Gold', m.gold_earned ? `${Math.round(m.gold_earned / 1000)}k` : null)}
+              {statCard('Vision', visionScore)}
+              {statCard('Gold', goldEarned ? `${Math.round(goldEarned / 1000)}k` : null)}
             </div>
           </div>
 
