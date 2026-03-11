@@ -72,7 +72,7 @@ export const PlayerCard = ({
       onClick={handleCardClick}
       className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-blue/50 transition-all cursor-pointer min-h-[200px]"
     >
-      <div className={`p-5 bg-gradient-to-r ${cardColor} relative`}>
+      <div className={`p-5 bg-dark-card bg-gradient-to-r ${cardColor} relative`}>
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg !text-white truncate">{player.player_name || 'Joueur'}</h3>
@@ -102,9 +102,16 @@ export const PlayerCard = ({
           </div>
         </div>
         <div className="flex items-center justify-between mt-2">
-          <span className="px-2 py-0.5 rounded text-xs font-semibold !text-white bg-white/20">
-            {roleLabel}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 rounded text-xs font-semibold !text-white bg-white/20">
+              {roleLabel}
+            </span>
+            {player.player_type === 'sub' && (
+              <span className="px-2 py-0.5 rounded text-xs font-semibold text-gray-300 bg-gray-600/60 border border-gray-500/40">
+                SUB
+              </span>
+            )}
+          </div>
           {player.rank && (
             <span className="px-2 py-0.5 rounded text-xs font-medium !text-white bg-white/20 truncate max-w-[140px]">
               {player.rank}

@@ -361,19 +361,36 @@ export const ImportPage = () => {
               </div>
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-accent-blue/20 border border-accent-blue/40 flex items-center justify-center shrink-0 text-accent-blue text-sm font-bold">2</div>
-                <div>
-                  <p className="text-sm font-semibold text-white mb-1">Récupérez le JSON</p>
-                  <p className="text-xs text-gray-500">Via <span className="text-white font-medium">LCU Explorer</span>, renseignez l'ID de partie et exportez le fichier <code className="bg-dark-bg px-1 rounded">.json</code> (+ timeline si souhaité).</p>
-                  <a
-                    href="https://github.com/HextechDocs/lcu-explorer"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1 mt-2 text-xs text-accent-blue hover:underline"
-                  >
-                    <ExternalLink size={11} />
-                    Télécharger LCU Explorer
-                  </a>
+                <div className="space-y-1.5">
+                  <p className="text-sm font-semibold text-white">Récupérez le JSON via LCU Explorer</p>
+                  <p className="text-xs text-gray-500">Pendant ou après la partie, ouvrez LCU Explorer :</p>
+                  <div className="space-y-1 text-xs text-gray-500">
+                    <p>→ <code className="bg-dark-bg px-1.5 py-0.5 rounded text-gray-300">/lol-match-history/v1/games</code> → copiez l'ID de partie</p>
+                    <p>→ <code className="bg-dark-bg px-1.5 py-0.5 rounded text-gray-300">/lol-match-history/v1/games/<span className="text-accent-blue">{'{id}'}</span></code> → Export JSON → <code className="bg-dark-bg px-1 rounded">scrim1.json</code></p>
+                    <p className="text-gray-600">→ Timeline (optionnel) : <code className="bg-dark-bg px-1.5 py-0.5 rounded text-gray-500">/lol-match-history/v1/games/<span className="text-gray-500">{'{id}'}</span>/timeline</code></p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    <a
+                      href="https://github.com/nicholasgasior/lcu-explorer/releases"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-xs text-accent-blue hover:underline font-medium"
+                    >
+                      <ExternalLink size={11} />
+                      Télécharger LCU Explorer
+                    </a>
+                    <a
+                      href="https://github.com/Pupix/lcu-connector"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300"
+                    >
+                      <ExternalLink size={11} />
+                      Alternative : LCU Connector
+                    </a>
+                  </div>
                 </div>
               </div>
               <div className="flex gap-3">

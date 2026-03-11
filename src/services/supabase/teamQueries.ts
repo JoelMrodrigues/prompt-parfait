@@ -50,6 +50,14 @@ export async function getOrCreateInviteToken(teamId) {
   return updated?.invite_token || null
 }
 
+export async function deleteTeam(teamId: string) {
+  const { error } = await supabase
+    .from('teams')
+    .delete()
+    .eq('id', teamId)
+  return { error }
+}
+
 export async function joinTeamByToken(token) {
   const { data, error } = await supabase.rpc('join_team_by_token', { p_token: token })
   return { data, error }

@@ -9,6 +9,7 @@ import { perf } from '../lib/logger'
 import {
   createTeam as createTeamQuery,
   updateTeam as updateTeamQuery,
+  deleteTeam as deleteTeamQuery,
   getOrCreateInviteToken,
   joinTeamByToken as joinTeamByTokenQuery,
 } from '../services/supabase/teamQueries'
@@ -127,6 +128,19 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     return data
   }
 
+  const deleteTeam = async (teamId: string) => {
+    const { error } = await deleteTeamQuery(teamId)
+    if (error) throw error
+    // Switch vers une autre équipe si disponible
+    const remaining = allTeams.filter((t) => t.id !== teamId)
+    if (remaining.length > 0) {
+      await upsertProfile(user.id, { active_team_id: remaining[0].id })
+    } else {
+      await upsertProfile(user.id, { active_team_id: null })
+    }
+    await refreshProfile()
+  }
+
   const createPlayer = async (playerData) => {
     const cleanData = Object.fromEntries(
       Object.entries({ ...playerData, team_id: team.id }).filter(([, v]) => v !== undefined)
@@ -222,7 +236,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   return (
     <TeamContext.Provider value={{
       team, allTeams, players, loading,
-      createTeam, createNewTeam, switchTeam, updateTeam,
+      createTeam, createNewTeam, switchTeam, updateTeam, deleteTeam,
       createPlayer, updatePlayer, batchUpdatePlayersSilent, deletePlayer,
       addChampionToPool, removeChampionFromPool,
       refetch: fetchTeam,

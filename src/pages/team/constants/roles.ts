@@ -11,6 +11,7 @@ export const ROLE_LABELS: Record<string, string> = {
   ADC: 'ADC',
   SUP: 'Support',
   BOT: 'ADC',
+  FLEX: 'Flex',
 }
 
 export const ROLE_CONFIG: Record<string, { label: string; text: string; gradient: string }> = {
@@ -20,4 +21,5 @@ export const ROLE_CONFIG: Record<string, { label: string; text: string; gradient
   ADC: { label: 'ADC', text: 'text-red-400', gradient: 'from-red-600/20 to-transparent' },
   SUP: { label: 'Support', text: 'text-purple-400', gradient: 'from-purple-600/20 to-transparent' },
   BOT: { label: 'ADC', text: 'text-red-400', gradient: 'from-red-600/20 to-transparent' },
+  FLEX: { label: 'Flex', text: 'text-teal-400', gradient: 'from-teal-600/20 to-transparent' },
 }

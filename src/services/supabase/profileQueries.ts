@@ -42,10 +42,26 @@ export async function upsertProfile(
 }
 
 export async function fetchAllTeams(userId: string) {
-  const { data, error } = await supabase
+  // Équipes créées par l'user
+  const { data: ownTeams, error: err1 } = await supabase
     .from('teams')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
-  return { data: data || [], error }
+
+  // Équipes rejointes via invitation (team_members)
+  const { data: memberRows, error: err2 } = await supabase
+    .from('team_members')
+    .select('teams(*)')
+    .eq('user_id', userId)
+
+  const ownIds = new Set((ownTeams || []).map((t) => t.id))
+  const joinedTeams = (memberRows || [])
+    .map((r: any) => r.teams)
+    .filter((t: any) => t && !ownIds.has(t.id))
+
+  return {
+    data: [...(ownTeams || []), ...joinedTeams],
+    error: err1 || err2,
+  }
 }

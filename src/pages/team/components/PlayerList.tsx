@@ -1,9 +1,9 @@
 /**
- * Liste des joueurs de l'équipe — grille par rôle ou liste triée
+ * Liste des joueurs de l'équipe — grille par rôle (titulaires) + section Remplaçants (subs)
  */
 import { PlayerCard } from './PlayerCard'
 import { ROSTER_ROLES, ROLE_LABELS } from '../constants/roles'
-import { Users, Plus, RefreshCw, BarChart3 } from 'lucide-react'
+import { Users, Plus, BarChart3 } from 'lucide-react'
 
 function normalizeRole(position: string | null | undefined): string {
   const r = (position || '').toUpperCase()
@@ -21,15 +21,22 @@ export const PlayerList = ({
   onDelete: (p: any) => void
   onAdd?: () => void
 }) => {
-  const byRole = (() => {
-    const map: Record<string, any[]> = { TOP: [], JNG: [], MID: [], ADC: [], SUP: [] }
-    players.forEach((p) => {
+  const starters = players.filter((p) => p.player_type !== 'sub')
+  const subs = players.filter((p) => p.player_type === 'sub')
+
+  const startersByRole = (() => {
+    const map: Record<string, any[]> = { TOP: [], JNG: [], MID: [], ADC: [], SUP: [], FLEX: [] }
+    starters.forEach((p) => {
       const role = normalizeRole(p.position)
-      if (map[role]) map[role].push(p)
+      if (role === 'FLEX') map['FLEX'].push(p)
+      else if (map[role]) map[role].push(p)
+      else map['FLEX'].push(p) // roles inconnus → Flex
     })
-    ROSTER_ROLES.forEach((r) => map[r].sort((a, b) => (a.player_name || '').localeCompare(b.player_name || '')))
     return map
   })()
+
+  const hasFlexStarters = startersByRole['FLEX'].length > 0
+  const starterCols = hasFlexStarters ? [...ROSTER_ROLES, 'FLEX' as const] : ROSTER_ROLES
 
   if (players.length === 0) {
     return (
@@ -50,10 +57,9 @@ export const PlayerList = ({
             Ajouter un joueur
           </button>
         )}
-        <div className="mt-8 grid grid-cols-3 gap-4 max-w-sm mx-auto text-left">
+        <div className="mt-8 grid grid-cols-2 gap-4 max-w-xs mx-auto text-left">
           {[
             { icon: Users, text: 'Rang Riot' },
-            { icon: RefreshCw, text: 'Sync auto' },
             { icon: BarChart3, text: 'Stats Solo Q' },
           ].map(({ icon: Icon, text }) => (
             <div key={text} className="flex items-center gap-2 text-xs text-gray-600">
@@ -67,14 +73,45 @@ export const PlayerList = ({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-      {ROSTER_ROLES.map((role) => (
-        <div key={role}>
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            {ROLE_LABELS[role] || role}
-          </h4>
-          <div className="space-y-4">
-            {byRole[role].map((player) => (
+    <div className="space-y-6">
+      {/* Titulaires — grille par rôle */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${hasFlexStarters ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
+        {starterCols.map((role) => (
+          <div key={role}>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              {ROLE_LABELS[role] || role}
+            </h4>
+            <div className="space-y-4">
+              {startersByRole[role].map((player) => (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  onEdit={() => onEdit(player)}
+                  onDelete={() => onDelete(player)}
+                />
+              ))}
+              {startersByRole[role].length === 0 && (
+                <div className="rounded-xl border border-dashed border-dark-border/50 p-6 text-center">
+                  <p className="text-gray-600 text-sm">Aucun joueur</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Remplaçants — section séparée si des subs existent */}
+      {subs.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 bg-dark-border" />
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2">
+              Remplaçants · {subs.length}
+            </h4>
+            <div className="h-px flex-1 bg-dark-border" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {subs.map((player) => (
               <PlayerCard
                 key={player.id}
                 player={player}
@@ -82,14 +119,9 @@ export const PlayerList = ({
                 onDelete={() => onDelete(player)}
               />
             ))}
-            {byRole[role].length === 0 && (
-              <div className="rounded-xl border border-dashed border-dark-border/50 p-6 text-center">
-                <p className="text-gray-600 text-sm">Aucun joueur</p>
-              </div>
-            )}
           </div>
         </div>
-      ))}
+      )}
     </div>
   )
 }

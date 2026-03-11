@@ -18,8 +18,10 @@ import {
   Plus,
   Check,
   Swords,
+  Settings,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
+import { TeamEditModal } from './components/TeamEditModal'
 
 const SIDEBAR_GROUPS = [
   {
@@ -48,11 +50,12 @@ const SIDEBAR_GROUPS = [
 ]
 
 export const TeamSidebar = () => {
-  const { team, allTeams, switchTeam, createNewTeam } = useTeam()
+  const { team, allTeams, switchTeam, createNewTeam, isTeamOwner } = useTeam()
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [creatingTeam, setCreatingTeam] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const switcherRef = useRef<HTMLDivElement>(null)
 
   // Fermer au clic extérieur
@@ -93,12 +96,21 @@ export const TeamSidebar = () => {
     <aside className="w-60 bg-dark-card border-r border-dark-border flex flex-col shrink-0">
       {/* Team Switcher */}
       <div className="px-3 py-3 border-b border-dark-border" ref={switcherRef}>
+        <div className="flex items-center gap-1">
         <button
           onClick={() => setSwitcherOpen((v) => !v)}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-dark-bg/60 transition-colors"
+          className="flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-dark-bg/60 transition-colors"
         >
-          <div className="w-7 h-7 rounded-md bg-accent-blue/20 flex items-center justify-center shrink-0">
-            <Swords size={14} className="text-accent-blue" />
+          <div className={`w-7 h-7 rounded-md shrink-0 flex items-center justify-center overflow-hidden ${team?.logo_url ? 'bg-white' : 'bg-accent-blue/20'}`}>
+            {team?.logo_url ? (
+              <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-contain p-0.5" />
+            ) : team?.team_name ? (
+              <span className="text-[11px] font-bold text-accent-blue leading-none">
+                {team.team_name.slice(0, 2).toUpperCase()}
+              </span>
+            ) : (
+              <Swords size={14} className="text-accent-blue" />
+            )}
           </div>
           <span className="flex-1 text-sm font-semibold text-white truncate text-left">
             {team?.team_name ?? 'Mon Équipe'}
@@ -108,6 +120,17 @@ export const TeamSidebar = () => {
             className={`text-gray-500 shrink-0 transition-transform ${switcherOpen ? 'rotate-180' : ''}`}
           />
         </button>
+        {isTeamOwner && (
+          <button
+            type="button"
+            onClick={() => setEditModalOpen(true)}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-dark-bg/60 transition-colors shrink-0"
+            title="Paramètres de l'équipe"
+          >
+            <Settings size={14} />
+          </button>
+        )}
+        </div>
 
         {/* Dropdown switcher */}
         {switcherOpen && (
@@ -120,8 +143,14 @@ export const TeamSidebar = () => {
                       onClick={() => handleSwitch(t.id)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-dark-card transition-colors"
                     >
-                      <div className="w-5 h-5 rounded bg-accent-blue/15 flex items-center justify-center shrink-0">
-                        <Swords size={11} className="text-accent-blue/80" />
+                      <div className={`w-5 h-5 rounded shrink-0 flex items-center justify-center overflow-hidden ${t.logo_url ? 'bg-white' : 'bg-accent-blue/15'}`}>
+                        {t.logo_url ? (
+                          <img src={t.logo_url} alt={t.team_name} className="w-full h-full object-contain p-0.5" />
+                        ) : (
+                          <span className="text-[9px] font-bold text-accent-blue/80 leading-none">
+                            {(t.team_name || 'E').slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <span
                         className={`flex-1 truncate text-left ${
@@ -170,6 +199,8 @@ export const TeamSidebar = () => {
           </div>
         )}
       </div>
+
+      {editModalOpen && <TeamEditModal onClose={() => setEditModalOpen(false)} />}
 
       {/* Navigation groupée */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
