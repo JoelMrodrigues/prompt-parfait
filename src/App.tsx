@@ -28,6 +28,7 @@ const TeamStatsPage = lazy(() => import('./pages/team/stats/TeamStatsPage').then
 const DraftsPage = lazy(() => import('./pages/team/drafts/DraftsPage').then(m => ({ default: m.DraftsPage })))
 const CoachingPage = lazy(() => import('./pages/team/coaching/CoachingPage').then(m => ({ default: m.CoachingPage })))
 const ImportPage = lazy(() => import('./pages/team/import/ImportPage').then(m => ({ default: m.ImportPage })))
+const TestPage = lazy(() => import('./pages/team/test/TestPage').then(m => ({ default: m.TestPage })))
 const PlanningPage = lazy(() => import('./pages/team/planning/PlanningPage').then(m => ({ default: m.PlanningPage })))
 
 // Pages annexes (lazy)
@@ -89,6 +90,7 @@ function AppRoutes() {
             <Route path="drafts" element={<DraftsPage />} />
             <Route path="coaching" element={<CoachingPage />} />
             <Route path="import" element={<ImportPage />} />
+            <Route path="test" element={<TestPage />} />
           </Route>
           <Route path="stats" element={<Stats />} />
           <Route path="stats/pro/champions" element={<ProChampions />} />
