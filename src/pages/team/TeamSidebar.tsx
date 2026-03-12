@@ -36,9 +36,9 @@ const SIDEBAR_GROUPS = [
   {
     label: 'Analyse',
     items: [
+      { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
-      { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
     ],
   },
   {
