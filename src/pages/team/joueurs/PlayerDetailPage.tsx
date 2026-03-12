@@ -312,66 +312,41 @@ export const PlayerDetailPage = () => {
         {/* ── Solo Q ── */}
         {d.selectedCard === 'soloq' && (
           <>
-            {d.selectedSoloqSub === 'import' && (
+            {d.selectedSoloqSub === 'statistiques' && (
               <div className="space-y-4">
-                <p className="text-gray-500 text-sm">Chargez les parties Solo Q depuis l&apos;API Riot (S16 uniquement).</p>
-                {(d.totalFromRiot != null || d.countInDb != null) && (
-                  <div className="flex flex-wrap gap-3">
-                    {d.totalFromRiot != null && (
-                      <span className="px-3 py-1.5 rounded-lg bg-dark-bg/60 text-sm">
-                        <span className="text-white font-semibold">{d.totalFromRiot}</span>
-                        <span className="text-gray-500 ml-1">parties S16</span>
-                      </span>
-                    )}
-                    {d.countInDb != null && (
-                      <span className="px-3 py-1.5 rounded-lg bg-accent-blue/10 text-sm border border-accent-blue/30">
-                        <span className="text-accent-blue font-semibold">{d.countInDb}</span>
-                        <span className="text-gray-400 ml-1">enregistrées</span>
-                      </span>
-                    )}
-                    {d.toLoad != null && d.toLoad > 0 && (
-                      <span className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 text-sm border border-amber-500/30">
-                        {d.toLoad} à charger
-                      </span>
-                    )}
-                  </div>
-                )}
+                {/* Sync discret */}
                 {d.activeSoloqPseudo?.trim() && (
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={d.handleRefreshTotal}
-                      disabled={d.refreshTotalLoading}
-                      className="px-4 py-2.5 rounded-xl bg-dark-bg/60 border border-dark-border text-gray-300 text-sm font-medium disabled:opacity-50 hover:bg-dark-bg transition-colors"
-                    >
-                      {d.refreshTotalLoading ? 'Calcul…' : 'Actualiser le total'}
-                    </button>
-                    <div>
+                  <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-dark-border/50">
+                    {d.countInDb != null && (
+                      <span className="text-xs text-gray-500">
+                        <span className="font-semibold text-gray-300">{d.countInDb}</span> parties enregistrées
+                        {d.toLoad != null && d.toLoad > 0 && (
+                          <span className="text-amber-400 ml-1">· {d.toLoad} à charger</span>
+                        )}
+                      </span>
+                    )}
+                    <div className="flex gap-2 ml-auto">
+                      <button
+                        type="button"
+                        onClick={d.handleRefreshTotal}
+                        disabled={d.refreshTotalLoading}
+                        className="px-3 py-1.5 rounded-lg bg-dark-bg/60 border border-dark-border text-gray-400 text-xs font-medium disabled:opacity-50 hover:text-white transition-colors"
+                      >
+                        {d.refreshTotalLoading ? 'Calcul…' : 'Actualiser total'}
+                      </button>
                       <button
                         type="button"
                         onClick={d.handleLoadAllFromRiot}
                         disabled={d.loadAllFromRiotLoading || (d.rateLimitSeconds != null && d.rateLimitSeconds > 0)}
-                        className="px-4 py-2.5 rounded-xl bg-accent-blue/20 border border-accent-blue/50 text-accent-blue text-sm font-medium disabled:opacity-50 hover:bg-accent-blue/30 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-accent-blue/10 border border-accent-blue/30 text-accent-blue text-xs font-medium disabled:opacity-50 hover:bg-accent-blue/20 transition-colors"
                       >
-                        {d.loadAllFromRiotLoading ? 'Chargement…' : 'Charger toutes les parties'}
+                        {d.loadAllFromRiotLoading ? 'Chargement…' : d.rateLimitSeconds != null && d.rateLimitSeconds > 0 ? `Attendre ${d.rateLimitSeconds}s` : 'Sync Riot'}
                       </button>
-                      {d.rateLimitSeconds != null && d.rateLimitSeconds > 0 && (
-                        <p className="text-rose-400 text-sm mt-1.5 font-medium">
-                          Plus de requêtes possible. Attendre{' '}
-                          <span className="font-mono font-bold">{d.rateLimitSeconds}s</span>.
-                        </p>
-                      )}
                     </div>
                   </div>
                 )}
-                {!d.activeSoloqPseudo?.trim() && (
-                  <p className="text-gray-500 text-sm">Sélectionnez un pseudo (compte 1 ou 2) pour charger les parties.</p>
-                )}
+                <SoloqStatistiquesSection d={d} player={player} />
               </div>
-            )}
-
-            {d.selectedSoloqSub === 'statistiques' && (
-              <SoloqStatistiquesSection d={d} player={player} />
             )}
 
             {d.selectedSoloqSub === 'champions' && (
