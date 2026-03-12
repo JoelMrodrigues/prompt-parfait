@@ -4,6 +4,7 @@ import axios from 'axios'
 import { loadServerEnv, resolveRiotApiKey } from './config/env.js'
 import riotRoutes from './routes/riot.routes.js'
 import statsRoutes from './routes/stats.routes.js'
+import lcuRoutes from './routes/lcu.routes.js'
 
 loadServerEnv()
 resolveRiotApiKey()
@@ -34,6 +35,7 @@ app.use(express.json())
 
 app.use('/api/riot', riotRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/api/lcu', lcuRoutes)
 
 app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
