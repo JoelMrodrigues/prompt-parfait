@@ -19,6 +19,7 @@ import {
   Check,
   Swords,
   Settings,
+  Upload,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
@@ -37,6 +38,7 @@ const SIDEBAR_GROUPS = [
     items: [
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
+      { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
     ],
   },
   {
