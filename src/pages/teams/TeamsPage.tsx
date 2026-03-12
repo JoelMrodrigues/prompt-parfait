@@ -3,7 +3,65 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Link2, Check, X, Crown, Loader2 } from 'lucide-react'
+import { Plus, Link2, Check, X, Crown, Loader2, Swords, Trophy, Users, Gamepad2 } from 'lucide-react'
+
+// ── Team type config ─────────────────────────────────────────────────────────
+
+const TEAM_TYPES = [
+  {
+    id: 'scrim',
+    label: 'Scrim',
+    desc: 'Parties d\'entraînement en équipe',
+    icon: Swords,
+    color: 'text-accent-blue',
+    bg: 'bg-accent-blue/10',
+    border: 'border-accent-blue/40',
+    selectedBorder: 'border-accent-blue',
+    selectedBg: 'bg-accent-blue/15',
+  },
+  {
+    id: 'soloq',
+    label: 'Solo Queue',
+    desc: 'Suivi classé individuel',
+    icon: Trophy,
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/30',
+    selectedBorder: 'border-amber-400',
+    selectedBg: 'bg-amber-500/15',
+  },
+  {
+    id: 'flex',
+    label: 'Flex',
+    desc: 'File classée Flex 5v5',
+    icon: Users,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/30',
+    selectedBorder: 'border-emerald-400',
+    selectedBg: 'bg-emerald-500/15',
+  },
+  {
+    id: 'fun',
+    label: 'Fun',
+    desc: 'ARAM, normals, parties détente',
+    icon: Gamepad2,
+    color: 'text-pink-400',
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/30',
+    selectedBorder: 'border-pink-400',
+    selectedBg: 'bg-pink-500/15',
+  },
+] as const
+
+type TeamTypeId = (typeof TEAM_TYPES)[number]['id']
+
+const TEAM_TYPE_LABELS: Record<string, { label: string; color: string }> = {
+  scrim:  { label: 'Scrim',      color: 'text-accent-blue bg-accent-blue/10' },
+  soloq:  { label: 'Solo Queue', color: 'text-amber-400 bg-amber-500/10' },
+  flex:   { label: 'Flex',       color: 'text-emerald-400 bg-emerald-500/10' },
+  fun:    { label: 'Fun',        color: 'text-pink-400 bg-pink-500/10' },
+}
 import { useTeam } from '../team/hooks/useTeam'
 import { useAuth } from '../../contexts/AuthContext'
 import { getOrCreateInviteToken } from '../../services/supabase/teamQueries'
@@ -49,6 +107,7 @@ export const TeamsPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showJoinForm, setShowJoinForm] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
+  const [selectedType, setSelectedType] = useState<TeamTypeId>('scrim')
   const [inviteInput, setInviteInput] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -59,6 +118,7 @@ export const TeamsPage = () => {
     setShowCreateForm((v) => !v)
     setShowJoinForm(false)
     setError(null)
+    setSelectedType('scrim')
   }
 
   const toggleJoin = () => {
@@ -74,9 +134,10 @@ export const TeamsPage = () => {
     setError(null)
     try {
       const name = newTeamName.trim()
-      await createNewTeam(name)
+      await createNewTeam(name, selectedType)
       setNewTeamName('')
       setShowCreateForm(false)
+      setSelectedType('scrim')
       setSuccess(`Équipe "${name}" créée !`)
       setTimeout(() => setSuccess(null), 3000)
     } catch (err: any) {
@@ -174,30 +235,62 @@ export const TeamsPage = () => {
       {(showCreateForm || showJoinForm) && (
         <div className="bg-dark-card border border-dark-border rounded-xl p-4 mb-6">
           {showCreateForm && (
-            <form onSubmit={handleCreate} className="flex gap-2">
-              <input
-                autoFocus
-                type="text"
-                value={newTeamName}
-                onChange={(e) => setNewTeamName(e.target.value)}
-                placeholder="Nom de l'équipe"
-                maxLength={50}
-                className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue"
-              />
-              <button
-                type="submit"
-                disabled={submitting || !newTeamName.trim()}
-                className="px-4 py-2 text-sm bg-accent-blue rounded-lg font-medium disabled:opacity-50 transition-colors"
-              >
-                {submitting ? '...' : 'Créer'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowCreateForm(false); setError(null) }}
-                className="px-3 py-2 text-gray-400 hover:text-white rounded-lg border border-dark-border transition-colors"
-              >
-                <X size={15} />
-              </button>
+            <form onSubmit={handleCreate} className="space-y-4">
+              {/* Sélecteur de type */}
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-2">Type d'équipe</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {TEAM_TYPES.map((t) => {
+                    const Icon = t.icon
+                    const selected = selectedType === t.id
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSelectedType(t.id)}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                          selected
+                            ? `${t.selectedBg} ${t.selectedBorder}`
+                            : `${t.bg} ${t.border} hover:border-gray-500`
+                        }`}
+                      >
+                        <Icon size={20} className={t.color} />
+                        <span className={`text-xs font-semibold ${selected ? t.color : 'text-gray-400'}`}>
+                          {t.label}
+                        </span>
+                        <span className="text-[10px] text-gray-600 text-center leading-tight">{t.desc}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Nom + boutons */}
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  placeholder="Nom de l'équipe"
+                  maxLength={50}
+                  className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue"
+                />
+                <button
+                  type="submit"
+                  disabled={submitting || !newTeamName.trim()}
+                  className="px-4 py-2 text-sm bg-accent-blue rounded-lg font-medium disabled:opacity-50 transition-colors"
+                >
+                  {submitting ? '...' : 'Créer'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowCreateForm(false); setError(null) }}
+                  className="px-3 py-2 text-gray-400 hover:text-white rounded-lg border border-dark-border transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
             </form>
           )}
           {showJoinForm && (
@@ -326,9 +419,14 @@ export const TeamsPage = () => {
                 )}
               </div>
 
-              {/* Nom centré */}
+              {/* Nom + type */}
               <div className="px-4 py-3 text-center">
                 <h3 className="font-semibold text-white text-sm truncate">{t.team_name}</h3>
+                {(t as any).team_type && TEAM_TYPE_LABELS[(t as any).team_type] && (
+                  <span className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${TEAM_TYPE_LABELS[(t as any).team_type].color}`}>
+                    {TEAM_TYPE_LABELS[(t as any).team_type].label}
+                  </span>
+                )}
               </div>
             </div>
           )

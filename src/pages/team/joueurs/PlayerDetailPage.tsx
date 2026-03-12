@@ -21,6 +21,8 @@ import {
   Table2,
   LayoutList,
   Target,
+  Wrench,
+  Flame,
 } from 'lucide-react'
 import {
   getChampionImage,
@@ -34,7 +36,7 @@ import { PlayerTimelineAdvantageSection } from './components/PlayerTimelineAdvan
 import { LpCurveChart } from './charts/LpCurveChart'
 import { CoachCard } from './components/CoachCard'
 import { usePlayerDetail } from './hooks/usePlayerDetail'
-import { getRankColor, generateDpmLink, parseLpFromRank, ROLE_LABELS } from './utils/playerDetailHelpers'
+import { getRankColor, generateDpmLink, ROLE_LABELS } from './utils/playerDetailHelpers'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC, PAGE_SIZE } from '../../../lib/constants'
 
 const MAIN_CARDS = [
@@ -49,7 +51,13 @@ const SOLOQ_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
   { id: 'champions', label: 'Champions', icon: Sparkles },
   { id: 'historiques', label: 'Historiques', icon: History },
+  { id: 'build', label: 'Build', icon: Wrench },
+  { id: 'runes', label: 'Runes', icon: Flame },
 ]
+
+const RUNE_TREE_NAMES: Record<number, string> = {
+  8000: 'Précision', 8100: 'Domination', 8200: 'Sorcellerie', 8300: 'Inspiration', 8400: 'Résolution',
+}
 
 const TEAM_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
@@ -513,6 +521,16 @@ export const PlayerDetailPage = () => {
                 )}
               </div>
             )}
+
+            {/* ── Build ── */}
+            {d.selectedSoloqSub === 'build' && (
+              <SoloqBuildSection lpGraphMatches={d.lpGraphMatches} loading={d.lpGraphLoading} />
+            )}
+
+            {/* ── Runes ── */}
+            {d.selectedSoloqSub === 'runes' && (
+              <SoloqRunesSection lpGraphMatches={d.lpGraphMatches} loading={d.lpGraphLoading} runesCache={d.allRunesCache} />
+            )}
           </>
         )}
 
@@ -965,6 +983,168 @@ function AllStatsTable({
   )
 }
 
+// ─── SoloqBuildSection ───────────────────────────────────────────────────────
+
+const DD_ITEM = (id: number) => `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${id}.png`
+
+function SoloqBuildSection({ lpGraphMatches, loading }: { lpGraphMatches: any[]; loading: boolean }) {
+  const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180)
+
+  const champBuilds = new Map<string, { games: number; wins: number; buildCounts: Map<string, number> }>()
+  for (const m of realGames) {
+    const champ = m.champion_name
+    if (!champ) continue
+    const items = ((m.items as number[] | null) || []).filter((id) => id > 0).slice(0, 6)
+    const entry = champBuilds.get(champ) ?? { games: 0, wins: 0, buildCounts: new Map() }
+    entry.games++
+    if (m.win) entry.wins++
+    if (items.length > 0) {
+      const sig = items.join(',')
+      entry.buildCounts.set(sig, (entry.buildCounts.get(sig) ?? 0) + 1)
+    }
+    champBuilds.set(champ, entry)
+  }
+
+  const topBuilds = Array.from(champBuilds.entries())
+    .sort((a, b) => b[1].games - a[1].games)
+    .slice(0, 8)
+    .map(([name, v]) => {
+      const mostFreq = [...v.buildCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+      const items = mostFreq ? mostFreq[0].split(',').map(Number) : []
+      const wr = Math.round((v.wins / v.games) * 100)
+      return { name, games: v.games, wr, items }
+    })
+
+  if (loading) return <p className="text-gray-500 text-sm py-6 text-center">Chargement…</p>
+  if (topBuilds.length === 0)
+    return <p className="text-gray-500 text-sm py-6 text-center">Aucune donnée de build disponible. Importez des parties avec le backend Riot.</p>
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 uppercase tracking-wider">Build le plus fréquent par champion</p>
+      {topBuilds.map((c) => (
+        <div key={c.name} className="flex items-center gap-3 bg-dark-bg/40 rounded-xl border border-dark-border/60 px-4 py-2.5">
+          <img
+            src={getChampionImage(c.name)}
+            alt={c.name}
+            className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+          <div className="w-28 shrink-0">
+            <p className="text-sm font-medium text-white truncate">{c.name}</p>
+            <p className="text-xs text-gray-500">{c.games}G · <span className={c.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{c.wr}%</span></p>
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {c.items.length > 0 ? c.items.map((id, i) => (
+              <img
+                key={i}
+                src={DD_ITEM(id)}
+                alt={String(id)}
+                title={String(id)}
+                className="w-8 h-8 rounded-lg border border-dark-border object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )) : (
+              <span className="text-xs text-gray-600 italic">Build non disponible</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── SoloqRunesSection ───────────────────────────────────────────────────────
+
+function SoloqRunesSection({
+  lpGraphMatches,
+  loading,
+  runesCache,
+}: {
+  lpGraphMatches: any[]
+  loading: boolean
+  runesCache: Array<{ id: number; name: string; icon: string }>
+}) {
+  const DD_RUNE = (icon: string) => `https://ddragon.leagueoflegends.com/cdn/img/${icon}`
+  const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180 && m.runes?.styles?.length)
+
+  const champRunes = new Map<string, { games: number; wins: number; ks: Map<number, number>; secondary: Map<number, number> }>()
+  for (const m of realGames) {
+    const champ = m.champion_name
+    if (!champ) continue
+    const perks = m.runes
+    const primary = perks.styles?.find((s: any) => s.description === 'primaryStyle')
+    const sub = perks.styles?.find((s: any) => s.description === 'subStyle')
+    const keystoneId: number | undefined = primary?.selections?.[0]?.perk
+    const secondaryId: number | undefined = sub?.style
+    if (!keystoneId) continue
+    const entry = champRunes.get(champ) ?? { games: 0, wins: 0, ks: new Map(), secondary: new Map() }
+    entry.games++
+    if (m.win) entry.wins++
+    entry.ks.set(keystoneId, (entry.ks.get(keystoneId) ?? 0) + 1)
+    if (secondaryId) entry.secondary.set(secondaryId, (entry.secondary.get(secondaryId) ?? 0) + 1)
+    champRunes.set(champ, entry)
+  }
+
+  const topChamps = Array.from(champRunes.entries())
+    .sort((a, b) => b[1].games - a[1].games)
+    .slice(0, 8)
+    .map(([name, v]) => {
+      const topKs = [...v.ks.entries()].sort((a, b) => b[1] - a[1])[0]
+      const topSec = [...v.secondary.entries()].sort((a, b) => b[1] - a[1])[0]
+      const keystoneId = topKs?.[0]
+      const secondaryId = topSec?.[0]
+      const keystoneData = keystoneId != null ? runesCache.find((r) => r.id === keystoneId) : undefined
+      const wr = Math.round((v.wins / v.games) * 100)
+      return { name, games: v.games, wr, keystoneId, keystoneData, secondaryId }
+    })
+
+  if (loading) return <p className="text-gray-500 text-sm py-6 text-center">Chargement…</p>
+  if (topChamps.length === 0)
+    return <p className="text-gray-500 text-sm py-6 text-center">Aucune donnée de runes disponible. Importez des parties avec le backend Riot.</p>
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 uppercase tracking-wider">Runes les plus fréquentes par champion</p>
+      {topChamps.map((c) => (
+        <div key={c.name} className="flex items-center gap-3 bg-dark-bg/40 rounded-xl border border-dark-border/60 px-4 py-2.5">
+          <img
+            src={getChampionImage(c.name)}
+            alt={c.name}
+            className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+          <div className="w-28 shrink-0">
+            <p className="text-sm font-medium text-white truncate">{c.name}</p>
+            <p className="text-xs text-gray-500">{c.games}G · <span className={c.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{c.wr}%</span></p>
+          </div>
+          <div className="flex items-center gap-3">
+            {c.keystoneData?.icon ? (
+              <div className="flex items-center gap-1.5">
+                <img
+                  src={DD_RUNE(c.keystoneData.icon)}
+                  alt={c.keystoneData.name}
+                  title={c.keystoneData.name}
+                  className="w-9 h-9 rounded-full border border-dark-border object-cover bg-dark-bg"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+                <span className="text-xs text-gray-300">{c.keystoneData.name}</span>
+              </div>
+            ) : c.keystoneId != null ? (
+              <span className="text-xs text-gray-500">#{c.keystoneId}</span>
+            ) : null}
+            {c.secondaryId != null && (
+              <span className="text-xs text-gray-500 bg-dark-card border border-dark-border px-2 py-0.5 rounded-lg">
+                {RUNE_TREE_NAMES[c.secondaryId] ?? `#${c.secondaryId}`}
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── GeneralTab ──────────────────────────────────────────────────────────────
 
 function GeneralTab({ d, player }: { d: any; player: any }) {
@@ -1029,13 +1209,37 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
   const t5Wins = last5Team.filter((s: any) => s.win || s.team_matches?.our_win).length
   const t5Losses = last5Team.length - t5Wins
 
-  // Pool Champ count
+  // Pool Champ — top S/A tier icons
+  const poolFlat: any[] = player?.champion_pools
+    ? (Object.entries(player.champion_pools as Record<string, any[]>)
+        .filter(([tier]) => ['S', 'A', 'B'].includes(tier))
+        .flatMap(([, champs]) => champs))
+    : []
   const poolCount = player?.champion_pools
     ? Object.values(player.champion_pools as Record<string, any[]>).flat().length
     : null
+  const poolPreview = poolFlat.slice(0, 5)
+
+  // Last 5 SoloQ — champion icons from recent matches
+  const last5SoloQ = sorted.slice(-5).reverse()
 
   // Win streak color bars
   const last10 = sorted.slice(-10)
+
+  // Top 5 champions from match history
+  const champMap = new Map<string, { games: number; wins: number }>()
+  for (const m of realGames) {
+    const name = m.champion_name || m.champion
+    if (!name) continue
+    const c = champMap.get(name) ?? { games: 0, wins: 0 }
+    c.games++
+    if (m.win) c.wins++
+    champMap.set(name, c)
+  }
+  const topChampsData = Array.from(champMap.entries())
+    .map(([name, c]) => ({ name, ...c, wr: Math.round((c.wins / c.games) * 100) }))
+    .sort((a, b) => b.games - a.games)
+    .slice(0, 5)
 
   return (
     <div className="space-y-5">
@@ -1123,10 +1327,60 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
               </div>
             )}
 
+            {/* WR trend (1ère vs 2ème moitié) */}
+            {wrFirst != null && wrLast != null && sorted.length >= 4 && (
+              <div className="flex items-center gap-3 bg-dark-card/40 border border-dark-border rounded-xl px-3 py-2">
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider shrink-0">Progression</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className={`text-sm font-bold ${wrFirst >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wrFirst}%</span>
+                  <span className="text-gray-600 text-xs">→</span>
+                  <span className={`text-sm font-bold ${wrLast >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wrLast}%</span>
+                  {wrLast > wrFirst
+                    ? <span className="text-xs text-emerald-400 ml-1">↑ +{wrLast - wrFirst}%</span>
+                    : wrLast < wrFirst
+                      ? <span className="text-xs text-rose-400 ml-1">↓ {wrLast - wrFirst}%</span>
+                      : null}
+                </div>
+                <span className="text-[10px] text-gray-600 shrink-0">1ère vs 2ème moitié</span>
+              </div>
+            )}
+
             {/* LP Chart compact */}
             {d.lpCurvePoints.length >= 2 && (
-              <div className="w-full rounded-xl bg-dark-card/50 border border-dark-border p-3" style={{ height: '130px' }}>
-                <LpCurveChart points={d.lpCurvePoints} />
+              <div className="rounded-xl bg-dark-card/50 border border-dark-border p-3" style={{ height: '130px' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wider">Courbe LP</span>
+                  <span className="text-[10px] text-gray-600">{lpDateRange}</span>
+                </div>
+                <div style={{ height: '100px' }}>
+                  <LpCurveChart points={d.lpCurvePoints} />
+                </div>
+              </div>
+            )}
+
+            {/* Top champions SoloQ */}
+            {topChampsData.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Champions joués (SoloQ)</p>
+                {topChampsData.map((c) => (
+                  <div key={c.name} className="flex items-center gap-2">
+                    <img
+                      src={getChampionImage(c.name)}
+                      alt={c.name}
+                      className="w-6 h-6 rounded object-cover border border-dark-border shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                    <span className="text-xs text-gray-300 w-24 truncate">{c.name}</span>
+                    <div className="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${c.wr >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                        style={{ width: `${c.wr}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs font-semibold w-10 text-right ${c.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{c.wr}%</span>
+                    <span className="text-xs text-gray-600 w-8 text-right">{c.games}G</span>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -1149,7 +1403,7 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
         )}
       </div>
 
-      {/* ── Bloc Team + Pool + Coach ── */}
+      {/* ── Bloc Team + Pool + Coach + Dernières games ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Team dernières 5 */}
         <div className="rounded-2xl border border-dark-border bg-dark-bg/40 p-4">
@@ -1177,20 +1431,45 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
         </div>
 
         {/* Pool Champ */}
-        <div className="rounded-2xl border border-dark-border bg-dark-bg/40 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1.5 h-4 rounded-full bg-amber-400" />
-            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Pool Champ</span>
+        <button
+          type="button"
+          onClick={() => d.setSelectedCard('pool-champ')}
+          className="rounded-2xl border border-dark-border bg-dark-bg/40 p-4 text-left hover:border-amber-400/40 hover:bg-amber-400/5 transition-all group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-4 rounded-full bg-amber-400" />
+              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Pool Champ</span>
+            </div>
+            {poolCount != null && poolCount > 0 && (
+              <span className="text-xs text-gray-500">{poolCount} champs →</span>
+            )}
           </div>
-          {poolCount != null && poolCount > 0 ? (
-            <div>
-              <span className="text-2xl font-bold text-white">{poolCount}</span>
-              <span className="text-gray-400 text-sm ml-2">champion{poolCount > 1 ? 's' : ''}</span>
+          {poolPreview.length > 0 ? (
+            <div className="flex gap-1.5 flex-wrap">
+              {poolPreview.map((cp: any, i: number) => {
+                const name = cp.champion_id || cp.name || cp
+                return (
+                  <img
+                    key={i}
+                    src={getChampionImage(name)}
+                    alt={name}
+                    title={name}
+                    className="w-9 h-9 rounded-lg object-cover border border-dark-border"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                )
+              })}
+              {poolFlat.length > 5 && (
+                <div className="w-9 h-9 rounded-lg bg-dark-card border border-dark-border flex items-center justify-center text-xs text-gray-500">
+                  +{poolFlat.length - 5}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-gray-500 text-sm">Aucun champion</p>
           )}
-        </div>
+        </button>
 
         {/* Coach */}
         <button
@@ -1207,6 +1486,60 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
           </p>
         </button>
       </div>
+
+      {/* ── Dernières 5 games SoloQ ── */}
+      {last5SoloQ.length > 0 && (
+        <div className="rounded-2xl border border-dark-border bg-dark-bg/40 overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-dark-border/60">
+            <div className="w-1.5 h-4 rounded-full bg-accent-blue" />
+            <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Dernières games SoloQ</span>
+          </div>
+          <div className="divide-y divide-dark-border/40">
+            {last5SoloQ.map((m: any, i: number) => {
+              const champName = m.champion_name || m.champion || null
+              const kills = m.kills ?? 0
+              const deaths = m.deaths ?? 0
+              const assists = m.assists ?? 0
+              const kdaStr = deaths > 0
+                ? ((kills + assists) / deaths).toFixed(1)
+                : (kills + assists).toFixed(1)
+              const duration = m.game_duration
+                ? `${Math.floor(m.game_duration / 60)}m`
+                : null
+              return (
+                <div key={i} className={`flex items-center gap-3 px-4 py-2.5 ${m.win ? 'bg-emerald-500/5' : 'bg-rose-500/5'}`}>
+                  <div className={`w-1 h-8 rounded-full shrink-0 ${m.win ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  {champName ? (
+                    <img
+                      src={getChampionImage(champName)}
+                      alt={champName}
+                      className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg bg-dark-card border border-dark-border shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{champName || '—'}</p>
+                    <p className="text-xs text-gray-500">
+                      {kills}/{deaths}/{assists}
+                      {duration && <span className="ml-2">{duration}</span>}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-xs font-bold ${m.win ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {m.win ? 'Victoire' : 'Défaite'}
+                    </p>
+                    <p className={`text-xs ${parseFloat(kdaStr) >= 3 ? 'text-emerald-400' : parseFloat(kdaStr) >= 2 ? 'text-gray-300' : 'text-rose-300'}`}>
+                      {kdaStr} KDA
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

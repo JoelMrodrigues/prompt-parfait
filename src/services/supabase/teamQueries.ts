@@ -12,10 +12,10 @@ export async function fetchFirstTeam() {
   return { data: Array.isArray(data) ? data[0] : data, error }
 }
 
-export async function createTeam(userId, teamName) {
+export async function createTeam(userId, teamName, teamType = 'scrim') {
   const { data, error } = await supabase
     .from('teams')
-    .insert([{ user_id: userId, team_name: teamName }])
+    .insert([{ user_id: userId, team_name: teamName, team_type: teamType }])
     .select()
     .single()
   return { data, error }

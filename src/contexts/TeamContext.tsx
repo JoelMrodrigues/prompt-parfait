@@ -111,15 +111,15 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     perf.end('switchTeam.refreshProfile')
   }
 
-  const createTeam = async (teamName: string) => {
-    const { data, error } = await createTeamQuery(user.id, teamName)
+  const createTeam = async (teamName: string, teamType = 'scrim') => {
+    const { data, error } = await createTeamQuery(user.id, teamName, teamType)
     if (error) throw error
     await upsertProfile(user.id, { active_team_id: data.id })
     await refreshProfile()
     return data
   }
 
-  const createNewTeam = async (teamName: string) => createTeam(teamName)
+  const createNewTeam = async (teamName: string, teamType = 'scrim') => createTeam(teamName, teamType)
 
   const updateTeam = async (teamId, updates) => {
     const { data, error } = await updateTeamQuery(teamId, updates)

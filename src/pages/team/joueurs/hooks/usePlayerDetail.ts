@@ -81,16 +81,16 @@ export function usePlayerDetail(playerId: string | undefined) {
       .sort((a, b) => b.games - a.games)
   }, [filteredTeamStats])
 
-  // ─── Runes cache (chargé à la première ouverture de l'onglet All Stats) ──
+  // ─── Runes cache (chargé à la première ouverture de All Stats ou onglet Runes SoloQ) ──
   useEffect(() => {
-    if (selectedTeamSub !== 'allstats' || allRunesCache.length > 0) return
+    if ((selectedTeamSub !== 'allstats' && selectedSoloqSub !== 'runes') || allRunesCache.length > 0) return
     let cancelled = false
     fetchAllRunes().then(({ data, error }) => {
       if (cancelled || error || !data?.length) return
       setAllRunesCache(data.map((r: any) => ({ id: r.id, name: r.name || r.key || '', icon: r.icon || '' })))
     })
     return () => { cancelled = true }
-  }, [selectedTeamSub, allRunesCache.length])
+  }, [selectedTeamSub, selectedSoloqSub, allRunesCache.length])
 
   // ─── SoloQ — délégué à usePlayerSoloqData ────────────────────────────────
   const soloq = usePlayerSoloqData({

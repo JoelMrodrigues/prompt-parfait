@@ -20,7 +20,12 @@ const prodOrigins = process.env.FRONTEND_URL
   : []
 
 const corsOptions = {
-  origin: [...new Set([...prodOrigins, 'http://localhost:5173'])],
+  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) return cb(null, true)
+    const isLocalhost = /^https?:\/\/localhost(:\d+)?$/.test(origin)
+    if (isLocalhost || prodOrigins.includes(origin)) return cb(null, true)
+    cb(new Error(`CORS: origine non autorisée — ${origin}`))
+  },
   credentials: true,
 }
 
