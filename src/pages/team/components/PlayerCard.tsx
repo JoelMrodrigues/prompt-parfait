@@ -1,6 +1,7 @@
 /**
  * Carte joueur — liste Joueurs (liens OP.gg / dpm / Sync dans la fiche détail uniquement)
  */
+import { memo, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Edit2, Trash2 } from 'lucide-react'
@@ -30,7 +31,7 @@ function getWinrateColor(wr: number): string {
   return 'text-red-700' // rouge sanguin
 }
 
-export const PlayerCard = ({
+export const PlayerCard = memo(({
   player,
   onEdit,
   onDelete,
@@ -52,18 +53,20 @@ export const PlayerCard = ({
     else navigate(`/team/joueurs/${player.id}`)
   }
 
-  let topChampions = player.top_champions
-  if (typeof topChampions === 'string') {
-    try {
-      topChampions = JSON.parse(topChampions)
-    } catch {
-      topChampions = []
+  const validChampions = useMemo(() => {
+    let topChampions = player.top_champions
+    if (typeof topChampions === 'string') {
+      try {
+        topChampions = JSON.parse(topChampions)
+      } catch {
+        topChampions = []
+      }
     }
-  }
-  const validChampions = (Array.isArray(topChampions) ? topChampions : [])
-    .slice(0, 5)
-    .filter((ch: any) => isValidChamp(ch.name || ch))
-    .map((ch: any) => ({ name: ch.name || ch, winrate: ch.winrate, games: ch.games }))
+    return (Array.isArray(topChampions) ? topChampions : [])
+      .slice(0, 5)
+      .filter((ch: any) => isValidChamp(ch.name || ch))
+      .map((ch: any) => ({ name: ch.name || ch, winrate: ch.winrate, games: ch.games }))
+  }, [player.top_champions])
 
   return (
     <motion.div
@@ -72,7 +75,7 @@ export const PlayerCard = ({
       onClick={handleCardClick}
       className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-blue/50 transition-all cursor-pointer min-h-[200px]"
     >
-      <div className={`p-5 bg-dark-card bg-gradient-to-r ${cardColor} relative`}>
+      <div className={`p-5 bg-gray-900 bg-gradient-to-r ${cardColor} relative`}>
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-lg !text-white truncate">{player.player_name || 'Joueur'}</h3>
@@ -86,6 +89,7 @@ export const PlayerCard = ({
               }}
               className="p-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
               title="Modifier"
+              aria-label="Modifier le joueur"
             >
               <Edit2 size={14} className="!text-white" />
             </button>
@@ -96,6 +100,7 @@ export const PlayerCard = ({
               }}
               className="p-1.5 bg-white/20 rounded-lg hover:bg-red-500/80 transition-colors"
               title="Supprimer"
+              aria-label="Supprimer le joueur"
             >
               <Trash2 size={14} className="!text-white" />
             </button>
@@ -136,6 +141,9 @@ export const PlayerCard = ({
                     <img
                       src={getChampionImage(champion.name)}
                       alt={champion.name}
+                      width={48}
+                      height={48}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).style.display = 'none'
@@ -157,4 +165,4 @@ export const PlayerCard = ({
       </div>
     </motion.div>
   )
-}
+})

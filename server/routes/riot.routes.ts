@@ -14,6 +14,7 @@ import {
   fetchMatchDetailsByIds,
   fetchWeeklyMatchCount,
 } from '../services/riotService.js'
+import { getCluster } from '../lib/riotClient.js'
 import type { PuuidResult } from '../types/index.js'
 
 const router = Router()
@@ -247,6 +248,11 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req: Request, 
   if (matchIds.length === 0) {
     return res.status(400).json({ success: false, error: 'Paramètre matchIds requis (ids séparés par des virgules)' })
   }
+  // Validation format : XX_NNNNNNN (préfixe région + underscore + chiffres)
+  const validMatchId = /^[A-Z]{2,4}_\d+$/
+  if (matchIds.some((id) => !validMatchId.test(id))) {
+    return res.status(400).json({ success: false, error: 'Format matchId invalide (attendu : EUW1_1234567890)' })
+  }
   if (matchIds.length > 50) {
     return res.status(400).json({ success: false, error: 'Maximum 50 match IDs par requête' })
   }
@@ -283,23 +289,17 @@ router.get('/match-count', requireApiKey, requirePseudo, async (req: Request, re
   }
 })
 
-// ─── ROUTING MAP (région → cluster) ────────────────────────────────────────
-const ROUTING_MAP: Record<string, string> = {
-  euw1: 'europe', eun1: 'europe', tr1: 'europe', ru: 'europe',
-  na1: 'americas', br1: 'americas', la1: 'americas', la2: 'americas',
-  kr: 'asia', jp1: 'asia', oc1: 'sea',
-}
-
+// ─── ROUTING (utilise REGION_TO_CLUSTER centralisé dans riotClient.ts) ──────
 function getRouting(region: string): string {
-  return ROUTING_MAP[(region || 'euw1').trim().toLowerCase()] ?? 'europe'
+  return getCluster((region || 'euw1').trim())
 }
 
 // ─── DÉTAIL COMPLET D'UN MATCH ────────────────────────────────────────────────
 
 router.get('/match-detail', requireApiKey, async (req: Request, res: Response) => {
   const matchId = (req.query.matchId as string || '').trim()
-  if (!matchId) {
-    return res.status(400).json({ success: false, error: 'Paramètre matchId requis' })
+  if (!matchId || !/^[A-Z]{2,4}_\d+$/.test(matchId)) {
+    return res.status(400).json({ success: false, error: 'Paramètre matchId requis (format : EUW1_1234567890)' })
   }
 
   const cacheKey = `match-detail:${matchId}`
@@ -329,8 +329,8 @@ router.get('/match-detail', requireApiKey, async (req: Request, res: Response) =
 
 router.get('/match-timeline', requireApiKey, async (req: Request, res: Response) => {
   const matchId = (req.query.matchId as string || '').trim()
-  if (!matchId) {
-    return res.status(400).json({ success: false, error: 'Paramètre matchId requis' })
+  if (!matchId || !/^[A-Z]{2,4}_\d+$/.test(matchId)) {
+    return res.status(400).json({ success: false, error: 'Paramètre matchId requis (format : EUW1_1234567890)' })
   }
 
   const cacheKey = `timeline:${matchId}`

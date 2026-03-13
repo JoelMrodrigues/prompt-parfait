@@ -559,6 +559,7 @@ export const PlayerDetailPage = () => {
                           <button
                             type="button"
                             onClick={() => d.setExpandedTeamChampion(isOpen ? null : c.name)}
+                            aria-expanded={isOpen}
                             className="w-full flex items-center gap-3 p-4 bg-dark-bg/50 hover:bg-dark-bg/80 transition-colors text-left"
                           >
                             <img src={getChampionImage(c.name)} alt={c.name} className="w-10 h-10 rounded-lg object-cover border border-dark-border shrink-0" />

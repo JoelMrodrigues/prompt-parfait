@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
+import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
 import { ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 
 // ─── Hook : charge les matches SoloQ d'un joueur ─────────────────────────────
@@ -85,37 +86,30 @@ function computeStats(rows: any[]) {
 }
 
 function computeChampions(rows: any[]) {
-  const byChamp: Record<string, {
-    games: number; wins: number; kills: number; deaths: number; assists: number
-    csMinSum: number; csMinCount: number
-  }> = {}
+  // Base aggregation via shared utility
+  const base = aggregateChampionStats(
+    rows,
+    (r: any) => r.champion_name || 'Unknown',
+    (r: any) => !!r.win,
+  )
+
+  // Compute avgCsMin separately (specific to SoloQ)
+  const csMinByChamp: Record<string, { sum: number; count: number }> = {}
   for (const r of rows) {
     const name = r.champion_name || 'Unknown'
-    if (!byChamp[name]) byChamp[name] = { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, csMinSum: 0, csMinCount: 0 }
-    const c = byChamp[name]
-    c.games++
-    if (r.win) c.wins++
-    c.kills += r.kills ?? 0
-    c.deaths += r.deaths ?? 0
-    c.assists += r.assists ?? 0
     if (r.cs != null && (r.game_duration ?? 0) > 0) {
-      c.csMinSum += r.cs / (r.game_duration / 60)
-      c.csMinCount++
+      if (!csMinByChamp[name]) csMinByChamp[name] = { sum: 0, count: 0 }
+      csMinByChamp[name].sum += r.cs / (r.game_duration / 60)
+      csMinByChamp[name].count++
     }
   }
-  return Object.entries(byChamp)
-    .map(([name, s]) => ({
-      name,
-      games: s.games,
-      wins: s.wins,
-      wr: s.games ? (s.wins / s.games) * 100 : 0,
-      kda: s.deaths > 0 ? (s.kills + s.assists) / s.deaths : s.kills + s.assists,
-      avgK: s.games ? s.kills / s.games : 0,
-      avgD: s.games ? s.deaths / s.games : 0,
-      avgA: s.games ? s.assists / s.games : 0,
-      avgCsMin: s.csMinCount ? s.csMinSum / s.csMinCount : 0,
-    }))
-    .sort((a, b) => b.games - a.games)
+
+  return base.map((s) => ({
+    ...s,
+    wr: s.winrate,
+    kda: s.kdaRatio,
+    avgCsMin: csMinByChamp[s.name]?.count ? csMinByChamp[s.name].sum / csMinByChamp[s.name].count : 0,
+  }))
 }
 
 // ─── Rolling WR chart (SVG natif) ─────────────────────────────────────────────

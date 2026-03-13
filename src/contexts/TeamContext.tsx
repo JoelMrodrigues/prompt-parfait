@@ -2,7 +2,7 @@
  * TeamContext — singleton qui remplace useTeam() par-instance
  * Un seul fetch Supabase pour toute l'app, partagé entre toutes les pages.
  */
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { perf } from '../lib/logger'
@@ -29,15 +29,69 @@ import {
   removeChampionFromPool as removeChampionQuery,
 } from '../services/supabase/championQueries'
 
-const TeamContext = createContext<any>({})
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface Team {
+  id: string
+  user_id: string
+  team_name: string
+  team_type?: string
+  logo_url?: string | null
+  accent_color?: string | null
+  invite_token?: string | null
+  created_at?: string
+}
+
+export interface Player {
+  id: string
+  team_id: string
+  player_name: string
+  pseudo: string
+  position: string | null
+  rank: string | null
+  rank_updated_at?: string | null
+  player_type?: 'starter' | 'sub'
+  puuid?: string | null
+  secondary_account?: string | null
+  soloq_mood_last_5?: Record<string, unknown> | null
+  team_mood_last_5?: Record<string, unknown> | null
+  soloq_total_match_ids?: number | null
+  soloq_total_match_ids_secondary?: number | null
+  top_champions?: string | unknown[] | null
+  champion_pools?: unknown[]
+}
+
+export interface TeamContextValue {
+  team: Team | null
+  allTeams: Team[]
+  players: Player[]
+  loading: boolean
+  createTeam: (teamName: string, teamType?: string) => Promise<Team>
+  createNewTeam: (teamName: string, teamType?: string) => Promise<Team>
+  switchTeam: (teamId: string) => Promise<void>
+  updateTeam: (teamId: string, updates: Partial<Team>) => Promise<Team>
+  deleteTeam: (teamId: string) => Promise<void>
+  createPlayer: (playerData: Partial<Player>) => Promise<unknown>
+  updatePlayer: (playerId: string, updates: Partial<Player>) => Promise<unknown>
+  batchUpdatePlayersSilent: (updates: Array<{ id: string; data: Record<string, unknown> }>) => Promise<void>
+  deletePlayer: (playerId: string) => Promise<void>
+  addChampionToPool: (playerId: string, championId: string, masteryLevel: number) => Promise<unknown>
+  removeChampionFromPool: (poolId: string) => Promise<void>
+  refetch: () => Promise<void>
+  getInviteLink: () => Promise<string | null>
+  joinTeamByToken: (token: string) => Promise<{ success: boolean; error?: string; teamName?: string }>
+  isTeamOwner: boolean
+}
+
+const TeamContext = createContext<TeamContextValue>({} as TeamContextValue)
 
 export const useTeam = () => useContext(TeamContext)
 
 export const TeamProvider = ({ children }: { children: ReactNode }) => {
   const { user, profile, refreshProfile } = useAuth()
-  const [team, setTeam] = useState(null)
-  const [allTeams, setAllTeams] = useState([])
-  const [players, setPlayers] = useState([])
+  const [team, setTeam] = useState<Team | null>(null)
+  const [allTeams, setAllTeams] = useState<Team[]>([])
+  const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const initializedRef = useRef(false)
 
@@ -121,7 +175,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
 
   const createNewTeam = async (teamName: string, teamType = 'scrim') => createTeam(teamName, teamType)
 
-  const updateTeam = async (teamId, updates) => {
+  const updateTeam = async (teamId: string, updates: Partial<Team>) => {
     const { data, error } = await updateTeamQuery(teamId, updates)
     if (error) throw error
     setTeam(data)
@@ -141,7 +195,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     await refreshProfile()
   }
 
-  const createPlayer = async (playerData) => {
+  const createPlayer = async (playerData: Partial<Player>) => {
     const cleanData = Object.fromEntries(
       Object.entries({ ...playerData, team_id: team.id }).filter(([, v]) => v !== undefined)
     )
@@ -151,7 +205,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     return data
   }
 
-  const updatePlayer = async (playerId, updates) => {
+  const updatePlayer = async (playerId: string, updates: Partial<Player>) => {
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([, v]) => v !== undefined)
     )
@@ -187,20 +241,20 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     )
   }
 
-  const deletePlayer = async (playerId) => {
+  const deletePlayer = async (playerId: string) => {
     const { error } = await deletePlayerQuery(playerId)
     if (error) throw error
     await fetchTeam()
   }
 
-  const addChampionToPool = async (playerId, championId, masteryLevel) => {
+  const addChampionToPool = async (playerId: string, championId: string, masteryLevel: number) => {
     const { data, error } = await addChampionQuery(playerId, championId, masteryLevel)
     if (error) throw error
     await fetchTeam()
     return data
   }
 
-  const removeChampionFromPool = async (poolId) => {
+  const removeChampionFromPool = async (poolId: string) => {
     const { error } = await removeChampionQuery(poolId)
     if (error) throw error
     await fetchTeam()
@@ -218,7 +272,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const joinTeamByToken = async (token) => {
+  const joinTeamByToken = async (token: string) => {
     if (!token || !user || !supabase) return { success: false, error: 'Token ou utilisateur invalide' }
     try {
       const { data, error } = await joinTeamByTokenQuery(token)
@@ -227,22 +281,26 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       if (!result.success) return { success: false, error: result.error || 'Lien invalide' }
       await fetchTeam()
       return { success: true, teamName: result.team_name }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('joinTeamByToken', e)
-      return { success: false, error: e.message }
+      return { success: false, error: (e as Error).message }
     }
   }
 
+  const isTeamOwner = !!(team && user && team.user_id === user.id)
+
+  const value = useMemo(() => ({
+    team, allTeams, players, loading,
+    createTeam, createNewTeam, switchTeam, updateTeam, deleteTeam,
+    createPlayer, updatePlayer, batchUpdatePlayersSilent, deletePlayer,
+    addChampionToPool, removeChampionFromPool,
+    refetch: fetchTeam,
+    getInviteLink, joinTeamByToken,
+    isTeamOwner,
+  }), [team, allTeams, players, loading, isTeamOwner])
+
   return (
-    <TeamContext.Provider value={{
-      team, allTeams, players, loading,
-      createTeam, createNewTeam, switchTeam, updateTeam, deleteTeam,
-      createPlayer, updatePlayer, batchUpdatePlayersSilent, deletePlayer,
-      addChampionToPool, removeChampionFromPool,
-      refetch: fetchTeam,
-      getInviteLink, joinTeamByToken,
-      isTeamOwner: team && user && (team as any).user_id === user.id,
-    }}>
+    <TeamContext.Provider value={value}>
       {children}
     </TeamContext.Provider>
   )

@@ -5,7 +5,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { X, Camera, Loader2, Trash2 } from 'lucide-react'
+import { X, Camera, Loader2, Trash2, Swords, Trophy, Users, Gamepad2 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useToast } from '../../../contexts/ToastContext'
 import { supabase } from '../../../lib/supabase'
@@ -53,6 +53,15 @@ function applyAccentColor(rgbStr: string) {
   document.documentElement.style.setProperty('--color-accent', rgbStr)
 }
 
+// ── Team types ───────────────────────────────────────────────────────────────
+
+const TEAM_TYPES = [
+  { id: 'scrim', label: 'Scrim', icon: Swords, color: 'text-accent-blue', border: 'border-accent-blue/40', selBorder: 'border-accent-blue', selBg: 'bg-accent-blue/15' },
+  { id: 'soloq', label: 'Solo Q', icon: Trophy, color: 'text-amber-400', border: 'border-amber-500/30', selBorder: 'border-amber-400', selBg: 'bg-amber-500/15' },
+  { id: 'flex', label: 'Flex', icon: Users, color: 'text-emerald-400', border: 'border-emerald-500/30', selBorder: 'border-emerald-400', selBg: 'bg-emerald-500/15' },
+  { id: 'fun', label: 'Fun', icon: Gamepad2, color: 'text-pink-400', border: 'border-pink-500/30', selBorder: 'border-pink-400', selBg: 'bg-pink-500/15' },
+] as const
+
 // ── Color presets ────────────────────────────────────────────────────────────
 
 const COLOR_PRESETS = [
@@ -78,6 +87,7 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
   const [colorApplying, setColorApplying] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [typeSaving, setTypeSaving] = useState(false)
 
   useEffect(() => {
     setTeamName(team?.team_name || '')
@@ -137,6 +147,19 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const handleSaveType = async (typeId: string) => {
+    if (!team?.id || typeSaving || team.team_type === typeId) return
+    setTypeSaving(true)
+    try {
+      await updateTeam(team.id, { team_type: typeId })
+      toastSuccess('Type mis à jour !')
+    } catch (e: any) {
+      toastError(`Erreur : ${e.message}`)
+    } finally {
+      setTypeSaving(false)
+    }
+  }
+
   if (!team) return null
 
   const modal = (
@@ -149,7 +172,7 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-dark-border">
           <h2 className="font-display text-lg font-bold text-white">Paramètres de l'équipe</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors" aria-label="Fermer">
             <X size={20} />
           </button>
         </div>
@@ -214,6 +237,7 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
                   type="button"
                   onClick={() => setSuggestedColor(null)}
                   className="text-gray-600 hover:text-gray-400"
+                  aria-label="Rejeter la couleur suggérée"
                 >
                   <X size={12} />
                 </button>
@@ -231,6 +255,7 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setTeamName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
                 disabled={!isTeamOwner}
+                maxLength={50}
                 className="flex-1 px-4 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue disabled:opacity-50"
               />
               <button
@@ -241,6 +266,35 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
               >
                 {nameSaving ? '…' : 'OK'}
               </button>
+            </div>
+          </div>
+
+          {/* Type d'équipe */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Type d'équipe</p>
+            <div className="grid grid-cols-4 gap-2">
+              {TEAM_TYPES.map((t) => {
+                const Icon = t.icon
+                const selected = (team.team_type || 'scrim') === t.id
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    disabled={!isTeamOwner || typeSaving}
+                    onClick={() => handleSaveType(t.id)}
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all disabled:opacity-50 ${
+                      selected
+                        ? `${t.selBg} ${t.selBorder}`
+                        : `bg-dark-bg/60 ${t.border} hover:border-gray-500`
+                    }`}
+                  >
+                    <Icon size={16} className={t.color} />
+                    <span className={`text-[11px] font-semibold ${selected ? t.color : 'text-gray-400'}`}>
+                      {t.label}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 

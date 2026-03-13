@@ -1,6 +1,7 @@
 /**
  * Liste des joueurs de l'équipe — grille par rôle (titulaires) + section Remplaçants (subs)
  */
+import { useMemo } from 'react'
 import { PlayerCard } from './PlayerCard'
 import { ROSTER_ROLES, ROLE_LABELS } from '../constants/roles'
 import { Users, Plus, BarChart3 } from 'lucide-react'
@@ -21,19 +22,19 @@ export const PlayerList = ({
   onDelete: (p: any) => void
   onAdd?: () => void
 }) => {
-  const starters = players.filter((p) => p.player_type !== 'sub')
-  const subs = players.filter((p) => p.player_type === 'sub')
+  const starters = useMemo(() => players.filter((p) => p.player_type !== 'sub'), [players])
+  const subs = useMemo(() => players.filter((p) => p.player_type === 'sub'), [players])
 
-  const startersByRole = (() => {
+  const startersByRole = useMemo(() => {
     const map: Record<string, any[]> = { TOP: [], JNG: [], MID: [], ADC: [], SUP: [], FLEX: [] }
     starters.forEach((p) => {
       const role = normalizeRole(p.position)
       if (role === 'FLEX') map['FLEX'].push(p)
       else if (map[role]) map[role].push(p)
-      else map['FLEX'].push(p) // roles inconnus → Flex
+      else map['FLEX'].push(p)
     })
     return map
-  })()
+  }, [starters])
 
   const hasFlexStarters = startersByRole['FLEX'].length > 0
   const starterCols = hasFlexStarters ? [...ROSTER_ROLES, 'FLEX' as const] : ROSTER_ROLES

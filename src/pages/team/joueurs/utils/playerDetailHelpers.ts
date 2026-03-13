@@ -53,10 +53,8 @@ export function getRankColorText(rank: string | null | undefined): string {
   return 'text-gray-400'
 }
 
-export function generateDpmLink(pseudo: string | null | undefined): string {
-  if (!pseudo) return ''
-  return `https://dpm.lol/${encodeURIComponent(pseudo.replace(/#/g, '-'))}?queue=solo`
-}
+// Re-export from shared module for backward compatibility
+export { generateDpmLink } from '../../../../lib/team/linkGenerators'
 
 /** Extrait les LP du rang (ex. "Master 614 LP" → 614). Retourne null si non trouvé. */
 export function parseLpFromRank(rank: string | null | undefined): number | null {

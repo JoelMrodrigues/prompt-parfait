@@ -11,6 +11,7 @@ import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSec
 import { SoloQStatsSection } from './SoloQStatsSection'
 import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
+import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
 
 // ─── Fonctions utilitaires ────────────────────────────────────────────────────
 
@@ -30,80 +31,50 @@ function teamCsFromParticipants(participants, ourTeamId) {
 }
 
 function computeTeamChampionStats(matches: any[]) {
-  const byChamp = new Map<string, any>()
+  // Aplatir : un row par (match, participant "our")
+  const flat: { p: any; win: boolean }[] = []
   for (const m of matches) {
     const our = (m.team_match_participants || []).filter(
       (p: any) => p.team_side === 'our' || !p.team_side
     )
-    for (const p of our) {
-      const name = p.champion_name
-      if (!name) continue
-      if (!byChamp.has(name)) {
-        byChamp.set(name, { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, gold: 0, damage: 0 })
-      }
-      const s = byChamp.get(name)
-      s.games++
-      if (m.our_win) s.wins++
-      s.kills += p.kills ?? 0
-      s.deaths += p.deaths ?? 0
-      s.assists += p.assists ?? 0
-      s.gold += p.gold_earned ?? 0
-      s.damage += p.total_damage_dealt_to_champions ?? 0
-    }
+    for (const p of our) flat.push({ p, win: !!m.our_win })
   }
-  return Array.from(byChamp.entries())
-    .map(([name, s]) => ({
-      name,
-      games: s.games,
-      wins: s.wins,
-      losses: s.games - s.wins,
-      winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
-      avgK: s.games > 0 ? s.kills / s.games : 0,
-      avgD: s.games > 0 ? s.deaths / s.games : 0,
-      avgA: s.games > 0 ? s.assists / s.games : 0,
-      kdaRatio: s.deaths > 0 ? (s.kills + s.assists) / s.deaths : s.kills + s.assists,
-      avgGold: s.games > 0 ? Math.round(s.gold / s.games) : 0,
-      avgDamage: s.games > 0 ? Math.round(s.damage / s.games) : 0,
-    }))
-    .sort((a, b) => b.games - a.games)
+  return aggregateChampionStats(
+    flat,
+    (r) => r.p.champion_name,
+    (r) => r.win,
+    {
+      getKills: (r) => r.p.kills ?? 0,
+      getDeaths: (r) => r.p.deaths ?? 0,
+      getAssists: (r) => r.p.assists ?? 0,
+      getGold: (r) => r.p.gold_earned ?? 0,
+      getDamage: (r) => r.p.total_damage_dealt_to_champions ?? 0,
+    },
+  )
 }
 
 function computePlayerChampionStats(playerId: string, matches: any[]) {
-  const byChamp = new Map<string, any>()
+  // Aplatir : un row par match où le joueur participe
+  const flat: { p: any; win: boolean }[] = []
   for (const m of matches) {
     const our = (m.team_match_participants || []).filter(
-      (p: any) => p.team_side === 'our' || !p.team_side
+      (x: any) => x.team_side === 'our' || !x.team_side
     )
     const p = our.find((x: any) => x.player_id === playerId)
-    if (!p || !p.champion_name) continue
-    const name = p.champion_name
-    if (!byChamp.has(name)) {
-      byChamp.set(name, { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, gold: 0, damage: 0 })
-    }
-    const s = byChamp.get(name)
-    s.games++
-    if (m.our_win) s.wins++
-    s.kills += p.kills ?? 0
-    s.deaths += p.deaths ?? 0
-    s.assists += p.assists ?? 0
-    s.gold += p.gold_earned ?? 0
-    s.damage += p.total_damage_dealt_to_champions ?? 0
+    if (p && p.champion_name) flat.push({ p, win: !!m.our_win })
   }
-  return Array.from(byChamp.entries())
-    .map(([name, s]) => ({
-      name,
-      games: s.games,
-      wins: s.wins,
-      losses: s.games - s.wins,
-      winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
-      avgK: s.games > 0 ? s.kills / s.games : 0,
-      avgD: s.games > 0 ? s.deaths / s.games : 0,
-      avgA: s.games > 0 ? s.assists / s.games : 0,
-      kdaRatio: s.deaths > 0 ? (s.kills + s.assists) / s.deaths : s.kills + s.assists,
-      avgGold: s.games > 0 ? Math.round(s.gold / s.games) : 0,
-      avgDamage: s.games > 0 ? Math.round(s.damage / s.games) : 0,
-    }))
-    .sort((a, b) => b.games - a.games)
+  return aggregateChampionStats(
+    flat,
+    (r) => r.p.champion_name,
+    (r) => r.win,
+    {
+      getKills: (r) => r.p.kills ?? 0,
+      getDeaths: (r) => r.p.deaths ?? 0,
+      getAssists: (r) => r.p.assists ?? 0,
+      getGold: (r) => r.p.gold_earned ?? 0,
+      getDamage: (r) => r.p.total_damage_dealt_to_champions ?? 0,
+    },
+  )
 }
 
 // ─── Combo / Compos ───────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { supabase } from '../../../../lib/supabase'
+import { aggregateChampionStats } from '../../../../lib/team/statsAggregation'
 import {
   fetchSoloqMatches,
   fetchSoloqChampionStats,
@@ -125,7 +126,7 @@ export function usePlayerSoloqData({
     setGameDetailMatch(null)
     matchHistoryPlayerIdRef.current = null
     setLpGraphMatches([])
-  }, [player?.id, selectedSoloqAccount])
+  }, [player?.id, soloqAccountSource])
 
   // ─── Load SoloQ data quand l'onglet devient actif ─────────────────────────
   useEffect(() => {
@@ -137,7 +138,7 @@ export function usePlayerSoloqData({
     }
     loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
     loadSoloqTopChampionsFromDb()
-  }, [selectedCard, player?.id, selectedSoloqAccount])
+  }, [selectedCard, player?.id, soloqAccountSource])
 
   // ─── LP graph au montage + changement de compte ───────────────────────────
   useEffect(() => {
@@ -146,7 +147,7 @@ export function usePlayerSoloqData({
     setLpGraphLoading(true)
     fetchSoloqMatches({
       playerId: player.id,
-      accountSource: selectedSoloqAccount === 1 ? 'primary' : 'secondary',
+      accountSource: soloqAccountSource,
       seasonStart: SEASON_16_START_MS,
       offset: 0,
       limit: 300,
@@ -158,7 +159,7 @@ export function usePlayerSoloqData({
       .catch(() => { if (!cancelled) setLpGraphMatches([]) })
       .finally(() => { if (!cancelled) setLpGraphLoading(false) })
     return () => { cancelled = true }
-  }, [player?.id, selectedSoloqAccount])
+  }, [player?.id, soloqAccountSource])
 
   // ─── Load functions ───────────────────────────────────────────────────────
 
@@ -205,34 +206,11 @@ export function usePlayerSoloqData({
         minDuration: REMAKE_THRESHOLD_SEC,
       })
       if (error) throw error
-      const byChamp = new Map()
-      for (const row of rows || []) {
-        const name = row.champion_name || 'Unknown'
-        if (!byChamp.has(name)) byChamp.set(name, { games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 })
-        const s = byChamp.get(name)
-        s.games++
-        if (row.win) s.wins++
-        s.kills += row.kills ?? 0
-        s.deaths += row.deaths ?? 0
-        s.assists += row.assists ?? 0
-      }
-      const list = Array.from(byChamp.entries())
-        .map(([name, s]) => ({
-          name,
-          games: s.games,
-          wins: s.wins,
-          winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
-          kills: s.kills,
-          deaths: s.deaths,
-          assists: s.assists,
-          kdaRatio: parseFloat(s.deaths > 0
-            ? ((s.kills + s.assists) / s.deaths).toFixed(2)
-            : (s.kills + s.assists).toFixed(2)),
-          avgK: s.games > 0 ? (s.kills / s.games).toFixed(1) : '0',
-          avgD: s.games > 0 ? (s.deaths / s.games).toFixed(1) : '0',
-          avgA: s.games > 0 ? (s.assists / s.games).toFixed(1) : '0',
-        }))
-        .sort((a, b) => b.games - a.games)
+      const list = aggregateChampionStats(
+        rows || [],
+        (r: any) => r.champion_name || 'Unknown',
+        (r: any) => !!r.win,
+      )
       setSoloqTopChampionsFromDb(list.slice(0, 5))
       setAllChampionsFromDb(list)
     } catch (e) {

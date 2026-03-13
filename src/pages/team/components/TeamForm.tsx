@@ -4,10 +4,15 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
-export const TeamForm = ({ onSubmit, initialName = '' }) => {
+interface TeamFormProps {
+  onSubmit: (name: string) => void
+  initialName?: string
+}
+
+export const TeamForm = ({ onSubmit, initialName = '' }: TeamFormProps) => {
   const [teamName, setTeamName] = useState(initialName)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (teamName.trim()) {
       onSubmit(teamName.trim())
@@ -28,6 +33,7 @@ export const TeamForm = ({ onSubmit, initialName = '' }) => {
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
           placeholder="Nom de l'équipe"
+          maxLength={50}
           className="flex-1 px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue"
           required
         />

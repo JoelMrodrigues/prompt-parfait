@@ -12,7 +12,7 @@ const listInflight = new Map<string, Promise<any[]>>()
 const fullInflight = new Map<string, Promise<any[]>>()
 
 function makeHook(
-  fetcher: (id: string) => Promise<any>,
+  fetcher: (id: string) => Promise<{ data: any[] | null; error: any }>,
   cache: Map<string, any[]>,
   inflight: Map<string, Promise<any[]>>
 ) {
@@ -37,18 +37,27 @@ function makeHook(
       if (!inflight.has(teamId)) {
         const promise = fetcher(teamId)
           .then(({ data, error }) => {
-            const result = error ? [] : (data ?? [])
-            if (!error) cache.set(teamId, result)
             inflight.delete(teamId)
+            if (error) throw error
+            const result = data ?? []
+            cache.set(teamId, result)
             return result
           })
-          .catch(() => { inflight.delete(teamId); return [] })
+          .catch((err) => {
+            inflight.delete(teamId)
+            // Re-throw pour que chaque awaiter gère l'erreur individuellement
+            throw err
+          })
         inflight.set(teamId, promise)
       }
 
       try {
         const result = await inflight.get(teamId)!
         setMatches(result)
+      } catch {
+        // Erreur réseau ou Supabase — on garde l'ancien état (ou vide)
+        // Ne pas cacher dans le cache → le prochain appel re-fetche
+        setMatches([])
       } finally {
         setLoading(false)
       }

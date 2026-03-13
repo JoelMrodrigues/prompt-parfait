@@ -21,12 +21,14 @@ export const Toast = ({ message, type = 'info', onClose }) => {
       initial={{ opacity: 0, y: -50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
+      role={type === 'error' ? 'alert' : 'status'}
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       className={`fixed top-4 right-4 z-50 min-w-[300px] p-4 rounded-lg border-2 ${COLORS[type]} backdrop-blur-sm`}
     >
       <div className="flex items-start gap-3">
         <Icon size={20} className="mt-0.5 flex-shrink-0" />
         <p className="flex-1 text-sm">{message}</p>
-        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors" aria-label="Fermer la notification">
           <X size={16} />
         </button>
       </div>

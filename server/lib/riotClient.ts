@@ -10,7 +10,7 @@ import type { RiotResponse } from '../types/index.js'
 export const REGION_TO_CLUSTER: Record<string, string> = {
   euw1: 'europe', eun1: 'europe', tr1: 'europe', ru: 'europe',
   na1: 'americas', br1: 'americas', la1: 'americas', la2: 'americas',
-  kr: 'asia', jp1: 'asia', oc1: 'asia',
+  kr: 'asia', jp1: 'asia', oc1: 'sea',
 }
 
 export function getCluster(region: string): string {

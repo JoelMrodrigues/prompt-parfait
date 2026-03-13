@@ -363,6 +363,9 @@ export const TeamsPage = () => {
                   <img
                     src={(t as any).logo_url}
                     alt={t.team_name}
+                    width={144}
+                    height={144}
+                    loading="lazy"
                     className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-60 transition-opacity"
                   />
                 ) : null}

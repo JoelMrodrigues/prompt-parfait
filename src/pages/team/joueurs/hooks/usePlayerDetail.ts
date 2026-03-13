@@ -10,6 +10,7 @@ import { useTeamTimelines } from '../../hooks/useTeamTimelines'
 import { usePlayerTeamStats } from '../../hooks/usePlayerTeamStats'
 import { fetchAllRunes } from '../../../../services/supabase/runeQueries'
 import { usePlayerSoloqData } from './usePlayerSoloqData'
+import { aggregateChampionStats } from '../../../../lib/team/statsAggregation'
 
 export function usePlayerDetail(playerId: string | undefined) {
   const { error: toastError, info: toastInfo } = useToast()
@@ -39,7 +40,7 @@ export function usePlayerDetail(playerId: string | undefined) {
 
   // ─── Team data ────────────────────────────────────────────────────────────
   const { matches: allTeamMatches } = useTeamMatches(team?.id)
-  const allTeamMatchIds = useMemo(() => (allTeamMatches || []).map((m: any) => m.id), [allTeamMatches])
+  const allTeamMatchIds = useMemo(() => (allTeamMatches || []).map((m: Record<string, unknown>) => m.id as string), [allTeamMatches])
   const { timelines: allTeamTimelines } = useTeamTimelines(allTeamMatchIds)
 
   // ─── Filtered team stats ──────────────────────────────────────────────────
@@ -52,33 +53,12 @@ export function usePlayerDetail(playerId: string | undefined) {
   // ─── Champion stats from team matches ────────────────────────────────────
   const championStatsFromTeam = useMemo(() => {
     if (!filteredTeamStats?.length) return []
-    const byChamp = new Map<string, any>()
-    for (const s of filteredTeamStats) {
-      const name = s.champion_name
-      if (!name) continue
-      if (!byChamp.has(name))
-        byChamp.set(name, { name, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, matchEntries: [] })
-      const c = byChamp.get(name)
-      c.games++
-      if (s.team_matches?.our_win) c.wins++
-      c.kills += s.kills ?? 0
-      c.deaths += s.deaths ?? 0
-      c.assists += s.assists ?? 0
-      c.matchEntries.push(s)
-    }
-    return Array.from(byChamp.values())
-      .map((c) => ({
-        ...c,
-        losses: c.games - c.wins,
-        winrate: c.games > 0 ? Math.round((c.wins / c.games) * 100) : 0,
-        avgK: c.games > 0 ? +(c.kills / c.games).toFixed(1) : 0,
-        avgD: c.games > 0 ? +(c.deaths / c.games).toFixed(1) : 0,
-        avgA: c.games > 0 ? +(c.assists / c.games).toFixed(1) : 0,
-        kdaRatio: c.deaths > 0
-          ? +((c.kills + c.assists) / c.deaths).toFixed(2)
-          : +(c.kills + c.assists).toFixed(2),
-      }))
-      .sort((a, b) => b.games - a.games)
+    return aggregateChampionStats(
+      filteredTeamStats,
+      (s: any) => s.champion_name,
+      (s: any) => !!s.team_matches?.our_win,
+      { collectEntry: true },
+    )
   }, [filteredTeamStats])
 
   // ─── Runes cache (chargé à la première ouverture de All Stats ou onglet Runes SoloQ) ──
@@ -87,7 +67,7 @@ export function usePlayerDetail(playerId: string | undefined) {
     let cancelled = false
     fetchAllRunes().then(({ data, error }) => {
       if (cancelled || error || !data?.length) return
-      setAllRunesCache(data.map((r: any) => ({ id: r.id, name: r.name || r.key || '', icon: r.icon || '' })))
+      setAllRunesCache(data.map((r: Record<string, unknown>) => ({ id: r.id as number, name: (r.name || r.key || '') as string, icon: (r.icon || '') as string })))
     })
     return () => { cancelled = true }
   }, [selectedTeamSub, selectedSoloqSub, allRunesCache.length])

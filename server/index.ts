@@ -1,5 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import axios from 'axios'
 import { loadServerEnv, resolveRiotApiKey } from './config/env.js'
 import riotRoutes from './routes/riot.routes.js'
@@ -30,8 +32,19 @@ const corsOptions = {
   credentials: true,
 }
 
+app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors(corsOptions))
-app.use(express.json())
+app.use(express.json({ limit: '10kb' }))
+
+// Rate limiting — 100 req/min par IP sur les routes API
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Trop de requêtes — réessayez dans 1 minute' },
+})
+app.use('/api', apiLimiter)
 
 app.use('/api/riot', riotRoutes)
 app.use('/api/stats', statsRoutes)

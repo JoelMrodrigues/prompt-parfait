@@ -1,7 +1,7 @@
 /**
  * Page Joueurs - Gestion des joueurs de l'équipe
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Plus } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
@@ -36,7 +36,7 @@ export const JoueursPage = () => {
     let cancelled = false
     const load = async () => {
       const next: Record<string, MoodRow> = {}
-      await Promise.all(
+      await Promise.allSettled(
         players.map(async (p) => {
           if (p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object') {
             const m = p.soloq_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
@@ -152,6 +152,18 @@ export const JoueursPage = () => {
     }
   }
 
+  const handleEditPlayer = useCallback((p: any) => {
+    setEditingPlayer(p)
+    setShowPlayerModal(true)
+  }, [])
+
+  const handleRequestDelete = useCallback((p: any) => setConfirmDelete(p), [])
+
+  const handleAddPlayer = useCallback(() => {
+    setEditingPlayer(null)
+    setShowPlayerModal(true)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -184,6 +196,9 @@ export const JoueursPage = () => {
                 <img
                   src={team.logo_url}
                   alt={team.team_name}
+                  width={80}
+                  height={80}
+                  loading="lazy"
                   className="w-full h-full object-contain p-1.5"
                 />
               ) : (
@@ -236,15 +251,9 @@ export const JoueursPage = () => {
 
       <PlayerList
         players={players}
-        onEdit={(p) => {
-          setEditingPlayer(p)
-          setShowPlayerModal(true)
-        }}
-        onDelete={(p) => setConfirmDelete(p)}
-        onAdd={() => {
-          setEditingPlayer(null)
-          setShowPlayerModal(true)
-        }}
+        onEdit={handleEditPlayer}
+        onDelete={handleRequestDelete}
+        onAdd={handleAddPlayer}
       />
 
       {/* Mood des joueurs — 2 cartes (Solo Q + Team) en dessous des cards joueurs */}

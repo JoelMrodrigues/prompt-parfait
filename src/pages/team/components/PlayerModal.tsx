@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { fetchSyncRank } from '../../../lib/riotSync'
 import { useToast } from '../../../contexts/ToastContext'
+import { OPGG_TO_RIOT, generateOpggLink, generateDpmLink } from '../../../lib/team/linkGenerators'
 
 const ROLES = ['TOP', 'JNG', 'MID', 'BOT', 'SUP', 'FLEX']
 
@@ -21,38 +22,26 @@ const REGIONS = [
   { value: 'jp1', label: 'JP — Japan' },
 ]
 
-// Mapping région Riot (euw1) → région op.gg (euw)
-const RIOT_TO_OPGG: Record<string, string> = {
-  euw1: 'euw',
-  eun1: 'eune',
-  na1: 'na',
-  kr: 'kr',
-  br1: 'br',
-  la1: 'lan',
-  la2: 'las',
-  oc1: 'oce',
-  tr1: 'tr',
-  ru: 'ru',
-  jp1: 'jp',
+interface PlayerData {
+  player_name?: string
+  pseudo?: string
+  secondary_account?: string
+  position?: string
+  player_type?: string
+  lolpro_link?: string
+  rank?: string
+  region?: string
+  opgg_link?: string
+  [key: string]: unknown
 }
 
-// Mapping inverse op.gg → Riot (pour rétro-compatibilité avec anciens opgg_link)
-const OPGG_TO_RIOT: Record<string, string> = Object.fromEntries(
-  Object.entries(RIOT_TO_OPGG).map(([riot, opgg]) => [opgg, riot])
-)
-
-const generateOpggLink = (p: string, riotRegion: string) => {
-  if (!p || !riotRegion) return ''
-  const opggRegion = RIOT_TO_OPGG[riotRegion] || riotRegion
-  return `https://op.gg/fr/lol/summoners/${opggRegion}/${encodeURIComponent(p.replace(/#/g, '-'))}`
+interface PlayerModalProps {
+  player: PlayerData | null
+  onSave: (data: PlayerData) => void
+  onClose: () => void
 }
 
-const generateDpmLink = (p: string) => {
-  if (!p) return ''
-  return `https://dpm.lol/${encodeURIComponent(p.replace(/#/g, '-'))}?queue=solo`
-}
-
-export const PlayerModal = ({ player, onSave, onClose }) => {
+export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
   const { error: toastError, success: toastSuccess, info: toastInfo } = useToast()
   const [playerName, setPlayerName] = useState(player?.player_name || '')
   const [pseudo, setPseudo] = useState(player?.pseudo || '')
@@ -190,7 +179,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
               <p className="text-xs text-gray-500 mt-0.5">{player.player_name}</p>
             )}
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors" aria-label="Fermer">
             <X size={20} />
           </button>
         </div>
@@ -210,6 +199,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     placeholder="Ex: John Doe"
+                    maxLength={50}
                     className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm focus:border-accent-blue focus:outline-none text-white placeholder-gray-600"
                     required
                   />
@@ -223,6 +213,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
                     value={pseudo}
                     onChange={(e) => setPseudo(e.target.value)}
                     placeholder="Summoner#EUW"
+                    maxLength={50}
                     className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm focus:border-accent-blue focus:outline-none text-white placeholder-gray-600"
                     required
                   />
@@ -251,6 +242,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
                     value={secondaryAccount}
                     onChange={(e) => setSecondaryAccount(e.target.value)}
                     placeholder="Alt#EUW"
+                    maxLength={50}
                     className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm focus:border-accent-blue focus:outline-none text-white placeholder-gray-600"
                   />
                 </div>
@@ -312,6 +304,7 @@ export const PlayerModal = ({ player, onSave, onClose }) => {
                 value={rank}
                 onChange={(e) => setRank(e.target.value)}
                 placeholder="Ex: Master 364 LP"
+                maxLength={30}
                 className="px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm focus:border-accent-blue focus:outline-none text-white placeholder-gray-600"
               />
               <button
