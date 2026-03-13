@@ -8,7 +8,7 @@ import { perf } from '../../lib/logger'
 
 // Requête légère — pour la liste des matchs (MatchsPage, ImportPage)
 // Split en 2 requêtes pour éviter le JSON aggregation PostgREST (embedded join lent)
-export async function fetchTeamMatchesList(teamId) {
+export async function fetchTeamMatchesList(teamId: string) {
   perf.start('fetchTeamMatchesList')
 
   // Étape 1 : matchs seulement (pas de join)
@@ -25,26 +25,27 @@ export async function fetchTeamMatchesList(teamId) {
   }
 
   // Étape 2 : participants pour ces matchs (1 seule requête .in)
-  const matchIds = matches.map((m) => m.id)
+  const matchIds = matches.map((m: Record<string, unknown>) => m.id)
   const { data: participants } = await supabase
     .from('team_match_participants')
     .select('id, match_id, player_id, champion_name, role, team_side, win, kills, deaths, assists')
     .in('match_id', matchIds)
 
   // Fusion en mémoire
-  const partsByMatch: Record<string, any[]> = {}
+  const partsByMatch: Record<string, Array<Record<string, unknown>>> = {}
   for (const p of participants ?? []) {
-    if (!partsByMatch[p.match_id]) partsByMatch[p.match_id] = []
-    partsByMatch[p.match_id].push(p)
+    const mid = p.match_id as string
+    if (!partsByMatch[mid]) partsByMatch[mid] = []
+    partsByMatch[mid].push(p)
   }
-  const data = matches.map((m) => ({ ...m, team_match_participants: partsByMatch[m.id] ?? [] }))
+  const data = matches.map((m: Record<string, unknown>) => ({ ...m, team_match_participants: partsByMatch[m.id as string] ?? [] }))
 
   perf.end('fetchTeamMatchesList')
   return { data, error: null }
 }
 
 // Requête complète — pour les stats (TeamStatsPage, DraftsPage)
-export async function fetchTeamMatches(teamId) {
+export async function fetchTeamMatches(teamId: string) {
   const { data, error } = await supabase
     .from('team_matches')
     .select(
@@ -62,14 +63,14 @@ export async function fetchTeamMatches(teamId) {
   return { data, error }
 }
 
-export async function fetchMatchById(matchId) {
+export async function fetchMatchById(matchId: string) {
   const { data, error } = await supabase.from('team_matches').select('*').eq('id', matchId).single()
   return { data, error }
 }
 
 // ─── PARTICIPANTS ─────────────────────────────────────────────────────────────
 
-export async function fetchParticipantsByMatch(matchId) {
+export async function fetchParticipantsByMatch(matchId: string) {
   const { data, error } = await supabase
     .from('team_match_participants')
     .select('*')
@@ -77,7 +78,7 @@ export async function fetchParticipantsByMatch(matchId) {
   return { data, error }
 }
 
-export async function fetchPlayerMatchStats(playerId) {
+export async function fetchPlayerMatchStats(playerId: string) {
   // Étape 1 : récupérer les participations du joueur
   const { data: parts, error } = await supabase
     .from('team_match_participants')
@@ -87,26 +88,26 @@ export async function fetchPlayerMatchStats(playerId) {
   if (error || !parts?.length) return { data: parts ?? [], error }
 
   // Étape 2 : récupérer les matches correspondants
-  const matchIds = [...new Set(parts.map((p) => p.match_id).filter(Boolean))]
+  const matchIds = [...new Set(parts.map((p: Record<string, unknown>) => p.match_id).filter(Boolean))]
   const { data: matches } = await supabase
     .from('team_matches')
     .select('id, game_id, game_duration, our_win, our_team_id, game_creation, match_type')
     .in('id', matchIds)
-  const matchMap = Object.fromEntries((matches ?? []).map((m) => [m.id, m]))
+  const matchMap = Object.fromEntries((matches ?? []).map((m: Record<string, unknown>) => [m.id, m]))
 
   // Fusionner manuellement
   const merged = parts
-    .map((p) => ({ ...p, team_matches: matchMap[p.match_id] ?? null }))
-    .sort((a, b) => {
-      const tA = a.team_matches?.game_creation ?? 0
-      const tB = b.team_matches?.game_creation ?? 0
+    .map((p: Record<string, unknown>) => ({ ...p, team_matches: matchMap[p.match_id as string] ?? null }))
+    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+      const tA = (a.team_matches as Record<string, unknown>)?.game_creation as number ?? 0
+      const tB = (b.team_matches as Record<string, unknown>)?.game_creation as number ?? 0
       return tB - tA
     })
 
   return { data: merged, error: null }
 }
 
-export async function fetchTeamTotalsByMatchIds(matchIds) {
+export async function fetchTeamTotalsByMatchIds(matchIds: string[]) {
   const { data, error } = await supabase
     .from('team_match_participants')
     .select('match_id, kills, gold_earned, total_damage_dealt_to_champions')
@@ -115,7 +116,7 @@ export async function fetchTeamTotalsByMatchIds(matchIds) {
   return { data, error }
 }
 
-export async function updateParticipantRole(participantId, role) {
+export async function updateParticipantRole(participantId: string, role: string) {
   const { error } = await supabase
     .from('team_match_participants')
     .update({ role })
@@ -125,7 +126,7 @@ export async function updateParticipantRole(participantId, role) {
 
 // ─── TIMELINE ─────────────────────────────────────────────────────────────────
 
-export async function fetchTimelineByMatch(matchId) {
+export async function fetchTimelineByMatch(matchId: string) {
   const { data, error } = await supabase
     .from('team_match_timeline')
     .select('snapshot')
@@ -134,7 +135,7 @@ export async function fetchTimelineByMatch(matchId) {
   return { data, error }
 }
 
-export async function fetchTimelinesByMatchIds(matchIds) {
+export async function fetchTimelinesByMatchIds(matchIds: string[]) {
   const { data, error } = await supabase
     .from('team_match_timeline')
     .select('match_id, snapshot')

@@ -3,7 +3,7 @@
  */
 import { supabase } from '../../lib/supabase'
 
-export async function addChampionToPool(playerId, championId, masteryLevel) {
+export async function addChampionToPool(playerId: string, championId: string, masteryLevel: number) {
   const { data, error } = await supabase
     .from('champion_pools')
     .insert([{ player_id: playerId, champion_id: championId, mastery_level: masteryLevel }])
@@ -12,18 +12,18 @@ export async function addChampionToPool(playerId, championId, masteryLevel) {
   return { data, error }
 }
 
-export async function removeChampionFromPool(poolId) {
+export async function removeChampionFromPool(poolId: string) {
   const { error } = await supabase.from('champion_pools').delete().eq('id', poolId)
   return { error }
 }
 
-export async function clearPlayerChampionPool(playerId) {
+export async function clearPlayerChampionPool(playerId: string) {
   const { error } = await supabase.from('champion_pools').delete().eq('player_id', playerId)
   return { error }
 }
 
 // Supprime toutes les lignes sauf Training (utilisé par le save de la Pool Champ)
-export async function clearPlayerPoolExcludingTraining(playerId) {
+export async function clearPlayerPoolExcludingTraining(playerId: string) {
   const { error } = await supabase
     .from('champion_pools')
     .delete()
@@ -32,7 +32,7 @@ export async function clearPlayerPoolExcludingTraining(playerId) {
   return { error }
 }
 
-export async function insertChampionPoolRows(rows) {
+export async function insertChampionPoolRows(rows: Array<Record<string, unknown>>) {
   const { error } = await supabase.from('champion_pools').insert(rows)
   return { error }
 }

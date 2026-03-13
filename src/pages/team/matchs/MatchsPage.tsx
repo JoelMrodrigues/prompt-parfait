@@ -93,7 +93,7 @@ export const MatchsPage = () => {
           {team.logo_url && (
             <img
               src={team.logo_url}
-              alt={team.name}
+              alt={team.team_name}
               className="w-12 h-12 rounded-xl object-cover border border-dark-border"
             />
           )}

@@ -12,7 +12,7 @@ export async function fetchFirstTeam() {
   return { data: Array.isArray(data) ? data[0] : data, error }
 }
 
-export async function createTeam(userId, teamName, teamType = 'scrim') {
+export async function createTeam(userId: string, teamName: string, teamType = 'scrim') {
   const { data, error } = await supabase
     .from('teams')
     .insert([{ user_id: userId, team_name: teamName, team_type: teamType }])
@@ -21,7 +21,7 @@ export async function createTeam(userId, teamName, teamType = 'scrim') {
   return { data, error }
 }
 
-export async function updateTeam(teamId, updates) {
+export async function updateTeam(teamId: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('teams')
     .update(updates)
@@ -31,7 +31,7 @@ export async function updateTeam(teamId, updates) {
   return { data, error }
 }
 
-export async function getOrCreateInviteToken(teamId) {
+export async function getOrCreateInviteToken(teamId: string) {
   const { data: teamRow } = await supabase
     .from('teams')
     .select('invite_token')
@@ -58,7 +58,7 @@ export async function deleteTeam(teamId: string) {
   return { error }
 }
 
-export async function joinTeamByToken(token) {
+export async function joinTeamByToken(token: string) {
   const { data, error } = await supabase.rpc('join_team_by_token', { p_token: token })
   return { data, error }
 }

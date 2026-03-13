@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 
 // ─── PLAYERS ─────────────────────────────────────────────────────────────────
 
-export async function fetchPlayersByTeam(teamId) {
+export async function fetchPlayersByTeam(teamId: string) {
   const { data, error } = await supabase
     .from('players')
     .select('*, champion_pools(*)')
@@ -14,27 +14,36 @@ export async function fetchPlayersByTeam(teamId) {
   return { data, error }
 }
 
-export async function createPlayer(playerData) {
+export async function createPlayer(playerData: Record<string, unknown>) {
   const { data, error } = await supabase.from('players').insert([playerData]).select().single()
   return { data, error }
 }
 
-export async function updatePlayer(playerId, updates) {
+export async function updatePlayer(playerId: string, updates: Record<string, unknown>) {
   const { data, error } = await supabase.from('players').update(updates).eq('id', playerId).select()
   return { data, error }
 }
 
-export async function updatePlayerSilent(playerId, updates) {
+export async function updatePlayerSilent(playerId: string, updates: Record<string, unknown>) {
   const { error } = await supabase.from('players').update(updates).eq('id', playerId)
   return { error }
 }
 
-export async function deletePlayer(playerId) {
+export async function deletePlayer(playerId: string) {
   const { error } = await supabase.from('players').delete().eq('id', playerId)
   return { error }
 }
 
 // ─── PLAYER SOLOQ MATCHES ────────────────────────────────────────────────────
+
+interface FetchSoloqMatchesParams {
+  playerId: string
+  accountSource: string
+  seasonStart: number
+  offset?: number
+  limit?: number
+  withCount?: boolean
+}
 
 export async function fetchSoloqMatches({
   playerId,
@@ -43,7 +52,7 @@ export async function fetchSoloqMatches({
   offset = 0,
   limit = 20,
   withCount = false,
-}) {
+}: FetchSoloqMatchesParams) {
   const query = supabase
     .from('player_soloq_matches')
     .select('*', withCount ? { count: 'exact' } : undefined)
@@ -70,12 +79,19 @@ export async function fetchSoloqMatchIds(playerId: string, accountSource: string
   return { data: ids, error: null }
 }
 
+interface FetchSoloqChampionStatsParams {
+  playerId: string
+  accountSource: string
+  seasonStart: number
+  minDuration?: number
+}
+
 export async function fetchSoloqChampionStats({
   playerId,
   accountSource,
   seasonStart,
   minDuration = undefined,
-}) {
+}: FetchSoloqChampionStatsParams) {
   let query = supabase
     .from('player_soloq_matches')
     .select('champion_name, win, kills, deaths, assists')
@@ -89,12 +105,19 @@ export async function fetchSoloqChampionStats({
   return { data, error }
 }
 
+interface FetchSoloqMatchesByChampionParams {
+  playerId: string
+  accountSource: string
+  championName: string
+  minDuration?: number
+}
+
 export async function fetchSoloqMatchesByChampion({
   playerId,
   accountSource,
   championName,
   minDuration,
-}) {
+}: FetchSoloqMatchesByChampionParams) {
   let query = supabase
     .from('player_soloq_matches')
     .select('*')
@@ -109,7 +132,7 @@ export async function fetchSoloqMatchesByChampion({
   return { data, error }
 }
 
-export async function fetchSoloqTopChampions(playerId, accountSource, seasonStart) {
+export async function fetchSoloqTopChampions(playerId: string, accountSource: string, seasonStart: number) {
   const { data, error } = await supabase
     .from('player_soloq_matches')
     .select('champion_name, win')
@@ -141,7 +164,7 @@ export async function fetchWeeklySoloqCount(playerId: string): Promise<number> {
   return count
 }
 
-export async function upsertSoloqMatches(rows) {
+export async function upsertSoloqMatches(rows: Array<Record<string, unknown>>) {
   const { error } = await supabase
     .from('player_soloq_matches')
     .upsert(rows, { onConflict: 'player_id,riot_match_id' })
@@ -152,7 +175,7 @@ export async function upsertSoloqMatches(rows) {
 export async function updateSoloqMatchEnrichment(
   playerId: string,
   riotMatchId: string,
-  updates: { match_json?: any; timeline_json?: any; total_damage?: number | null; cs?: number | null; vision_score?: number | null; gold_earned?: number | null },
+  updates: { match_json?: unknown; timeline_json?: unknown; total_damage?: number | null; cs?: number | null; vision_score?: number | null; gold_earned?: number | null },
 ) {
   const { error } = await supabase
     .from('player_soloq_matches')

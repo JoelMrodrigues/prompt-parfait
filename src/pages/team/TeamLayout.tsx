@@ -27,9 +27,9 @@ export const TeamLayout = () => {
 
   // Apply saved team accent color globally
   useEffect(() => {
-    const color = (team as any)?.accent_color
+    const color = team?.accent_color
     if (color) document.documentElement.style.setProperty('--color-accent', color)
-  }, [(team as any)?.accent_color])
+  }, [team?.accent_color])
 
   // Si pas d'équipe, rediriger vers overview (sauf page d'invitation)
   const isJoinPage = location.pathname.startsWith('/team/join/')
