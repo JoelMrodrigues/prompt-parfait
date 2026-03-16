@@ -4,9 +4,11 @@
  * ⚠️ Nécessite League of Legends ouvert + connecté
  */
 import { useState } from 'react'
-import { Wifi, WifiOff, RefreshCw, Download, CheckSquare, Square, Swords, Trophy, AlertCircle, ChevronDown, ChevronUp, User, FileJson } from 'lucide-react'
+import { Wifi, WifiOff, RefreshCw, Download, CheckSquare, Square, Swords, Trophy, AlertCircle, ChevronDown, ChevronUp, User, FileJson, Activity, CheckCircle, XCircle } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { importExaltyMatches } from '../../../lib/team/exaltyMatchImporter'
+import { parseTimeline, getSnapshotsAtMinutes } from '../../../lib/team/exaltyTimelineParser'
+import { supabase } from '../../../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +64,10 @@ export const TestPage = () => {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+
+  // Timelines (section séparée, indépendante du flux import)
+  type TlStatus = { status: 'idle' | 'loading' | 'success' | 'no-match' | 'error'; message?: string; summary?: { durationMin: number; kills: number; dragons: number } }
+  const [tlStatuses, setTlStatuses] = useState<Record<number, TlStatus>>({})
 
   const BACKEND = 'http://localhost:3001'
 
@@ -188,6 +194,66 @@ export const TestPage = () => {
       URL.revokeObjectURL(url)
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  // ─── Import timeline LCU → Supabase ─────────────────────────────────────────
+
+  async function handleImportTimeline(game: LcuGame) {
+    if (!summoner || !team?.id) return
+    const password = lockfile.trim().split(':')[3]
+    setTlStatuses(prev => ({ ...prev, [game.gameId]: { status: 'loading' } }))
+
+    try {
+      // 1) Fetch timeline via LCU
+      const res = await fetch(`${BACKEND}/api/lcu/timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port: summoner.port, password, gameId: game.gameId }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Erreur LCU timeline')
+
+      // 2) Parse
+      const parsed = parseTimeline(data.timeline)
+      if (!parsed) throw new Error('Format timeline invalide (frames manquantes)')
+
+      // 3) Snapshots aux minutes clés
+      const snapshot = getSnapshotsAtMinutes(parsed)
+
+      // 4) Trouver le match en base (par game_id + team_id)
+      const { data: matchRow } = await supabase!
+        .from('team_matches')
+        .select('id')
+        .eq('team_id', team.id)
+        .eq('game_id', game.gameId)
+        .maybeSingle()
+
+      if (!matchRow) {
+        setTlStatuses(prev => ({ ...prev, [game.gameId]: { status: 'no-match' } }))
+        return
+      }
+
+      // 5) Upsert timeline
+      const { error: upsertErr } = await supabase!
+        .from('team_match_timeline')
+        .upsert({ match_id: matchRow.id, snapshot }, { onConflict: 'match_id' })
+
+      if (upsertErr) throw new Error(upsertErr.message)
+
+      setTlStatuses(prev => ({
+        ...prev,
+        [game.gameId]: {
+          status: 'success',
+          summary: {
+            durationMin: parsed.summary?.durationMin ?? 0,
+            kills: parsed.summary?.kills ?? 0,
+            dragons: parsed.summary?.dragons ?? 0,
+          },
+        },
+      }))
+    } catch (err: any) {
+      setTlStatuses(prev => ({ ...prev, [game.gameId]: { status: 'error', message: err.message } }))
     }
   }
 
@@ -367,7 +433,7 @@ export const TestPage = () => {
         </div>
       )}
 
-      {/* Step 3 — Import */}
+      {/* Step 3 — Import scrims */}
       {games.length > 0 && selected.size > 0 && (
         <div className="rounded-2xl border border-dark-border bg-dark-card/40 p-5 space-y-4">
           <div className="flex items-center gap-2">
@@ -422,6 +488,77 @@ export const TestPage = () => {
                 <p key={i} className="text-xs mt-1 text-rose-400">{e}</p>
               ))}
             </div>
+          )}
+        </div>
+      )}
+      {/* Step 4 — Timelines (section séparée, indépendante) */}
+      {games.length > 0 && (
+        <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3.5 border-b border-purple-500/20">
+            <span className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-bold flex items-center justify-center">4</span>
+            <Activity size={14} className="text-purple-400" />
+            <span className="font-semibold text-white text-sm">Timelines LCU</span>
+            <span className="text-xs text-gray-500 ml-1">— indépendant de l'import</span>
+          </div>
+
+          <div className="divide-y divide-purple-500/10">
+            {games.map(g => {
+              const tl = tlStatuses[g.gameId] ?? { status: 'idle' }
+              return (
+                <div key={g.gameId} className="flex items-center gap-3 px-5 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white">
+                      Custom Game · {formatDuration(g.gameDuration)}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {formatDate(g.gameCreation)} · #{g.gameId}
+                    </p>
+                  </div>
+
+                  {/* Résumé si succès */}
+                  {tl.status === 'success' && tl.summary && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 shrink-0">
+                      <span>{tl.summary.durationMin} min</span>
+                      <span>·</span>
+                      <span>{tl.summary.kills} kills</span>
+                      <span>·</span>
+                      <span>{tl.summary.dragons} 🐉</span>
+                    </div>
+                  )}
+
+                  {/* Badge statut */}
+                  {tl.status === 'success' && (
+                    <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+                  )}
+                  {tl.status === 'no-match' && (
+                    <span className="text-xs text-amber-400 shrink-0">Match non importé</span>
+                  )}
+                  {tl.status === 'error' && (
+                    <span className="text-xs text-rose-400 shrink-0 max-w-[160px] truncate" title={tl.message}>
+                      <XCircle size={13} className="inline mr-1" />{tl.message}
+                    </span>
+                  )}
+
+                  {/* Bouton */}
+                  <button
+                    type="button"
+                    onClick={() => handleImportTimeline(g)}
+                    disabled={tl.status === 'loading' || !team}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-medium hover:bg-purple-500/20 transition-colors disabled:opacity-40"
+                  >
+                    {tl.status === 'loading'
+                      ? <><RefreshCw size={12} className="animate-spin" /> Chargement…</>
+                      : tl.status === 'success'
+                        ? <><RefreshCw size={12} /> Ré-importer</>
+                        : <><Activity size={12} /> Importer timeline</>}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          {!team && (
+            <p className="text-amber-400 text-xs px-5 pb-3">⚠️ Aucune équipe active.</p>
           )}
         </div>
       )}

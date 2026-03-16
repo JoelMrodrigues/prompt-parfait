@@ -121,4 +121,20 @@ router.post('/game', async (req: Request, res: Response) => {
   }
 })
 
+// ─── POST /api/lcu/timeline ───────────────────────────────────────────────────
+// Retourne la timeline complète d'une game (frames par minute) via gameId
+
+router.post('/timeline', async (req: Request, res: Response) => {
+  const { port, password, gameId } = req.body
+  if (!port || !password || !gameId) return res.status(400).json({ success: false, error: 'port, password et gameId requis' })
+
+  try {
+    const client = lcuClient(port, password)
+    const { data } = await client.get(`/lol-match-history/v1/games/${gameId}/timeline`)
+    return res.json({ success: true, timeline: data })
+  } catch (err: any) {
+    return res.status(503).json({ success: false, error: `Erreur LCU timeline — ${err.message}` })
+  }
+})
+
 export default router
