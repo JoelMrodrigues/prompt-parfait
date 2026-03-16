@@ -107,16 +107,29 @@ export function useTeamAutoSync() {
               countData = await countRes.json().catch(() => ({}))
             }
             if (!countData.success || typeof countData.total !== 'number') {
-              // PUUID invalide/corrompu → on l'efface et on skippe (sera re-lookupé au prochain cycle)
+              // PUUID invalide/corrompu → relance sans PUUID pour forcer un fresh lookup Riot
               if (countRes.status === 400 && cachedPuuid && /decrypt/i.test(countData.error || '')) {
-                logger.warn(LOG_PREFIX, name, '| PUUID invalide — reset en base, sera re-lookupé au prochain cycle')
+                logger.warn(LOG_PREFIX, name, '| PUUID invalide — relance sans PUUID (fresh lookup Riot)')
                 cachedPuuid = null
-                await updatePlayerFn(player.id, { puuid: null })
+                const retryRes = await apiFetch(`/api/riot/match-count?pseudo=${encodeURIComponent(pseudo)}&region=${encodeURIComponent(region)}`)
+                const retryData = await retryRes.json().catch(() => ({}))
+                if (retryData.success && typeof retryData.total === 'number') {
+                  if (retryData.puuid) {
+                    cachedPuuid = retryData.puuid
+                    await updatePlayerFn(player.id, { puuid: cachedPuuid }).catch(() => {})
+                  }
+                  // Continuer avec le bon total
+                  Object.assign(countData, retryData)
+                } else {
+                  logger.warn(LOG_PREFIX, name, '| match-count retry erreur:', retryData.error || retryRes.status)
+                  await delay(DELAY_BETWEEN_PLAYERS_MS)
+                  continue
+                }
               } else {
                 logger.warn(LOG_PREFIX, name, '| match-count erreur:', countData.error || countRes.status)
+                await delay(DELAY_BETWEEN_PLAYERS_MS)
+                continue
               }
-              await delay(DELAY_BETWEEN_PLAYERS_MS)
-              continue
             }
             const totalRiot = countData.total
 
