@@ -225,10 +225,19 @@ router.get('/match-ids', requireApiKey, requirePseudo, async (req: Request, res:
   const count = Math.min(100, Math.max(1, parseInt(req.query.count as string, 10) || 100))
 
   try {
-    const resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
+    let resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
     if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region)
+    let result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region)
+
+    // PUUID invalide en cache (Exception decrypting) → fresh lookup Riot côté serveur
+    if ('error' in result && puuidOverride && /decrypt/i.test(result.error)) {
+      console.warn(`[match-ids] PUUID invalide pour ${req.pseudo} — fresh lookup Riot`)
+      resolved = await resolvePuuid(req.pseudo!, region, '')
+      if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
+      result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region)
+    }
+
     if ('error' in result) return res.status(result.status || 500).json({ success: false, error: result.error })
 
     res.json({ success: true, puuid: resolved.puuid, matchIds: result.matchIds, hasMore: result.hasMore })
@@ -276,10 +285,19 @@ router.get('/match-count', requireApiKey, requirePseudo, async (req: Request, re
   const puuidOverride = (req.query.puuid as string || '').trim()
 
   try {
-    const resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
+    let resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
     if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const result = await fetchMatchCount(resolved.puuid, getApiKey(), region)
+    let result = await fetchMatchCount(resolved.puuid, getApiKey(), region)
+
+    // PUUID invalide en cache (Exception decrypting) → fresh lookup Riot côté serveur
+    if ('error' in result && puuidOverride && /decrypt/i.test(result.error)) {
+      console.warn(`[match-count] PUUID invalide pour ${req.pseudo} — fresh lookup Riot`)
+      resolved = await resolvePuuid(req.pseudo!, region, '')
+      if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
+      result = await fetchMatchCount(resolved.puuid, getApiKey(), region)
+    }
+
     if ('error' in result) return res.status(result.status || 500).json({ success: false, error: result.error })
 
     res.json({ success: true, total: result.total, puuid: resolved.puuid })
