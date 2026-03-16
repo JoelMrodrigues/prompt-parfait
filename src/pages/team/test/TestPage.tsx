@@ -198,41 +198,62 @@ export const TestPage = () => {
   }
 
   // ─── Import timeline LCU → Supabase ─────────────────────────────────────────
+  // Si le match n'est pas encore en base, il est importé automatiquement avant la timeline.
 
   async function handleImportTimeline(game: LcuGame) {
-    if (!summoner || !team?.id) return
+    if (!summoner || !team?.id || !players?.length) return
     const password = lockfile.trim().split(':')[3]
     setTlStatuses(prev => ({ ...prev, [game.gameId]: { status: 'loading' } }))
 
     try {
-      // 1) Fetch timeline via LCU
-      const res = await fetch(`${BACKEND}/api/lcu/timeline`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ port: summoner.port, password, gameId: game.gameId }),
-      })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error || 'Erreur LCU timeline')
+      // 1) Fetch timeline + game en parallèle
+      const [tlRes, gameRes] = await Promise.all([
+        fetch(`${BACKEND}/api/lcu/timeline`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: summoner.port, password, gameId: game.gameId }),
+        }),
+        fetch(`${BACKEND}/api/lcu/game`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port: summoner.port, password, gameId: game.gameId }),
+        }),
+      ])
+      const [tlData, gameData] = await Promise.all([tlRes.json(), gameRes.json()])
 
-      // 2) Parse
-      const parsed = parseTimeline(data.timeline)
+      if (!tlData.success) throw new Error(tlData.error || 'Erreur LCU timeline')
+
+      // 2) Parse timeline
+      const parsed = parseTimeline(tlData.timeline)
       if (!parsed) throw new Error('Format timeline invalide (frames manquantes)')
-
-      // 3) Snapshots aux minutes clés
       const snapshot = getSnapshotsAtMinutes(parsed)
 
-      // 4) Trouver le match en base (par game_id + team_id)
-      const { data: matchRow } = await supabase!
+      // 3) Vérifier si le match existe déjà en base
+      let { data: matchRow } = await supabase!
         .from('team_matches')
         .select('id')
         .eq('team_id', team.id)
         .eq('game_id', game.gameId)
         .maybeSingle()
 
+      // 4) Si absent → importer le match d'abord (même type que la section Import)
       if (!matchRow) {
-        setTlStatuses(prev => ({ ...prev, [game.gameId]: { status: 'no-match' } }))
-        return
+        const fullGame = gameData.success && gameData.game ? gameData.game : game._raw
+        const importRes = await importExaltyMatches([fullGame], team.id, players, matchType)
+        if (importRes.errors.length && !importRes.imported) {
+          throw new Error(`Import match échoué : ${importRes.errors[0]}`)
+        }
+        // Re-chercher le match maintenant qu'il est en base
+        const { data: newRow } = await supabase!
+          .from('team_matches')
+          .select('id')
+          .eq('team_id', team.id)
+          .eq('game_id', game.gameId)
+          .maybeSingle()
+        matchRow = newRow
       }
+
+      if (!matchRow) throw new Error('Match introuvable après import')
 
       // 5) Upsert timeline
       const { error: upsertErr } = await supabase!
@@ -529,9 +550,6 @@ export const TestPage = () => {
                   {/* Badge statut */}
                   {tl.status === 'success' && (
                     <CheckCircle size={15} className="text-emerald-400 shrink-0" />
-                  )}
-                  {tl.status === 'no-match' && (
-                    <span className="text-xs text-amber-400 shrink-0">Match non importé</span>
                   )}
                   {tl.status === 'error' && (
                     <span className="text-xs text-rose-400 shrink-0 max-w-[160px] truncate" title={tl.message}>
