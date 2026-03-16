@@ -248,8 +248,8 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req: Request, 
   if (matchIds.length === 0) {
     return res.status(400).json({ success: false, error: 'Paramètre matchIds requis (ids séparés par des virgules)' })
   }
-  // Validation format : XX_NNNNNNN (préfixe région + underscore + chiffres)
-  const validMatchId = /^[A-Z]{2,4}_\d+$/
+  // Validation format : EUW1_NNNNNNN, NA1_NNNNN, KR_NNNNN, etc. (lettres + chiffre optionnel + underscore + chiffres)
+  const validMatchId = /^[A-Z]{2,4}\d?_\d+$/
   if (matchIds.some((id) => !validMatchId.test(id))) {
     return res.status(400).json({ success: false, error: 'Format matchId invalide (attendu : EUW1_1234567890)' })
   }
@@ -298,7 +298,7 @@ function getRouting(region: string): string {
 
 router.get('/match-detail', requireApiKey, async (req: Request, res: Response) => {
   const matchId = (req.query.matchId as string || '').trim()
-  if (!matchId || !/^[A-Z]{2,4}_\d+$/.test(matchId)) {
+  if (!matchId || !/^[A-Z]{2,4}\d?_\d+$/.test(matchId)) {
     return res.status(400).json({ success: false, error: 'Paramètre matchId requis (format : EUW1_1234567890)' })
   }
 
@@ -329,7 +329,7 @@ router.get('/match-detail', requireApiKey, async (req: Request, res: Response) =
 
 router.get('/match-timeline', requireApiKey, async (req: Request, res: Response) => {
   const matchId = (req.query.matchId as string || '').trim()
-  if (!matchId || !/^[A-Z]{2,4}_\d+$/.test(matchId)) {
+  if (!matchId || !/^[A-Z]{2,4}\d?_\d+$/.test(matchId)) {
     return res.status(400).json({ success: false, error: 'Paramètre matchId requis (format : EUW1_1234567890)' })
   }
 
