@@ -105,4 +105,20 @@ router.post('/matches', async (req: Request, res: Response) => {
   }
 })
 
+// ─── POST /api/lcu/game ───────────────────────────────────────────────────────
+// Retourne le détail complet d'une game (10 participants) via gameId
+
+router.post('/game', async (req: Request, res: Response) => {
+  const { port, password, gameId } = req.body
+  if (!port || !password || !gameId) return res.status(400).json({ success: false, error: 'port, password et gameId requis' })
+
+  try {
+    const client = lcuClient(port, password)
+    const { data } = await client.get(`/lol-match-history/v1/games/${gameId}`)
+    return res.json({ success: true, game: data })
+  } catch (err: any) {
+    return res.status(503).json({ success: false, error: `Erreur LCU game — ${err.message}` })
+  }
+})
+
 export default router

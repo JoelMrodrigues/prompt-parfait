@@ -122,13 +122,17 @@ function inferRoleFromTimeline(p) {
   return 'UNKNOWN'
 }
 
-/** Pseudo complet depuis le JSON (gameName#tagLine) */
+/** Pseudo complet depuis le JSON (gameName#tagLine, ou summonerName pour le format LCU custom games) */
 function getJsonPseudo(identity) {
   const p = identity?.player
-  if (!p?.gameName) return null
-  const g = (p.gameName || '').trim()
-  const t = (p.tagLine || '').trim()
-  return t ? `${g}#${t}` : g
+  if (!p) return null
+  if (p.gameName) {
+    const g = (p.gameName || '').trim()
+    const t = (p.tagLine || '').trim()
+    return t ? `${g}#${t}` : g
+  }
+  // Fallback : format LCU custom games → summonerName sans tag
+  return (p.summonerName || '').trim() || null
 }
 
 /**

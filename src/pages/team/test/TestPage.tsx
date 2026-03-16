@@ -123,12 +123,35 @@ export const TestPage = () => {
   // ─── Import dans Supabase ───────────────────────────────────────────────────
 
   async function handleImport() {
-    if (!selected.size || !team?.id || !players?.length) return
+    if (!selected.size || !team?.id || !players?.length || !summoner) return
     setImporting(true)
     setImportResult(null)
     try {
-      const toImport = games.filter(g => selected.has(g.gameId)).map(g => g._raw)
-      const result = await importExaltyMatches(toImport, team.id, players, matchType)
+      const password = lockfile.trim().split(':')[3]
+      const selectedGames = games.filter(g => selected.has(g.gameId))
+
+      // Récupère le détail complet (10 participants) pour chaque game via /lol-match-history/v1/games/{gameId}
+      const fullGames: any[] = []
+      for (const g of selectedGames) {
+        try {
+          const res = await fetch(`${BACKEND}/api/lcu/game`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port: summoner.port, password, gameId: g.gameId }),
+          })
+          const data = await res.json()
+          if (data.success && data.game) {
+            fullGames.push(data.game)
+          } else {
+            // Fallback sur _raw si l'endpoint échoue
+            fullGames.push(g._raw)
+          }
+        } catch {
+          fullGames.push(g._raw)
+        }
+      }
+
+      const result = await importExaltyMatches(fullGames, team.id, players, matchType)
       setImportResult(result)
       setSelected(new Set())
     } catch (err: any) {
