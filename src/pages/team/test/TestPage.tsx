@@ -68,6 +68,7 @@ export const TestPage = () => {
   // Timelines (section séparée, indépendante du flux import)
   type TlStatus = { status: 'idle' | 'loading' | 'success' | 'no-match' | 'error'; message?: string; summary?: { durationMin: number; kills: number; dragons: number } }
   const [tlStatuses, setTlStatuses] = useState<Record<number, TlStatus>>({})
+  const [downloadingTlId, setDownloadingTlId] = useState<number | null>(null)
 
   const BACKEND = 'http://localhost:3001'
 
@@ -194,6 +195,34 @@ export const TestPage = () => {
       URL.revokeObjectURL(url)
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  // ─── Téléchargement JSON timeline ───────────────────────────────────────────
+
+  async function handleDownloadTimeline(game: LcuGame) {
+    if (!summoner) return
+    const password = lockfile.trim().split(':')[3]
+    setDownloadingTlId(game.gameId)
+    try {
+      const res = await fetch(`${BACKEND}/api/lcu/timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port: summoner.port, password, gameId: game.gameId }),
+      })
+      const data = await res.json()
+      const json = data.success && data.timeline ? data.timeline : {}
+      const date = new Date(game.gameCreation).toISOString().slice(0, 10)
+      const filename = `timeline_${game.gameId}_${date}.json`
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDownloadingTlId(null)
     }
   }
 
@@ -557,7 +586,20 @@ export const TestPage = () => {
                     </span>
                   )}
 
-                  {/* Bouton */}
+                  {/* Bouton téléchargement timeline */}
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadTimeline(g)}
+                    disabled={downloadingTlId === g.gameId}
+                    title="Télécharger le JSON timeline"
+                    className="shrink-0 p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors disabled:opacity-40"
+                  >
+                    {downloadingTlId === g.gameId
+                      ? <RefreshCw size={13} className="animate-spin" />
+                      : <FileJson size={13} />}
+                  </button>
+
+                  {/* Bouton import timeline */}
                   <button
                     type="button"
                     onClick={() => handleImportTimeline(g)}
