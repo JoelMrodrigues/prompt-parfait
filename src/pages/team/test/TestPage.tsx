@@ -323,11 +323,11 @@ export const TestPage = () => {
                 {games.map(g => {
                   const isSelected = selected.has(g.gameId)
                   return (
-                    <button
+                    <div
                       key={g.gameId}
-                      type="button"
+                      role="row"
+                      className={`flex items-center gap-3 px-5 py-3 transition-colors cursor-pointer ${isSelected ? 'bg-accent-blue/5' : 'hover:bg-dark-bg/30'}`}
                       onClick={() => toggleSelect(g.gameId)}
-                      className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${isSelected ? 'bg-accent-blue/5' : 'hover:bg-dark-bg/30'}`}
                     >
                       <div className={`shrink-0 ${isSelected ? 'text-accent-blue' : 'text-gray-600'}`}>
                         {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
@@ -352,7 +352,7 @@ export const TestPage = () => {
                           ? <RefreshCw size={13} className="animate-spin" />
                           : <FileJson size={13} />}
                       </button>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
