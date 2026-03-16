@@ -107,7 +107,14 @@ export function useTeamAutoSync() {
               countData = await countRes.json().catch(() => ({}))
             }
             if (!countData.success || typeof countData.total !== 'number') {
-              logger.warn(LOG_PREFIX, name, '| match-count erreur:', countData.error || countRes.status)
+              // PUUID invalide/corrompu → on l'efface et on skippe (sera re-lookupé au prochain cycle)
+              if (countRes.status === 400 && cachedPuuid && /decrypt/i.test(countData.error || '')) {
+                logger.warn(LOG_PREFIX, name, '| PUUID invalide — reset en base, sera re-lookupé au prochain cycle')
+                cachedPuuid = null
+                await updatePlayerFn(player.id, { puuid: null })
+              } else {
+                logger.warn(LOG_PREFIX, name, '| match-count erreur:', countData.error || countRes.status)
+              }
               await delay(DELAY_BETWEEN_PLAYERS_MS)
               continue
             }
