@@ -4,7 +4,7 @@
  * ⚠️ Nécessite League of Legends ouvert + connecté
  */
 import { useState } from 'react'
-import { Wifi, WifiOff, RefreshCw, Download, CheckSquare, Square, Swords, Trophy, AlertCircle, ChevronDown, ChevronUp, User } from 'lucide-react'
+import { Wifi, WifiOff, RefreshCw, Download, CheckSquare, Square, Swords, Trophy, AlertCircle, ChevronDown, ChevronUp, User, FileJson } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { importExaltyMatches } from '../../../lib/team/exaltyMatchImporter'
 
@@ -61,6 +61,7 @@ export const TestPage = () => {
   const [matchType, setMatchType] = useState<'scrim' | 'tournament'>('scrim')
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null)
+  const [downloadingId, setDownloadingId] = useState<number | null>(null)
 
   const BACKEND = 'http://localhost:3001'
 
@@ -158,6 +159,35 @@ export const TestPage = () => {
       setImportResult({ imported: 0, skipped: 0, errors: [err.message] })
     } finally {
       setImporting(false)
+    }
+  }
+
+  // ─── Téléchargement JSON ────────────────────────────────────────────────────
+
+  async function handleDownloadJson(game: LcuGame, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!summoner) return
+    setDownloadingId(game.gameId)
+    try {
+      const password = lockfile.trim().split(':')[3]
+      const res = await fetch(`${BACKEND}/api/lcu/game`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port: summoner.port, password, gameId: game.gameId }),
+      })
+      const data = await res.json()
+      const json = data.success && data.game ? data.game : game._raw
+      const date = new Date(game.gameCreation).toISOString().slice(0, 10)
+      const filename = `game_${game.gameId}_${date}.json`
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -311,6 +341,17 @@ export const TestPage = () => {
                         </p>
                       </div>
                       <span className="text-xs text-gray-600 shrink-0">#{g.gameId}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDownloadJson(g, e)}
+                        disabled={downloadingId === g.gameId}
+                        title="Télécharger le JSON"
+                        className="shrink-0 p-1.5 rounded-lg text-gray-500 hover:text-accent-blue hover:bg-accent-blue/10 transition-colors disabled:opacity-40"
+                      >
+                        {downloadingId === g.gameId
+                          ? <RefreshCw size={13} className="animate-spin" />
+                          : <FileJson size={13} />}
+                      </button>
                     </button>
                   )
                 })}
