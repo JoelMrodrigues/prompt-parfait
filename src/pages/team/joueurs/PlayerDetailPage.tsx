@@ -1323,14 +1323,12 @@ function GeneralTab({ d, player }: { d: any; player: any }) {
 
             {/* LP Chart compact */}
             {d.lpCurvePoints.length >= 2 && (
-              <div className="rounded-xl bg-dark-card/50 border border-dark-border p-3" style={{ height: '130px' }}>
-                <div className="flex items-center justify-between mb-1">
+              <div className="rounded-xl bg-dark-card/50 border border-dark-border p-3">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-gray-500 uppercase tracking-wider">Courbe LP</span>
                   <span className="text-[10px] text-gray-600">{lpDateRange}</span>
                 </div>
-                <div style={{ height: '100px' }}>
-                  <LpCurveChart points={d.lpCurvePoints} />
-                </div>
+                <LpCurveChart points={d.lpCurvePoints} />
               </div>
             )}
 

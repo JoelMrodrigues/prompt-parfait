@@ -4,25 +4,27 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Plus } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
-import { useTeamMatches } from '../hooks/useTeamMatches'
+import { useTeamMatchesFull } from '../hooks/useTeamMatches'
 import { useToast } from '../../../contexts/ToastContext'
 import { PlayerList } from '../components/PlayerList'
 import { PlayerModal } from '../components/PlayerModal'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { MoodSoloQCard, type MoodRow } from './components/MoodSoloQCard'
 import { MoodTeamCard } from './components/MoodTeamCard'
+import { PlayerStatsComparisonCard, type DetailedStats } from './components/PlayerStatsComparisonCard'
 import { fetchSoloqMatches } from '../../../services/supabase/playerQueries'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants'
 
 export const JoueursPage = () => {
   const { error: toastError } = useToast()
   const { team, players, loading, createPlayer, updatePlayer, deletePlayer } = useTeam()
-  const { matches: teamMatches } = useTeamMatches(team?.id)
+  const { matches: teamMatches } = useTeamMatchesFull(team?.id)
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
   const [soloqMoodFetched, setSoloqMoodFetched] = useState<Record<string, MoodRow>>({})
+  const [soloqDetailedStats, setSoloqDetailedStats] = useState<DetailedStats>({})
 
   // Clé stable : déclenche l'effet uniquement si un joueur est ajouté/supprimé
   // ou si soloq_mood_last_5 passe de null à non-null (données nouvellement disponibles)
@@ -36,6 +38,7 @@ export const JoueursPage = () => {
     let cancelled = false
     const load = async () => {
       const next: Record<string, MoodRow> = {}
+      const nextDetailed: DetailedStats = {}
       await Promise.allSettled(
         players.map(async (p) => {
           if (p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object') {
@@ -59,17 +62,27 @@ export const JoueursPage = () => {
           const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC)
           const wins = list.filter((m: any) => m.win).length
           const losses = list.length - wins
-          let kda = '—'
-          if (list.length > 0) {
-            const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
-            const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
-            const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
-            kda = tD > 0 ? ((tK + tA) / tD).toFixed(1) : (tK + tA).toFixed(1)
-          }
+          const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
+          const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
+          const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
+          const kda = list.length > 0
+            ? (tD > 0 ? ((tK + tA) / tD).toFixed(1) : (tK + tA).toFixed(1))
+            : '—'
+          const tDmg = list.reduce((s: number, m: any) => s + (m.total_damage ?? 0), 0)
+          const tGold = list.reduce((s: number, m: any) => s + (m.gold_earned ?? 0), 0)
+          const tDurSec = list.reduce((s: number, m: any) => s + (m.game_duration ?? 0), 0)
+          const tPinks = list.reduce((s: number, m: any) => {
+            const pinks = m.vision_wards_bought ?? m.match_json?.stats?.visionWardsBoughtInGame ?? 0
+            return s + pinks
+          }, 0)
           next[p.id] = { wins, losses, kda, count: list.length }
+          nextDetailed[p.id] = { k: tK, d: tD, a: tA, wins, count: list.length, dmg: tDmg, gold: tGold, durationSec: tDurSec, pinks: tPinks }
         })
       )
-      if (!cancelled) setSoloqMoodFetched(next)
+      if (!cancelled) {
+        setSoloqMoodFetched(next)
+        setSoloqDetailedStats(nextDetailed)
+      }
     }
     load()
     return () => { cancelled = true }
@@ -130,6 +143,28 @@ export const JoueursPage = () => {
     }
     return byPlayer
   }, [teamMatches, players])
+
+  const teamDetailedStats = useMemo<DetailedStats>(() => {
+    const result: DetailedStats = {}
+    for (const match of teamMatches || []) {
+      const durSec = match.game_duration ?? 0
+      for (const p of (match.team_match_participants || [])) {
+        if (p.team_side === 'enemy') continue
+        if (!p.player_id) continue
+        if (!result[p.player_id]) result[p.player_id] = { k: 0, d: 0, a: 0, wins: 0, count: 0, dmg: 0, gold: 0, durationSec: 0, pinks: 0 }
+        result[p.player_id].k += p.kills ?? 0
+        result[p.player_id].d += p.deaths ?? 0
+        result[p.player_id].a += p.assists ?? 0
+        result[p.player_id].wins += p.win ? 1 : 0
+        result[p.player_id].dmg += p.total_damage_dealt_to_champions ?? 0
+        result[p.player_id].gold += p.gold_earned ?? 0
+        result[p.player_id].durationSec += durSec
+        result[p.player_id].pinks += p.vision_wards_bought ?? 0
+        result[p.player_id].count++
+      }
+    }
+    return result
+  }, [teamMatches])
 
   const handleSavePlayer = async (playerData: any) => {
     try {
@@ -255,6 +290,15 @@ export const JoueursPage = () => {
         onDelete={handleRequestDelete}
         onAdd={handleAddPlayer}
       />
+
+      {/* Comparaison des stats moyennes */}
+      {players.length > 0 && (
+        <PlayerStatsComparisonCard
+          players={players}
+          teamStats={teamDetailedStats}
+          soloqStats={soloqDetailedStats}
+        />
+      )}
 
       {/* Mood des joueurs — 2 cartes (Solo Q + Team) en dessous des cards joueurs */}
       {players.length > 0 && (

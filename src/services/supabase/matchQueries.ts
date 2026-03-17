@@ -54,7 +54,7 @@ export async function fetchTeamMatches(teamId: string) {
       team_match_participants (
         id, player_id, participant_id, pseudo, champion_name, role, team_side,
         kills, deaths, assists, kda, total_damage_dealt_to_champions,
-        gold_earned, cs, win, vision_score
+        gold_earned, cs, win, vision_score, vision_wards_bought
       )
     `
     )

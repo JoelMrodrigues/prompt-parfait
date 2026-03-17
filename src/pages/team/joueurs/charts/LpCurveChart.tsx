@@ -1,6 +1,6 @@
-const PAD = { top: 30, right: 80, bottom: 44, left: 60 }
+const PAD = { top: 22, right: 76, bottom: 34, left: 56 }
 const W = 720
-const H = 260
+const H = 170
 const INNER_W = W - PAD.left - PAD.right
 const INNER_H = H - PAD.top - PAD.bottom
 
