@@ -1,93 +1,148 @@
+/**
+ * Page d'accueil — Void.pro
+ */
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Swords,
-  BarChart3,
-  Users,
-  Upload,
-  Trophy,
-  RefreshCw,
-  ChevronRight,
-  Shield,
-  Target,
-  TrendingUp,
+  Swords, BarChart3, Users, Upload, Trophy, RefreshCw,
+  ChevronRight, Shield, Target, TrendingUp,
 } from 'lucide-react'
 
+// ─── Données ──────────────────────────────────────────────────────────────────
+
 const FEATURES = [
-  {
-    icon: Swords,
-    title: 'Draft Simulator',
-    description:
-      'Prépare tes picks/bans en conditions réelles. Mode tournoi, phases de ban, historique des drafts sauvegardé.',
-    color: 'blue',
-  },
-  {
-    icon: BarChart3,
-    title: 'Stats Pro (toutes ligues)',
-    description:
-      'Winrate, pickrate, banrate de chaque champion dans toutes les ligues pro. Filtré par patch, split et région.',
-    color: 'gold',
-  },
-  {
-    icon: Users,
-    title: 'Gestion d\'équipe',
-    description:
-      'Suivi du rang, des champions favoris et de la forme de chaque joueur. Vue roster complète en temps réel.',
-    color: 'blue',
-  },
-  {
-    icon: Upload,
-    title: 'Analyse de matchs',
-    description:
-      'Importe tes matchs et visualise la timeline, les avantages CS/or et les décisions clés de chaque partie.',
-    color: 'gold',
-  },
-  {
-    icon: Trophy,
-    title: 'Pool de Champions',
-    description:
-      'Classe les champions de chaque joueur par niveau de maîtrise (S/A/B/C). Visualise les options disponibles avant de drafter.',
-    color: 'blue',
-  },
-  {
-    icon: RefreshCw,
-    title: 'Sync Riot automatique',
-    description:
-      'Rang, parties jouées et top champions mis à jour en continu depuis l\'API Riot. Zéro saisie manuelle.',
-    color: 'gold',
-  },
+  { icon: Swords,    title: 'Draft Simulator',        description: 'Prépare tes picks/bans en conditions réelles. Mode tournoi, phases de ban, historique des drafts sauvegardé.',                          color: 'blue' },
+  { icon: BarChart3, title: 'Stats Pro (toutes ligues)', description: 'Winrate, pickrate, banrate de chaque champion dans toutes les ligues pro. Filtré par patch, split et région.',                       color: 'gold' },
+  { icon: Users,     title: 'Gestion d\'équipe',       description: 'Suivi du rang, des champions favoris et de la forme de chaque joueur. Vue roster complète en temps réel.',                            color: 'blue' },
+  { icon: Upload,    title: 'Analyse de matchs',       description: 'Importe tes matchs et visualise la timeline, les avantages CS/or et les décisions clés de chaque partie.',                           color: 'gold' },
+  { icon: Trophy,    title: 'Pool de Champions',       description: 'Classe les champions de chaque joueur par niveau de maîtrise (S/A/B/C). Visualise les options disponibles avant de drafter.',        color: 'blue' },
+  { icon: RefreshCw, title: 'Sync Riot automatique',   description: 'Rang, parties jouées et top champions mis à jour en continu depuis l\'API Riot. Zéro saisie manuelle.',                              color: 'gold' },
 ]
 
 const FOR_WHO = [
-  {
-    icon: Shield,
-    title: 'Coachs & Analystes',
-    description: 'Prépare les drafts, analyse les matchs et identifie les points faibles de l\'équipe adverse.',
-  },
-  {
-    icon: Target,
-    title: 'Équipes compétitives',
-    description: 'Du semi-pro à l\'amateur — suis les performances de ton roster et structure tes sessions.',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Team Managers',
-    description: 'Vue d\'ensemble du roster, suivi de la forme et gestion des pools de champions par joueur.',
-  },
+  { icon: Shield,     title: 'Coachs & Analystes',    description: 'Prépare les drafts, analyse les matchs et identifie les points faibles de l\'équipe adverse.' },
+  { icon: Target,     title: 'Équipes compétitives',  description: 'Du semi-pro à l\'amateur — suis les performances de ton roster et structure tes sessions.' },
+  { icon: TrendingUp, title: 'Team Managers',         description: 'Vue d\'ensemble du roster, suivi de la forme et gestion des pools de champions par joueur.' },
 ]
 
 const STEPS = [
-  { num: '01', title: 'Crée ton équipe', desc: 'Ajoute tes joueurs et synchronise leurs comptes Riot en quelques secondes.' },
-  { num: '02', title: 'Importe tes matchs', desc: 'Upload tes parties et laisse l\'app analyser timelines et statistiques.' },
-  { num: '03', title: 'Prépare tes drafts', desc: 'Utilise les stats pro et le profil de tes joueurs pour drafter efficacement.' },
+  { num: '01', title: 'Crée ton équipe',     desc: 'Ajoute tes joueurs et synchronise leurs comptes Riot en quelques secondes.' },
+  { num: '02', title: 'Importe tes matchs',  desc: 'Upload tes parties et laisse l\'app analyser timelines et statistiques.' },
+  { num: '03', title: 'Prépare tes drafts',  desc: 'Utilise les stats pro et le profil de tes joueurs pour drafter efficacement.' },
 ]
 
-// Mini-mockup du draft board
+// ─── Décor animé (constantes fixes — pas de Math.random en render) ─────────────
+
+const ORBS = [
+  { top: '5%',  left: '58%', size: 520, color: 'rgba(147,51,234,0.07)',  blur: 130, duration: 14, dx: 40,  dy: 25  },
+  { top: '42%', left: '72%', size: 380, color: 'rgba(168,85,247,0.05)', blur: 100, duration: 18, dx: -28, dy: 38  },
+  { top: '68%', left: '18%', size: 320, color: 'rgba(147,51,234,0.04)', blur: 90,  duration: 12, dx: 22,  dy: -18 },
+]
+
+const PARTICLES: { x: number; y: number; s: number; dur: number; del: number; dy: number }[] = [
+  { x: 8,  y: 15, s: 2.5, dur: 8,  del: 0,   dy: 20 },
+  { x: 20, y: 42, s: 3,   dur: 11, del: 1.5, dy: 28 },
+  { x: 33, y: 68, s: 1.5, dur: 9,  del: 0.5, dy: 18 },
+  { x: 50, y: 22, s: 2,   dur: 13, del: 2,   dy: 22 },
+  { x: 63, y: 55, s: 2.5, dur: 8,  del: 3,   dy: 15 },
+  { x: 76, y: 32, s: 3,   dur: 10, del: 1,   dy: 25 },
+  { x: 88, y: 74, s: 1,   dur: 12, del: 2.5, dy: 20 },
+  { x: 15, y: 82, s: 2,   dur: 9,  del: 0.8, dy: 22 },
+  { x: 44, y: 12, s: 2.5, dur: 11, del: 3.5, dy: 18 },
+  { x: 57, y: 88, s: 1.5, dur: 8,  del: 1.2, dy: 24 },
+  { x: 71, y: 60, s: 3,   dur: 14, del: 0.3, dy: 20 },
+  { x: 84, y: 44, s: 2,   dur: 10, del: 2.8, dy: 16 },
+  { x: 28, y: 30, s: 1.5, dur: 9,  del: 1.8, dy: 20 },
+  { x: 92, y: 20, s: 2,   dur: 11, del: 0.6, dy: 22 },
+  { x: 6,  y: 55, s: 3,   dur: 7,  del: 2.2, dy: 18 },
+]
+
+// ─── Composant background ─────────────────────────────────────────────────────
+
+function FloatingBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Grille */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: 'linear-gradient(rgb(var(--color-accent)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--color-accent)) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+        }}
+      />
+
+      {/* Orbes flottants */}
+      {ORBS.map((orb, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            top: orb.top,
+            left: orb.left,
+            width: orb.size,
+            height: orb.size,
+            background: orb.color,
+            filter: `blur(${orb.blur}px)`,
+            marginLeft: -orb.size / 2,
+            marginTop: -orb.size / 2,
+          }}
+          animate={{ x: [0, orb.dx, 0], y: [0, orb.dy, 0] }}
+          transition={{ duration: orb.duration, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+
+      {/* Micro-particules */}
+      {PARTICLES.map((p, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-accent-blue/30"
+          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.s, height: p.s }}
+          animate={{ y: [-p.dy / 2, p.dy / 2, -p.dy / 2], opacity: [0.1, 0.55, 0.1] }}
+          transition={{ duration: p.dur, delay: p.del, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ─── Draft Preview animée ──────────────────────────────────────────────────────
+
+const DRAFT_STEPS = [
+  { blue: 0, red: 0 },
+  { blue: 1, red: 0 },
+  { blue: 1, red: 1 },
+  { blue: 2, red: 1 },
+  { blue: 2, red: 2 },
+  { blue: 3, red: 2 },
+]
+
 function DraftPreview() {
-  const blue = ['Top', 'Jungle', 'Mid', 'Bot', 'Sup']
-  const red = ['Top', 'Jungle', 'Mid', 'Bot', 'Sup']
-  const filledBlue = [0, 1, 2]
-  const filledRed = [0, 1]
+  const [stepIdx, setStepIdx] = useState(5)
+
+  useEffect(() => {
+    let cancelled = false
+
+    function tick(idx: number) {
+      if (cancelled) return
+      setStepIdx(idx)
+      if (idx < DRAFT_STEPS.length - 1) {
+        setTimeout(() => tick(idx + 1), 950)
+      } else {
+        setTimeout(() => {
+          if (cancelled) return
+          setStepIdx(0)
+          setTimeout(() => tick(1), 700)
+        }, 3000)
+      }
+    }
+
+    const init = setTimeout(() => tick(1), 2200)
+    return () => { cancelled = true; clearTimeout(init) }
+  }, [])
+
+  const state = DRAFT_STEPS[Math.min(stepIdx, DRAFT_STEPS.length - 1)]
+  const roles = ['Top', 'Jungle', 'Mid', 'Bot', 'Sup']
 
   return (
     <div className="relative rounded-2xl border border-dark-border bg-dark-card overflow-hidden shadow-2xl">
@@ -99,16 +154,44 @@ function DraftPreview() {
           <div className="w-2 h-2 rounded-full bg-green-500/60" />
         </div>
       </div>
+
       <div className="grid grid-cols-3 gap-0">
+        {/* Blue side */}
         <div className="p-3 space-y-2 border-r border-dark-border">
           <p className="text-xs text-accent-blue font-bold mb-2 text-center">BLUE</p>
-          {blue.map((role, i) => (
-            <div key={role} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${filledBlue.includes(i) ? 'bg-accent-blue/20 border border-accent-blue/40' : 'bg-dark-bg/60 border border-dark-border'}`}>
-              <div className={`w-6 h-6 rounded ${filledBlue.includes(i) ? 'bg-accent-blue/40' : 'bg-dark-border'}`} />
-              <span className={filledBlue.includes(i) ? 'text-white' : 'text-gray-600'}>{role}</span>
-            </div>
-          ))}
+          {roles.map((role, i) => {
+            const filled = i < state.blue
+            const isNext = i === state.blue && state.blue < roles.length
+            return (
+              <motion.div
+                key={role}
+                animate={
+                  filled
+                    ? { backgroundColor: 'rgba(147,51,234,0.18)', borderColor: 'rgba(147,51,234,0.45)' }
+                    : isNext
+                    ? { borderColor: ['rgba(147,51,234,0.15)', 'rgba(147,51,234,0.55)', 'rgba(147,51,234,0.15)'] }
+                    : { backgroundColor: 'rgba(10,10,15,0.6)', borderColor: 'rgba(42,37,53,1)' }
+                }
+                transition={
+                  filled ? { duration: 0.3 } :
+                  isNext  ? { duration: 1.2, repeat: Infinity, ease: 'easeInOut' } :
+                  { duration: 0.3 }
+                }
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs border"
+              >
+                <motion.div
+                  animate={filled ? { backgroundColor: 'rgba(147,51,234,0.45)' } : { backgroundColor: 'rgba(42,37,53,1)' }}
+                  initial={false}
+                  transition={{ duration: 0.3 }}
+                  className="w-6 h-6 rounded shrink-0"
+                />
+                <span className={filled ? 'text-white' : 'text-gray-600'}>{role}</span>
+              </motion.div>
+            )
+          })}
         </div>
+
+        {/* Centre bans */}
         <div className="p-3 flex flex-col items-center justify-center gap-2">
           <p className="text-xs text-gray-500 font-semibold mb-1">BANS</p>
           <div className="flex gap-1">
@@ -126,38 +209,67 @@ function DraftPreview() {
             À vous
           </div>
         </div>
+
+        {/* Red side */}
         <div className="p-3 space-y-2 border-l border-dark-border">
           <p className="text-xs text-red-400 font-bold mb-2 text-center">RED</p>
-          {red.map((role, i) => (
-            <div key={role} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${filledRed.includes(i) ? 'bg-red-500/20 border border-red-500/40' : 'bg-dark-bg/60 border border-dark-border'}`}>
-              <div className={`w-6 h-6 rounded ${filledRed.includes(i) ? 'bg-red-500/40' : 'bg-dark-border'}`} />
-              <span className={filledRed.includes(i) ? 'text-white' : 'text-gray-600'}>{role}</span>
-            </div>
-          ))}
+          {roles.map((role, i) => {
+            const filled = i < state.red
+            const isNext = i === state.red && state.red < roles.length
+            return (
+              <motion.div
+                key={role}
+                animate={
+                  filled
+                    ? { backgroundColor: 'rgba(239,68,68,0.15)', borderColor: 'rgba(239,68,68,0.38)' }
+                    : isNext
+                    ? { borderColor: ['rgba(239,68,68,0.12)', 'rgba(239,68,68,0.48)', 'rgba(239,68,68,0.12)'] }
+                    : { backgroundColor: 'rgba(10,10,15,0.6)', borderColor: 'rgba(42,37,53,1)' }
+                }
+                transition={
+                  filled ? { duration: 0.3 } :
+                  isNext  ? { duration: 1.2, repeat: Infinity, ease: 'easeInOut' } :
+                  { duration: 0.3 }
+                }
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs border"
+              >
+                <motion.div
+                  animate={filled ? { backgroundColor: 'rgba(239,68,68,0.35)' } : { backgroundColor: 'rgba(42,37,53,1)' }}
+                  initial={false}
+                  transition={{ duration: 0.3 }}
+                  className="w-6 h-6 rounded shrink-0"
+                />
+                <span className={filled ? 'text-white' : 'text-gray-600'}>{role}</span>
+              </motion.div>
+            )
+          })}
         </div>
       </div>
     </div>
   )
 }
 
+// ─── Variants d'animation ─────────────────────────────────────────────────────
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.55, ease: 'easeOut' } },
+}
+
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09 } },
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export const Home = () => {
   return (
     <div className="min-h-screen">
 
-      {/* ─── HERO ─────────────────────────────────────────────── */}
+      {/* ─── HERO ───────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center pt-20">
-        {/* Déco absolute en overflow-hidden pour ne pas clipper le titre */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent-blue/8 via-transparent to-accent-blue/4" />
-          {/* Grille déco — couleur accent adaptative */}
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage: 'linear-gradient(rgb(var(--color-accent)) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--color-accent)) 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }}
-          />
-        </div>
+        <FloatingBackground />
 
         <div className="relative z-10 container mx-auto max-w-6xl px-6 py-20">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -168,34 +280,70 @@ export const Home = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-blue/30 bg-accent-blue/10 text-accent-blue text-sm font-medium mb-6">
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-blue/30 bg-accent-blue/10 text-accent-blue text-sm font-medium mb-6"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-pulse" />
                 Outil de préparation compétitive LoL
-              </div>
+              </motion.div>
 
-              {/* Titre principal Void.pro */}
-              <h1
+              {/* Titre Void.pro avec glow pulsé */}
+              <motion.h1
                 className="font-display font-bold leading-none mb-4 bg-gradient-to-r from-purple-300 to-white bg-clip-text text-transparent"
                 style={{ fontSize: 'clamp(4.5rem, 12vw, 8rem)' }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  filter: [
+                    'drop-shadow(0 0 12px rgba(168,85,247,0.25))',
+                    'drop-shadow(0 0 48px rgba(168,85,247,0.7))',
+                    'drop-shadow(0 0 12px rgba(168,85,247,0.25))',
+                  ],
+                }}
+                transition={{
+                  opacity: { duration: 0.6 },
+                  y: { duration: 0.6 },
+                  filter: { duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 },
+                }}
               >
                 Void.pro
-              </h1>
+              </motion.h1>
 
-              {/* Tagline */}
-              <h2 className="font-display text-2xl md:text-3xl font-bold mb-6 leading-tight">
+              {/* Tagline — mots qui apparaissent en stagger */}
+              <motion.h2
+                className="font-display text-2xl md:text-3xl font-bold mb-6 leading-tight"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.25 }}
+              >
                 <span className="bg-gradient-to-r from-accent-blue via-white to-white bg-clip-text text-transparent">
                   Dominez les statistiques
                 </span>
                 <br />
                 <span className="text-white">de votre équipe</span>
-              </h2>
+              </motion.h2>
 
-              <p className="text-lg text-gray-400 mb-8 leading-relaxed max-w-lg">
+              <motion.p
+                className="text-lg text-gray-400 mb-8 leading-relaxed max-w-lg"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.38 }}
+              >
                 Simulateur de draft, stats pro toutes ligues, suivi de roster et analyse de matchs —
                 tout ce qu'il faut pour préparer et performer en compétitif.
-              </p>
+              </motion.p>
 
-              <div className="flex flex-wrap gap-4">
+              <motion.div
+                className="flex flex-wrap gap-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
                 <Link
                   to="/draft"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-accent-blue text-white rounded-xl text-base font-semibold hover:bg-accent-blue/90 transition-all hover:scale-105 glow-blue"
@@ -209,11 +357,16 @@ export const Home = () => {
                 >
                   Créer mon équipe
                 </Link>
-              </div>
+              </motion.div>
 
-              <p className="text-sm text-gray-600 mt-4">
+              <motion.p
+                className="text-sm text-gray-600 mt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+              >
                 Draft simulator accessible sans compte · Inscription gratuite
-              </p>
+              </motion.p>
             </motion.div>
 
             {/* Aperçu visuel droite */}
@@ -230,12 +383,13 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* ─── DOMINEZ LA DRAFT ─────────────────────────────────── */}
+      {/* ─── DOMINEZ LA DRAFT ───────────────────────────────────── */}
       <section className="py-20 px-6 border-t border-dark-border bg-dark-card/30">
         <div className="container mx-auto max-w-4xl text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
             viewport={{ once: true }}
           >
             <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
@@ -259,12 +413,13 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* ─── POUR QUI ─────────────────────────────────────────── */}
+      {/* ─── POUR QUI ───────────────────────────────────────────── */}
       <section className="py-20 px-6 border-t border-dark-border">
         <div className="container mx-auto max-w-5xl">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
             viewport={{ once: true }}
             className="text-center mb-14"
           >
@@ -272,17 +427,21 @@ export const Home = () => {
             <p className="text-gray-500">Du roster amateur au staff professionnel</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {FOR_WHO.map((item, i) => {
+          <motion.div
+            className="grid md:grid-cols-3 gap-6"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+          >
+            {FOR_WHO.map((item) => {
               const Icon = item.icon
               return (
                 <motion.div
                   key={item.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="p-6 rounded-2xl bg-dark-card border border-dark-border text-center"
+                  variants={fadeUp}
+                  whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                  className="p-6 rounded-2xl bg-dark-card border border-dark-border text-center cursor-default"
                 >
                   <div className="w-12 h-12 rounded-xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center mx-auto mb-4">
                     <Icon size={22} className="text-accent-blue" />
@@ -292,16 +451,17 @@ export const Home = () => {
                 </motion.div>
               )
             })}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ─── FEATURES ─────────────────────────────────────────── */}
+      {/* ─── FEATURES ───────────────────────────────────────────── */}
       <section className="py-20 px-6 bg-dark-card/40 border-t border-dark-border">
         <div className="container mx-auto max-w-6xl">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
             viewport={{ once: true }}
             className="text-center mb-14"
           >
@@ -309,18 +469,22 @@ export const Home = () => {
             <p className="text-gray-500">Un outil complet, pas un dashboard de plus</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((f, i) => {
+          <motion.div
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+          >
+            {FEATURES.map((f) => {
               const Icon = f.icon
               const isGold = f.color === 'gold'
               return (
                 <motion.div
                   key={f.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07 }}
-                  className="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-accent-blue/40 transition-all group"
+                  variants={fadeUp}
+                  whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                  className="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-accent-blue/40 transition-colors group cursor-default"
                 >
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${isGold ? 'bg-accent-gold/10 border border-accent-gold/20' : 'bg-accent-blue/10 border border-accent-blue/20'}`}>
                     <Icon size={20} className={isGold ? 'text-accent-gold' : 'text-accent-blue'} />
@@ -330,16 +494,17 @@ export const Home = () => {
                 </motion.div>
               )
             })}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ─── COMMENT ÇA MARCHE ────────────────────────────────── */}
+      {/* ─── COMMENT ÇA MARCHE ──────────────────────────────────── */}
       <section className="py-20 px-6 border-t border-dark-border">
         <div className="container mx-auto max-w-4xl">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
             viewport={{ once: true }}
             className="text-center mb-14"
           >
@@ -347,33 +512,44 @@ export const Home = () => {
             <p className="text-gray-500">Opérationnel en moins de 5 minutes</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <motion.div
+            className="grid md:grid-cols-3 gap-8"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+          >
             {STEPS.map((step, i) => (
               <motion.div
                 key={step.num}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
+                variants={fadeUp}
                 className="relative text-center"
               >
                 {i < STEPS.length - 1 && (
                   <div className="hidden md:block absolute top-6 left-[60%] w-[80%] h-px bg-gradient-to-r from-dark-border to-transparent" />
                 )}
-                <div className="font-display text-4xl font-bold text-accent-blue/20 mb-3">{step.num}</div>
+                <motion.div
+                  className="font-display text-4xl font-bold text-accent-blue/20 mb-3"
+                  whileInView={{ opacity: [0, 1], scale: [0.8, 1] }}
+                  transition={{ duration: 0.4, delay: i * 0.15 }}
+                  viewport={{ once: true }}
+                >
+                  {step.num}
+                </motion.div>
                 <h3 className="font-semibold text-white mb-2">{step.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ─── CTA FINAL ────────────────────────────────────────── */}
+      {/* ─── CTA FINAL ──────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-dark-card border-t border-dark-border">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
           viewport={{ once: true }}
           className="text-center max-w-2xl mx-auto"
         >
