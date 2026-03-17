@@ -8,6 +8,7 @@ import { ROSTER_ROLES } from '../../constants/roles'
 export type DetailedStats = Record<string, {
   k: number; d: number; a: number; wins: number; count: number
   dmg: number; gold: number; durationSec: number; pinks: number
+  winsBlue: number; gamesBlue: number; winsRed: number; gamesRed: number
 }>
 
 const ROLE_COLORS: Record<string, string> = {
@@ -62,7 +63,9 @@ export function PlayerStatsComparisonCard({
         const dmgPerMin = (s?.durationSec ?? 0) > 0 ? ((s?.dmg ?? 0) / (s.durationSec / 60)) : 0
         const goldPerMin = (s?.durationSec ?? 0) > 0 ? ((s?.gold ?? 0) / (s.durationSec / 60)) : 0
         const avgPinks = count > 0 ? (s?.pinks ?? 0) / count : 0
-        return { player: p, totalK, totalD, totalA, kda, winrate, count, dmgPerMin, goldPerMin, avgPinks }
+        const wrBlue = (s?.gamesBlue ?? 0) > 0 ? ((s.winsBlue / s.gamesBlue) * 100) : null
+        const wrRed  = (s?.gamesRed  ?? 0) > 0 ? ((s.winsRed  / s.gamesRed)  * 100) : null
+        return { player: p, totalK, totalD, totalA, kda, winrate, count, dmgPerMin, goldPerMin, avgPinks, wrBlue, wrRed }
       }),
     [sorted, stats]
   )
@@ -79,7 +82,7 @@ export function PlayerStatsComparisonCard({
 
   if (!players.length) return null
 
-  const GRID = 'grid-cols-[140px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_52px]'
+  const GRID = 'grid-cols-[140px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_52px]'
 
   return (
     <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
@@ -123,13 +126,14 @@ export function PlayerStatsComparisonCard({
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">Dég./min</span>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">Or/min</span>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">Pinks/p</span>
+        <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">Win% B/R</span>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">Win%</span>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">P</span>
       </div>
 
       {/* Lignes */}
       <div className="space-y-1.5">
-        {rows.map(({ player, totalK, totalD, totalA, kda, winrate, count, dmgPerMin, goldPerMin, avgPinks }) => {
+        {rows.map(({ player, totalK, totalD, totalA, kda, winrate, count, dmgPerMin, goldPerMin, avgPinks, wrBlue, wrRed }) => {
           const pos = (player.position || '').toUpperCase() === 'BOT' ? 'ADC' : (player.position || '').toUpperCase()
           const roleColor = ROLE_COLORS[pos] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/30'
           const noData = count === 0
@@ -177,10 +181,27 @@ export function PlayerStatsComparisonCard({
                 {Math.round(goldPerMin)}
               </Stat>
 
-              {/* Pinks/partie */}
-              <Stat highlight={!noData && avgPinks === bestPink} color={!noData && avgPinks === bestPink ? 'emerald' : 'neutral'} noData={noData}>
+              {/* Pinks/partie — team uniquement */}
+              <Stat highlight={!noData && mode === 'team' && avgPinks === bestPink} color={!noData && mode === 'team' && avgPinks === bestPink ? 'emerald' : 'neutral'} noData={noData || mode === 'soloq'}>
                 {avgPinks.toFixed(1)}
               </Stat>
+
+              {/* Win% Blue / Red */}
+              <div className="text-center text-xs font-semibold tabular-nums">
+                {noData ? (
+                  <span className="text-gray-600">—</span>
+                ) : (
+                  <>
+                    <span className={wrBlue !== null ? (wrBlue >= 50 ? 'text-emerald-400' : 'text-rose-400/80') : 'text-gray-600'}>
+                      {wrBlue !== null ? `${wrBlue.toFixed(0)}%` : '—'}
+                    </span>
+                    <span className="text-gray-600 mx-0.5">/</span>
+                    <span className={wrRed !== null ? (wrRed >= 50 ? 'text-emerald-400' : 'text-rose-400/80') : 'text-gray-600'}>
+                      {wrRed !== null ? `${wrRed.toFixed(0)}%` : '—'}
+                    </span>
+                  </>
+                )}
+              </div>
 
               {/* Winrate */}
               <Stat
@@ -205,8 +226,8 @@ export function PlayerStatsComparisonCard({
       )}
 
       <p className="text-[10px] text-gray-700 text-center mt-3">
-        ★ = meilleur · Dég./min & Or/min = global sur la période · Pinks/p = contrôles par partie ·{' '}
-        {mode === 'team' ? 'Toutes les parties team' : '5 dernières parties SoloQ'}
+        ★ = meilleur · Dég./min & Or/min = global sur la période{mode === 'team' ? ' · Pinks/p = contrôles par partie' : ''} · Win% B/R = winrate côté bleu / rouge ·{' '}
+        {mode === 'team' ? 'Toutes les parties team' : 'Toutes les parties SoloQ (saison en cours)'}
       </p>
     </div>
   )

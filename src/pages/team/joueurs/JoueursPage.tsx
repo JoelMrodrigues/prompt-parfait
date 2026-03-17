@@ -33,31 +33,20 @@ export const JoueursPage = () => {
     [players]
   )
 
+  // Effet 1 : mood SoloQ (5 dernières parties) — pour les cartes Mood
   useEffect(() => {
     if (!players.length) return
     let cancelled = false
     const load = async () => {
       const next: Record<string, MoodRow> = {}
-      const nextDetailed: DetailedStats = {}
       await Promise.allSettled(
         players.map(async (p) => {
           if (p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object') {
             const m = p.soloq_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
-            next[p.id] = {
-              wins: m.wins ?? 0,
-              losses: m.losses ?? 0,
-              kda: m.kda ?? '—',
-              count: m.count ?? 0,
-            }
+            next[p.id] = { wins: m.wins ?? 0, losses: m.losses ?? 0, kda: m.kda ?? '—', count: m.count ?? 0 }
             return
           }
-          const { data: matches } = await fetchSoloqMatches({
-            playerId: p.id,
-            accountSource: 'primary',
-            seasonStart: SEASON_16_START_MS,
-            offset: 0,
-            limit: 5,
-          })
+          const { data: matches } = await fetchSoloqMatches({ playerId: p.id, accountSource: 'primary', seasonStart: SEASON_16_START_MS, offset: 0, limit: 5 })
           if (cancelled) return
           const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC)
           const wins = list.filter((m: any) => m.win).length
@@ -65,28 +54,49 @@ export const JoueursPage = () => {
           const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
           const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
           const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
-          const kda = list.length > 0
-            ? (tD > 0 ? ((tK + tA) / tD).toFixed(1) : (tK + tA).toFixed(1))
-            : '—'
-          const tDmg = list.reduce((s: number, m: any) => s + (m.total_damage ?? 0), 0)
-          const tGold = list.reduce((s: number, m: any) => s + (m.gold_earned ?? 0), 0)
-          const tDurSec = list.reduce((s: number, m: any) => s + (m.game_duration ?? 0), 0)
-          const tPinks = list.reduce((s: number, m: any) => {
-            const pinks = m.vision_wards_bought ?? m.match_json?.stats?.visionWardsBoughtInGame ?? 0
-            return s + pinks
-          }, 0)
+          const kda = list.length > 0 ? (tD > 0 ? ((tK + tA) / tD).toFixed(1) : (tK + tA).toFixed(1)) : '—'
           next[p.id] = { wins, losses, kda, count: list.length }
-          nextDetailed[p.id] = { k: tK, d: tD, a: tA, wins, count: list.length, dmg: tDmg, gold: tGold, durationSec: tDurSec, pinks: tPinks }
         })
       )
-      if (!cancelled) {
-        setSoloqMoodFetched(next)
-        setSoloqDetailedStats(nextDetailed)
-      }
+      if (!cancelled) setSoloqMoodFetched(next)
     }
     load()
     return () => { cancelled = true }
   }, [playersKey])
+
+  // Effet 2 : stats SoloQ complètes (toutes les parties) — pour la carte de comparaison
+  const playersIdKey = useMemo(() => players.map((p) => p.id).join(','), [players])
+  useEffect(() => {
+    if (!players.length) return
+    let cancelled = false
+    const load = async () => {
+      const next: DetailedStats = {}
+      await Promise.allSettled(
+        players.map(async (p) => {
+          const { data: matches } = await fetchSoloqMatches({ playerId: p.id, accountSource: 'primary', seasonStart: SEASON_16_START_MS, offset: 0, limit: 1000 })
+          if (cancelled) return
+          const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC)
+          const wins = list.filter((m: any) => m.win).length
+          const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
+          const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
+          const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
+          // total_damage / gold_earned peuvent être null si le match_json n'a pas encore été enrichi
+          // → fallback sur match_json (contient le participant Riot complet)
+          const tDmg = list.reduce((s: number, m: any) => s + (m.total_damage ?? m.match_json?.totalDamageDealtToChampions ?? 0), 0)
+          const tGold = list.reduce((s: number, m: any) => s + (m.gold_earned ?? m.match_json?.goldEarned ?? 0), 0)
+          const tDurSec = list.reduce((s: number, m: any) => s + (m.game_duration ?? 0), 0)
+          const gamesBlue = list.filter((m: any) => m.match_json?.teamId === 100).length
+          const winsBlue  = list.filter((m: any) => m.match_json?.teamId === 100 && m.win).length
+          const gamesRed  = list.filter((m: any) => m.match_json?.teamId === 200).length
+          const winsRed   = list.filter((m: any) => m.match_json?.teamId === 200 && m.win).length
+          next[p.id] = { k: tK, d: tD, a: tA, wins, count: list.length, dmg: tDmg, gold: tGold, durationSec: tDurSec, pinks: 0, winsBlue, gamesBlue, winsRed, gamesRed }
+        })
+      )
+      if (!cancelled) setSoloqDetailedStats(next)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [playersIdKey])
 
   const soloqMood = useMemo(() => {
     const out: Record<string, MoodRow> = { ...soloqMoodFetched }
@@ -151,7 +161,8 @@ export const JoueursPage = () => {
       for (const p of (match.team_match_participants || [])) {
         if (p.team_side === 'enemy') continue
         if (!p.player_id) continue
-        if (!result[p.player_id]) result[p.player_id] = { k: 0, d: 0, a: 0, wins: 0, count: 0, dmg: 0, gold: 0, durationSec: 0, pinks: 0 }
+        if (!result[p.player_id]) result[p.player_id] = { k: 0, d: 0, a: 0, wins: 0, count: 0, dmg: 0, gold: 0, durationSec: 0, pinks: 0, winsBlue: 0, gamesBlue: 0, winsRed: 0, gamesRed: 0 }
+        const isBlue = (match.our_team_id ?? 0) === 100
         result[p.player_id].k += p.kills ?? 0
         result[p.player_id].d += p.deaths ?? 0
         result[p.player_id].a += p.assists ?? 0
@@ -160,6 +171,8 @@ export const JoueursPage = () => {
         result[p.player_id].gold += p.gold_earned ?? 0
         result[p.player_id].durationSec += durSec
         result[p.player_id].pinks += p.vision_wards_bought ?? 0
+        if (isBlue) { result[p.player_id].gamesBlue++; if (p.win) result[p.player_id].winsBlue++ }
+        else        { result[p.player_id].gamesRed++;  if (p.win) result[p.player_id].winsRed++ }
         result[p.player_id].count++
       }
     }
