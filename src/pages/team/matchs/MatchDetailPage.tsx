@@ -119,22 +119,29 @@ function ParticipantTable({ participants, itemsLoaded, onRoleChange }: {
                 <div className="flex flex-wrap gap-1">
                   {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5]
                     .filter((id) => id != null && id !== 0)
-                    .map((id, slotIndex) => (
-                      <a
-                        key={`${p.id}-item-${slotIndex}-${id}`}
-                        href={getItemImageUrl(id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                        title={itemsLoaded ? getItemName(id) : `Item ${id}`}
-                      >
-                        <img
-                          src={getItemImageUrl(id)}
-                          alt={itemsLoaded ? getItemName(id) : ''}
-                          className="w-8 h-8 rounded object-cover border border-dark-border hover:border-accent-blue"
-                        />
-                      </a>
-                    ))}
+                    .map((id, slotIndex) => {
+                      const url = getItemImageUrl(id)
+                      return (
+                        <a
+                          key={`${p.id}-item-${slotIndex}-${id}-${itemsLoaded}`}
+                          href={url ?? undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                          title={itemsLoaded ? getItemName(id) : `Item ${id}`}
+                        >
+                          {url ? (
+                            <img
+                              src={url}
+                              alt={getItemName(id)}
+                              className="w-8 h-8 rounded object-cover border border-dark-border hover:border-accent-blue"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded border border-dark-border bg-dark-bg/40 animate-pulse flex items-center justify-center text-[9px] text-gray-600">{id}</div>
+                          )}
+                        </a>
+                      )
+                    })}
                 </div>
               </td>
             </tr>

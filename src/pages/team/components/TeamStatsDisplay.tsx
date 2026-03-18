@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { getChampionImage } from '../../../lib/championImages'
 
 export const TeamStatsDisplay = ({ stats }) => {
   if (!stats) {
@@ -65,7 +66,7 @@ export const TeamStatsDisplay = ({ stats }) => {
                   {match.champions?.map((champ, i) => (
                     <img
                       key={i}
-                      src={`https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/${champ}.png`}
+                      src={getChampionImage(champ)}
                       alt={champ}
                       className="w-8 h-8 rounded"
                     />

@@ -2,7 +2,7 @@
  * Page détail joueur — 4 cartes : Général | Solo Q | Team | Pool Champ
  * Toute la logique est dans usePlayerDetail.
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
@@ -38,6 +38,7 @@ import { CoachCard } from './components/CoachCard'
 import { usePlayerDetail } from './hooks/usePlayerDetail'
 import { getRankColor, generateDpmLink, ROLE_LABELS } from './utils/playerDetailHelpers'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC, PAGE_SIZE } from '../../../lib/constants'
+import { loadItems, getItemImageUrl } from '../../../lib/items'
 
 const MAIN_CARDS = [
   { id: 'general', label: 'Général', icon: User },
@@ -156,7 +157,7 @@ export const PlayerDetailPage = () => {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-5">
               <img
-                src={mostPlayedName ? getChampionImage(mostPlayedName) : 'https://ddragon.leagueoflegends.com/cdn/14.1.1/img/champion/Aatrox.png'}
+                src={mostPlayedName ? getChampionImage(mostPlayedName) : '/resources/champions/icons/default.jpg'}
                 alt=""
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border-2 border-off-white/20 shrink-0"
               />
@@ -908,7 +909,7 @@ function AllStatsTable({
     return ids
   }
 
-  const DD_IMG = 'https://ddragon.leagueoflegends.com/cdn/img'
+  const DD_IMG_RUNE = (icon: string) => `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/${icon.toLowerCase()}`
 
   return (
     <div className="overflow-x-auto rounded-xl border border-dark-border bg-dark-bg/50">
@@ -937,7 +938,7 @@ function AllStatsTable({
                     {ids.map((id) => {
                       const r = allRunesCache.find((x) => x.id === id)
                       if (!r) return <span key={id} className="text-gray-500 text-xs" title={String(id)}>{id}</span>
-                      return <img key={id} src={`${DD_IMG}/${r.icon}`} alt={r.name} title={r.name} className="w-6 h-6 rounded object-contain" />
+                      return <img key={id} src={DD_IMG_RUNE(r.icon)} alt={r.name} title={r.name} className="w-6 h-6 rounded object-contain" />
                     })}
                     {ids.length === 0 && <span className="text-gray-500 text-xs">—</span>}
                   </div>
@@ -961,9 +962,9 @@ function AllStatsTable({
 
 // ─── SoloqBuildSection ───────────────────────────────────────────────────────
 
-const DD_ITEM = (id: number) => `https://ddragon.leagueoflegends.com/cdn/15.6.1/img/item/${id}.png`
-
 function SoloqBuildSection({ lpGraphMatches, loading }: { lpGraphMatches: any[]; loading: boolean }) {
+  const [itemsReady, setItemsReady] = useState(false)
+  useEffect(() => { loadItems().then(() => setItemsReady(true)) }, [])
   const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180)
 
   const champBuilds = new Map<string, { games: number; wins: number; buildCounts: Map<string, number> }>()
@@ -1011,16 +1012,24 @@ function SoloqBuildSection({ lpGraphMatches, loading }: { lpGraphMatches: any[];
             <p className="text-xs text-gray-500">{c.games}G · <span className={c.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{c.wr}%</span></p>
           </div>
           <div className="flex gap-1 flex-wrap">
-            {c.items.length > 0 ? c.items.map((id, i) => (
-              <img
-                key={i}
-                src={DD_ITEM(id)}
-                alt={String(id)}
-                title={String(id)}
-                className="w-8 h-8 rounded-lg border border-dark-border object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
-            )) : (
+            {c.items.length > 0 ? c.items.map((id, i) => {
+              const url = getItemImageUrl(id)
+              return url ? (
+                <img
+                  key={`${id}-${i}-loaded`}
+                  src={url}
+                  alt={String(id)}
+                  title={String(id)}
+                  className="w-8 h-8 rounded-lg border border-dark-border object-cover"
+                />
+              ) : (
+                <div
+                  key={`${id}-${i}-loading`}
+                  className="w-8 h-8 rounded-lg border border-dark-border bg-dark-bg/40 animate-pulse"
+                  title={String(id)}
+                />
+              )
+            }) : (
               <span className="text-xs text-gray-600 italic">Build non disponible</span>
             )}
           </div>
@@ -1041,7 +1050,7 @@ function SoloqRunesSection({
   loading: boolean
   runesCache: Array<{ id: number; name: string; icon: string }>
 }) {
-  const DD_RUNE = (icon: string) => `https://ddragon.leagueoflegends.com/cdn/img/${icon}`
+  const DD_RUNE = (icon: string) => `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/${icon.toLowerCase()}`
   const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180 && m.runes?.styles?.length)
 
   const champRunes = new Map<string, { games: number; wins: number; ks: Map<number, number>; secondary: Map<number, number> }>()

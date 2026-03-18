@@ -4,10 +4,10 @@
  * Tabs : Résumé | Timeline | Build | Stats
  */
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Sword, Clock, BarChart3, Layers, TrendingUp } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
-import { getItemImageUrl } from '../../../lib/items'
+import { loadItems, getItemImageUrl } from '../../../lib/items'
 import { GoldDiffChart } from './charts/GoldDiffChart'
 import { useSoloqMatchDetail } from './hooks/useSoloqMatchDetail'
 
@@ -31,6 +31,8 @@ export function SoloqMatchDetailPage() {
   const { playerId, riotMatchId } = useParams<{ playerId: string; riotMatchId: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('resume')
+  const [itemsReady, setItemsReady] = useState(false)
+  useEffect(() => { loadItems().then(() => setItemsReady(true)) }, [])
 
   const { matchData, timelineData, loading, timelineLoading, error } = useSoloqMatchDetail(
     playerId,
@@ -182,30 +184,28 @@ export function SoloqMatchDetailPage() {
             <div className="bg-dark-card rounded-2xl border border-dark-border p-5">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">Items finaux</h3>
               <div className="flex flex-wrap items-center gap-2">
-                {mainItems.map((itemId, i) => (
-                  itemId > 0 ? (
-                    <img
-                      key={i}
-                      src={getItemImageUrl(itemId) ?? undefined}
-                      alt={`Item ${itemId}`}
-                      className="w-10 h-10 rounded-lg border border-dark-border object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                    />
+                {mainItems.map((itemId, i) => {
+                  if (!itemId || itemId === 0) return <div key={i} className="w-10 h-10 rounded-lg border border-dark-border bg-dark-bg/60" />
+                  const url = getItemImageUrl(itemId)
+                  return url ? (
+                    <img key={`${itemId}-${i}-loaded`} src={url} alt={`Item ${itemId}`} className="w-10 h-10 rounded-lg border border-dark-border object-cover" />
                   ) : (
-                    <div key={i} className="w-10 h-10 rounded-lg border border-dark-border bg-dark-bg/60" />
+                    <div key={`${itemId}-${i}-loading`} className="w-10 h-10 rounded-lg border border-dark-border bg-dark-bg/40 animate-pulse" title={String(itemId)} />
                   )
-                ))}
-                {trinket > 0 && (
-                  <>
-                    <div className="w-px h-8 bg-dark-border mx-1" />
-                    <img
-                      src={getItemImageUrl(trinket) ?? undefined}
-                      alt={`Trinket ${trinket}`}
-                      className="w-9 h-9 rounded-lg border border-dark-border/50 object-cover opacity-80"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                    />
-                  </>
-                )}
+                })}
+                {trinket > 0 && (() => {
+                  const url = getItemImageUrl(trinket)
+                  return (
+                    <>
+                      <div className="w-px h-8 bg-dark-border mx-1" />
+                      {url ? (
+                        <img src={url} alt={`Trinket ${trinket}`} className="w-9 h-9 rounded-lg border border-dark-border/50 object-cover opacity-80" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg border border-dark-border/50 bg-dark-bg/40 animate-pulse" title={String(trinket)} />
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             </div>
           )}
@@ -304,17 +304,14 @@ function ItemCard({ itemId, slot, label }: { itemId: number; slot: number; label
       </div>
     )
   }
+  const url = getItemImageUrl(itemId)
   return (
     <div className="flex flex-col items-center gap-1">
-      <img
-        src={getItemImageUrl(itemId) ?? undefined}
-        alt={`Item ${itemId}`}
-        className="w-14 h-14 rounded-xl border border-dark-border object-cover"
-        onError={(e) => {
-          const el = e.target as HTMLImageElement
-          el.style.display = 'none'
-        }}
-      />
+      {url ? (
+        <img src={url} alt={`Item ${itemId}`} className="w-14 h-14 rounded-xl border border-dark-border object-cover" />
+      ) : (
+        <div className="w-14 h-14 rounded-xl border border-dark-border bg-dark-bg/40 animate-pulse" title={String(itemId)} />
+      )}
       <span className="text-xs text-gray-400">{label ?? `Slot ${slot}`}</span>
     </div>
   )
