@@ -233,6 +233,11 @@ export function useTeamAutoSync() {
                       assists: m.assists ?? 0,
                       game_duration: m.gameDuration ?? 0,
                       game_creation: m.gameCreation ?? 0,
+                      total_damage: m.totalDamage ?? null,
+                      gold_earned: m.goldEarned ?? null,
+                      cs: m.cs ?? null,
+                      vision_score: m.visionScore ?? null,
+                      match_json: m.matchJson ?? null,
                     }))
                     const { error: upsertErr } = await upsertSoloqMatches(rows)
                     if (upsertErr) logger.warn(LOG_PREFIX, name, '| upsert erreur:', upsertErr)

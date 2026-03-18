@@ -226,8 +226,8 @@ export function PlayerStatsComparisonCard({
       )}
 
       <p className="text-[10px] text-gray-700 text-center mt-3">
-        ★ = meilleur · Dég./min & Or/min = global sur la période{mode === 'team' ? ' · Pinks/p = contrôles par partie' : ''} · Win% B/R = winrate côté bleu / rouge ·{' '}
-        {mode === 'team' ? 'Toutes les parties team' : 'Toutes les parties SoloQ (saison en cours)'}
+        ★ = meilleur · Dég./min & Or/min = global sur la période{mode === 'team' ? ' · Pinks/p = contrôles par partie' : ' (parties enrichies uniquement)'} · Win% B/R = winrate côté bleu / rouge ·{' '}
+        {mode === 'team' ? 'Toutes les parties team' : 'Toutes les parties SoloQ S16 · Dég/Or/B/R = parties avec données Riot complètes'}
       </p>
     </div>
   )

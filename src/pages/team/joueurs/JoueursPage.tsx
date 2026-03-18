@@ -80,15 +80,22 @@ export const JoueursPage = () => {
           const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
           const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
           const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
-          // total_damage / gold_earned peuvent être null si le match_json n'a pas encore été enrichi
-          // → fallback sur match_json (contient le participant Riot complet)
-          const tDmg = list.reduce((s: number, m: any) => s + (m.total_damage ?? m.match_json?.totalDamageDealtToChampions ?? 0), 0)
-          const tGold = list.reduce((s: number, m: any) => s + (m.gold_earned ?? m.match_json?.goldEarned ?? 0), 0)
-          const tDurSec = list.reduce((s: number, m: any) => s + (m.game_duration ?? 0), 0)
-          const gamesBlue = list.filter((m: any) => m.match_json?.teamId === 100).length
-          const winsBlue  = list.filter((m: any) => m.match_json?.teamId === 100 && m.win).length
-          const gamesRed  = list.filter((m: any) => m.match_json?.teamId === 200).length
-          const winsRed   = list.filter((m: any) => m.match_json?.teamId === 200 && m.win).length
+
+          // Parties enrichies = celles qui ont total_damage OU match_json.totalDamageDealtToChampions
+          // (absent sur les vieux imports via useTeamAutoSync — désormais corrigé pour les nouveaux)
+          // On calcule dmg/gold/Win%BR uniquement sur ces parties pour éviter un dénominateur faussé
+          const getDmg = (m: any): number | null => m.total_damage ?? m.match_json?.totalDamageDealtToChampions ?? null
+          const getGold = (m: any): number | null => m.gold_earned ?? m.match_json?.goldEarned ?? null
+          const enriched = list.filter((m: any) => getDmg(m) !== null)
+          const tDmg = enriched.reduce((s: number, m: any) => s + (getDmg(m) as number), 0)
+          const tGold = enriched.reduce((s: number, m: any) => s + (getGold(m) ?? 0), 0)
+          const tDurSec = enriched.reduce((s: number, m: any) => s + (m.game_duration ?? 0), 0)
+
+          // Win% B/R : côté bleu/rouge via match_json.teamId (disponible uniquement sur parties enrichies)
+          const gamesBlue = enriched.filter((m: any) => m.match_json?.teamId === 100).length
+          const winsBlue  = enriched.filter((m: any) => m.match_json?.teamId === 100 && m.win).length
+          const gamesRed  = enriched.filter((m: any) => m.match_json?.teamId === 200).length
+          const winsRed   = enriched.filter((m: any) => m.match_json?.teamId === 200 && m.win).length
           next[p.id] = { k: tK, d: tD, a: tA, wins, count: list.length, dmg: tDmg, gold: tGold, durationSec: tDurSec, pinks: 0, winsBlue, gamesBlue, winsRed, gamesRed }
         })
       )
