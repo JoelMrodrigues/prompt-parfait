@@ -34,6 +34,11 @@ import { supabase } from '../../../lib/supabase'
 import { getChampionImage } from '../../../lib/championImages'
 import { fetchWeeklySoloqCount } from '../../../services/supabase/playerQueries'
 import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
+
+const ROLE_ORDER: Record<string, number> = {
+  TOP: 0, JNG: 1, JUNGLE: 1, MID: 2, ADC: 3, BOT: 3, SUP: 4, SUPPORT: 4,
+}
+const byRoleOrder = (pos?: string) => ROLE_ORDER[(pos ?? '').toUpperCase()] ?? 9
 import { getRankColorText } from '../joueurs/utils/playerDetailHelpers'
 
 // ── Color extraction ──────────────────────────────────────────────────────────
@@ -1028,7 +1033,10 @@ export const TeamOverviewPage = () => {
                           {m.our_win ? 'V' : 'D'}
                         </span>
                         <div className="flex items-center gap-1.5 flex-1">
-                          {our.slice(0, 5).map((p: any, pi: number) => (
+                          {[...our]
+                            .sort((a, b) => byRoleOrder(a.position || a.role) - byRoleOrder(b.position || b.role))
+                            .slice(0, 5)
+                            .map((p: any, pi: number) => (
                             <img
                               key={pi}
                               src={getChampionImage(p.champion_name)}
@@ -1118,11 +1126,7 @@ export const TeamOverviewPage = () => {
                   <div className="space-y-2">
                     {players
                       .filter((p) => teamChampionStats.top3PerPlayer[p.id]?.length > 0)
-                      .sort(
-                        (a, b) =>
-                          (teamChampionStats.top3PerPlayer[b.id]?.[0]?.games ?? 0) -
-                          (teamChampionStats.top3PerPlayer[a.id]?.[0]?.games ?? 0),
-                      )
+                      .sort((a, b) => byRoleOrder(a.position) - byRoleOrder(b.position))
                       .map((p) => {
                         const champs = teamChampionStats.top3PerPlayer[p.id] || []
                         return (
