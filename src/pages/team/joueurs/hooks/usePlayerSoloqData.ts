@@ -257,11 +257,14 @@ export function usePlayerSoloqData({
   // ─── Riot API handlers ────────────────────────────────────────────────────
 
   async function handleLoadAllFromRiot() {
+    const LOG = `[LoadAllRiot][${player?.player_name ?? '?'}]`
     if (!activeSoloqPseudo?.trim() || (!activeSoloqPseudo.includes('#') && !activeSoloqPseudo.includes('/'))) {
+      console.warn(LOG, 'Pseudo invalide :', activeSoloqPseudo)
       toastInfo('Pseudo au format GameName#TagLine requis')
       return
     }
     if (rateLimitSeconds != null && rateLimitSeconds > 0) return
+    console.log(LOG, 'Démarrage | pseudo:', activeSoloqPseudo, '| start:', matchHistoryCountInDb ?? 0)
     setLoadAllFromRiotLoading(true)
     setRateLimitSeconds(null)
     try {
@@ -269,10 +272,13 @@ export function usePlayerSoloqData({
       let totalLoaded = 0
       matchHistoryPlayerIdRef.current = null
       for (;;) {
+        console.log(LOG, `Fetch page start=${start}`)
         const res = await apiFetch(
           `/api/riot/match-history?pseudo=${encodeURIComponent(activeSoloqPseudo.trim())}&start=${start}&limit=${PAGE_SIZE}`
         )
+        console.log(LOG, 'Réponse HTTP :', res.status)
         const data = await res.json().catch(() => ({}))
+        console.log(LOG, 'Page data :', { success: data.success, error: data.error, matchesCount: Array.isArray(data.matches) ? data.matches.length : 'N/A', hasMore: data.hasMore })
         if (res.status === 429 && (data.retryAfter ?? data.retry_after)) {
           const s16 = Array.isArray(data.matches)
             ? data.matches.filter((m: any) => (m.gameCreation || 0) >= SEASON_16_START_MS)
@@ -325,14 +331,21 @@ export function usePlayerSoloqData({
   }
 
   async function handleRefreshData() {
+    const LOG = `[SyncRiot][${player?.player_name ?? '?'}]`
     if (!player?.pseudo || (!player.pseudo.includes('#') && !player.pseudo.includes('/'))) {
+      console.warn(LOG, 'Pseudo invalide (pas de # ni /) :', player?.pseudo)
       toastInfo('Pseudo GameName#TagLine requis')
       return
     }
+    console.log(LOG, 'Démarrage sync | pseudo:', player.pseudo, '| puuid en base:', player.puuid ?? 'aucun')
     setSyncing(true)
     try {
-      const res = await apiFetch(`/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(player.pseudo.trim())}`)
+      const url = `/api/riot/sync-rank-and-matches?pseudo=${encodeURIComponent(player.pseudo.trim())}${player.puuid ? `&puuid=${encodeURIComponent(player.puuid)}` : ''}`
+      console.log(LOG, 'Appel backend →', url)
+      const res = await apiFetch(url)
+      console.log(LOG, 'Réponse HTTP :', res.status, res.statusText)
       const data = await res.json().catch(() => ({}))
+      console.log(LOG, 'Données reçues :', { success: data.success, error: data.error, rank: data.rank, totalMatchIds: data.totalMatchIds, matchesCount: Array.isArray(data.matches) ? data.matches.length : 'N/A', rateLimitSeconds: data.rateLimitSeconds })
       if (!data.success) {
         if (data.rateLimitSeconds != null) setRateLimitSeconds(Math.max(1, data.rateLimitSeconds))
         throw new Error(data.error || 'Erreur API')
@@ -341,10 +354,12 @@ export function usePlayerSoloqData({
       if (data.rank != null) { updates.rank = data.rank; updates.rank_updated_at = new Date().toISOString() }
       if (typeof data.totalMatchIds === 'number') updates.soloq_total_match_ids = data.totalMatchIds
       if (Object.keys(updates).length > 0) {
+        console.log(LOG, 'Mise à jour joueur :', updates)
         try {
           await updatePlayer(player.id, updates)
           await refetch()
         } catch (err: any) {
+          console.error(LOG, 'Erreur updatePlayer :', err)
           if (err?.code === 'PGRST204' && updates.soloq_total_match_ids != null) {
             const { soloq_total_match_ids: _, ...rest } = updates
             if (Object.keys(rest).length > 0) { await updatePlayer(player.id, rest); await refetch() }
@@ -354,8 +369,11 @@ export function usePlayerSoloqData({
       const s16 = Array.isArray(data.matches)
         ? data.matches.filter((m: any) => (m.gameCreation || 0) >= SEASON_16_START_MS)
         : []
+      console.log(LOG, `Parties S16 à upsert : ${s16.length} / ${Array.isArray(data.matches) ? data.matches.length : 0} reçues`)
       if (s16.length > 0 && supabase) {
-        await upsertSoloqMatches(s16.map((m: any) => mapMatchRow(m, player.id, 'primary')))
+        const { error: upsertErr } = await upsertSoloqMatches(s16.map((m: any) => mapMatchRow(m, player.id, 'primary')))
+        if (upsertErr) console.error(LOG, 'Erreur upsert Supabase :', upsertErr)
+        else console.log(LOG, 'Upsert OK')
         if (selectedCard === 'soloq') {
           matchHistoryPlayerIdRef.current = null
           await loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
@@ -372,11 +390,15 @@ export function usePlayerSoloqData({
           if (Array.isArray(freshData))
             setLpGraphMatches(freshData.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC))
         }
+      } else {
+        console.log(LOG, 'Aucune partie S16 à sauvegarder (soit 0 reçues, soit toutes < SEASON_16_START_MS)')
       }
     } catch (e: any) {
+      console.error(LOG, 'Exception :', e)
       toastError('Erreur: ' + (e.message || 'Erreur inconnue'))
     } finally {
       setSyncing(false)
+      console.log(LOG, 'Sync terminée')
     }
   }
 
