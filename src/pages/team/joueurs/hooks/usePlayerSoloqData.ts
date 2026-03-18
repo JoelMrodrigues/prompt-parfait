@@ -264,11 +264,11 @@ export function usePlayerSoloqData({
       return
     }
     if (rateLimitSeconds != null && rateLimitSeconds > 0) return
-    console.log(LOG, 'Démarrage | pseudo:', activeSoloqPseudo, '| start:', matchHistoryCountInDb ?? 0)
+    console.log(LOG, 'Démarrage | pseudo:', activeSoloqPseudo, '| gamesInDb:', matchHistoryCountInDb ?? 0, '→ start forcé à 0 pour ré-enrichir les parties existantes')
     setLoadAllFromRiotLoading(true)
     setRateLimitSeconds(null)
     try {
-      let start = matchHistoryCountInDb ?? 0
+      let start = 0 // toujours 0 : l'upsert met à jour les lignes existantes avec les champs enrichis
       let totalLoaded = 0
       matchHistoryPlayerIdRef.current = null
       for (;;) {
