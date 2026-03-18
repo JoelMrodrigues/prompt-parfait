@@ -63,7 +63,7 @@ export function usePlayerDetail(playerId: string | undefined) {
 
   // ─── Runes cache (chargé à la première ouverture de All Stats ou onglet Runes SoloQ) ──
   useEffect(() => {
-    if ((selectedTeamSub !== 'allstats' && selectedSoloqSub !== 'runes') || allRunesCache.length > 0) return
+    if ((selectedTeamSub !== 'allstats' && selectedSoloqSub !== 'builds-runes') || allRunesCache.length > 0) return
     let cancelled = false
     fetchAllRunes().then(({ data, error }) => {
       if (cancelled || error || !data?.length) return

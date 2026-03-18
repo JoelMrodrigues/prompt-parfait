@@ -22,7 +22,6 @@ import {
   LayoutList,
   Target,
   Wrench,
-  Flame,
 } from 'lucide-react'
 import {
   getChampionImage,
@@ -52,8 +51,7 @@ const SOLOQ_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
   { id: 'champions', label: 'Champions', icon: Sparkles },
   { id: 'historiques', label: 'Historiques', icon: History },
-  { id: 'build', label: 'Build', icon: Wrench },
-  { id: 'runes', label: 'Runes', icon: Flame },
+  { id: 'builds-runes', label: 'Builds & Runes', icon: Wrench },
 ]
 
 const RUNE_TREE_NAMES: Record<number, string> = {
@@ -64,6 +62,7 @@ const TEAM_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
   { id: 'champions', label: 'Champions', icon: Sparkles },
   { id: 'historiques', label: 'Historiques', icon: History },
+  { id: 'builds', label: 'Builds & Runes', icon: Wrench },
   { id: 'allstats', label: 'All Stats', icon: Table2 },
 ]
 
@@ -498,14 +497,18 @@ export const PlayerDetailPage = () => {
               </div>
             )}
 
-            {/* ── Build ── */}
-            {d.selectedSoloqSub === 'build' && (
-              <SoloqBuildSection lpGraphMatches={d.lpGraphMatches} loading={d.lpGraphLoading} />
-            )}
-
-            {/* ── Runes ── */}
-            {d.selectedSoloqSub === 'runes' && (
-              <SoloqRunesSection lpGraphMatches={d.lpGraphMatches} loading={d.lpGraphLoading} runesCache={d.allRunesCache} />
+            {/* ── Builds & Runes ── */}
+            {d.selectedSoloqSub === 'builds-runes' && (
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Builds</h3>
+                  <SoloqBuildSection lpGraphMatches={d.lpGraphMatches} loading={d.lpGraphLoading} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Runes</h3>
+                  <SoloqRunesSection lpGraphMatches={d.lpGraphMatches} loading={d.lpGraphLoading} runesCache={d.allRunesCache} />
+                </div>
+              </div>
             )}
           </>
         )}
@@ -670,6 +673,20 @@ export const PlayerDetailPage = () => {
                     <p className="text-gray-500 text-sm">Aucune donnée en équipe. Ajoutez des parties depuis <strong>Matchs</strong>.</p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── Team Builds & Runes ── */}
+            {d.selectedTeamSub === 'builds' && (
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Builds</h3>
+                  <TeamBuildSection teamStats={d.filteredTeamStats} loading={d.teamStatsLoading} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Runes</h3>
+                  <p className="text-gray-500 text-sm py-4 text-center">Les runes ne sont pas stockées pour les matchs Team.<br />Disponible uniquement en Solo Q.</p>
+                </div>
               </div>
             )}
 
@@ -960,11 +977,76 @@ function AllStatsTable({
   )
 }
 
+// ─── TeamBuildSection ────────────────────────────────────────────────────────
+
+function TeamBuildSection({ teamStats, loading }: { teamStats: any[]; loading: boolean }) {
+  const [, forceUpdate] = useState(0)
+  useEffect(() => { loadItems().then(() => forceUpdate(1)) }, [])
+
+  const realGames = teamStats.filter((s) => (s.team_matches?.game_duration ?? 0) >= 180)
+
+  const champBuilds = new Map<string, { games: number; wins: number; buildCounts: Map<string, number> }>()
+  for (const s of realGames) {
+    const champ = s.champion_name
+    if (!champ) continue
+    const items = [s.item0, s.item1, s.item2, s.item3, s.item4, s.item5].filter((id) => id > 0).slice(0, 6)
+    const entry = champBuilds.get(champ) ?? { games: 0, wins: 0, buildCounts: new Map() }
+    entry.games++
+    if (s.team_matches?.our_win) entry.wins++
+    if (items.length > 0) {
+      const sig = items.join(',')
+      entry.buildCounts.set(sig, (entry.buildCounts.get(sig) ?? 0) + 1)
+    }
+    champBuilds.set(champ, entry)
+  }
+
+  const topBuilds = Array.from(champBuilds.entries())
+    .sort((a, b) => b[1].games - a[1].games)
+    .slice(0, 8)
+    .map(([name, v]) => {
+      const mostFreq = [...v.buildCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+      const items = mostFreq ? mostFreq[0].split(',').map(Number) : []
+      const wr = Math.round((v.wins / v.games) * 100)
+      return { name, games: v.games, wr, items }
+    })
+
+  if (loading) return <p className="text-gray-500 text-sm py-6 text-center">Chargement…</p>
+  if (topBuilds.length === 0)
+    return <p className="text-gray-500 text-sm py-6 text-center">Aucune donnée de build. Ajoutez des matchs Team depuis la page Matchs.</p>
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500 uppercase tracking-wider">Build le plus fréquent par champion</p>
+      {topBuilds.map((c) => (
+        <div key={c.name} className="flex items-center gap-3 bg-dark-bg/40 rounded-xl border border-dark-border/60 px-4 py-2.5">
+          <img src={getChampionImage(c.name)} alt={c.name} className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          <div className="w-28 shrink-0">
+            <p className="text-sm font-medium text-white truncate">{c.name}</p>
+            <p className="text-xs text-gray-500">{c.games}G · <span className={c.wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{c.wr}%</span></p>
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {c.items.length > 0 ? c.items.map((id, i) => {
+              const url = getItemImageUrl(id)
+              return url ? (
+                <img key={`${id}-${i}-loaded`} src={url} alt={String(id)} title={String(id)} className="w-8 h-8 rounded-lg border border-dark-border object-cover" />
+              ) : (
+                <div key={`${id}-${i}-loading`} className="w-8 h-8 rounded-lg border border-dark-border bg-dark-bg/40 animate-pulse" title={String(id)} />
+              )
+            }) : (
+              <span className="text-xs text-gray-600 italic">Build non disponible</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── SoloqBuildSection ───────────────────────────────────────────────────────
 
 function SoloqBuildSection({ lpGraphMatches, loading }: { lpGraphMatches: any[]; loading: boolean }) {
-  const [itemsReady, setItemsReady] = useState(false)
-  useEffect(() => { loadItems().then(() => setItemsReady(true)) }, [])
+  const [, forceUpdate] = useState(0)
+  useEffect(() => { loadItems().then(() => forceUpdate(1)) }, [])
   const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180)
 
   const champBuilds = new Map<string, { games: number; wins: number; buildCounts: Map<string, number> }>()
