@@ -23,6 +23,7 @@ import {
   fetchSoloqChampionStats,
   fetchSoloqMatches,
   fetchSoloqMatchIds,
+  fetchUnenrichedMatchIds,
   upsertSoloqMatches,
 } from '../../../services/supabase/playerQueries'
 import {
@@ -244,6 +245,53 @@ export function useTeamAutoSync() {
                   }
                 } catch (err) {
                   logger.warn(LOG_PREFIX, name, '| erreur match-details:', err)
+                }
+                await delay(DELAY_BETWEEN_REQUESTS_MS)
+              }
+            }
+
+            // ─── 4b) Ré-enrichissement des parties sans match_json (max 60/cycle) ───
+            const { data: unenrichedIds } = await fetchUnenrichedMatchIds(player.id, 'primary', SEASON_16_START_MS, 60)
+            if (unenrichedIds && unenrichedIds.length > 0) {
+              logger.debug(LOG_PREFIX, name, `| ${unenrichedIds.length} partie(s) à enrichir`)
+              for (let c = 0; c < unenrichedIds.length; c += DETAILS_CHUNK) {
+                const chunk = unenrichedIds.slice(c, c + DETAILS_CHUNK)
+                try {
+                  const detailsRes = await apiFetch(
+                    `/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`
+                  )
+                  const detailsData = await detailsRes.json().catch(() => ({}))
+                  if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
+                    const wait = Math.max(2000, (detailsData.retry_after ?? detailsData.retryAfter) * 1000)
+                    await delay(wait)
+                    c -= DETAILS_CHUNK
+                    continue
+                  }
+                  if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0 && supabase) {
+                    const rows = detailsData.matches.map((m: any) => ({
+                      player_id: player.id,
+                      riot_match_id: m.matchId,
+                      account_source: 'primary',
+                      champion_id: m.championId ?? null,
+                      champion_name: m.championName ?? null,
+                      opponent_champion: m.opponentChampionName ?? null,
+                      win: !!m.win,
+                      kills: m.kills ?? 0,
+                      deaths: m.deaths ?? 0,
+                      assists: m.assists ?? 0,
+                      game_duration: m.gameDuration ?? 0,
+                      game_creation: m.gameCreation ?? 0,
+                      total_damage: m.totalDamage ?? null,
+                      gold_earned: m.goldEarned ?? null,
+                      cs: m.cs ?? null,
+                      vision_score: m.visionScore ?? null,
+                      match_json: m.matchJson ?? null,
+                    }))
+                    const { error: upsertErr } = await upsertSoloqMatches(rows)
+                    if (upsertErr) logger.warn(LOG_PREFIX, name, '| enrichissement upsert erreur:', upsertErr)
+                  }
+                } catch (err) {
+                  logger.warn(LOG_PREFIX, name, '| enrichissement match-details erreur:', err)
                 }
                 await delay(DELAY_BETWEEN_REQUESTS_MS)
               }

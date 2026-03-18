@@ -164,6 +164,26 @@ export async function fetchWeeklySoloqCount(playerId: string): Promise<number> {
   return count
 }
 
+/** Retourne les riot_match_id des parties sans match_json (non enrichies) — max `limit` IDs */
+export async function fetchUnenrichedMatchIds(
+  playerId: string,
+  accountSource: string,
+  seasonStart: number,
+  limit = 60,
+): Promise<{ data: string[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('player_soloq_matches')
+    .select('riot_match_id')
+    .eq('player_id', playerId)
+    .eq('account_source', accountSource)
+    .gte('game_creation', seasonStart)
+    .is('match_json', null)
+    .order('game_creation', { ascending: false })
+    .limit(limit)
+  if (error) return { data: [], error }
+  return { data: (data || []).map((r: { riot_match_id: string }) => r.riot_match_id).filter(Boolean), error: null }
+}
+
 export async function upsertSoloqMatches(rows: Array<Record<string, unknown>>) {
   const { error } = await supabase
     .from('player_soloq_matches')
