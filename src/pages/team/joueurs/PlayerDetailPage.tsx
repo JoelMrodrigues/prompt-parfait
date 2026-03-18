@@ -961,7 +961,7 @@ function AllStatsTable({
 
 // ─── SoloqBuildSection ───────────────────────────────────────────────────────
 
-const DD_ITEM = (id: number) => `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${id}.png`
+const DD_ITEM = (id: number) => `https://ddragon.leagueoflegends.com/cdn/15.6.1/img/item/${id}.png`
 
 function SoloqBuildSection({ lpGraphMatches, loading }: { lpGraphMatches: any[]; loading: boolean }) {
   const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180)
@@ -1070,7 +1070,7 @@ function SoloqRunesSection({
       const topSec = [...v.secondary.entries()].sort((a, b) => b[1] - a[1])[0]
       const keystoneId = topKs?.[0]
       const secondaryId = topSec?.[0]
-      const keystoneData = keystoneId != null ? runesCache.find((r) => r.id === keystoneId) : undefined
+      const keystoneData = keystoneId != null ? runesCache.find((r) => Number(r.id) === keystoneId) : undefined
       const wr = Math.round((v.wins / v.games) * 100)
       return { name, games: v.games, wr, keystoneId, keystoneData, secondaryId }
     })
