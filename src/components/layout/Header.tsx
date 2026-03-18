@@ -1,9 +1,12 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Moon, Sun } from 'lucide-react'
 import { UserProfileMenu } from './UserProfileMenu'
+import { useTheme } from '../../contexts/ThemeContext'
 
 export const Header = () => {
   const location = useLocation()
+  const { isDark, toggleTheme } = useTheme()
 
   const navLinks = [
     { to: '/', label: 'Accueil' },
@@ -11,7 +14,7 @@ export const Header = () => {
     { to: '/draft', label: 'Draft' },
   ]
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path: string) => location.pathname === path
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-dark-card/80 backdrop-blur-md border-b border-dark-border">
@@ -61,6 +64,22 @@ export const Header = () => {
               />
             )}
           </Link>
+
+          {/* Toggle dark / light */}
+          <button
+            onClick={toggleTheme}
+            className="w-9 h-9 rounded-lg border border-dark-border bg-dark-bg flex items-center justify-center text-gray-400 hover:text-white hover:border-accent-blue/40 transition-all"
+            title={isDark ? 'Mode clair' : 'Mode sombre'}
+          >
+            <motion.div
+              key={isDark ? 'dark' : 'light'}
+              initial={{ rotate: -30, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              transition={{ duration: 0.25 }}
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            </motion.div>
+          </button>
 
           <UserProfileMenu />
         </div>
