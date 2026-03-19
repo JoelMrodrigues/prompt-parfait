@@ -3,9 +3,10 @@
  * Guide LCU Explorer inclus
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Upload, FileJson, AlertCircle, CheckCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ExternalLink, Swords, Trophy } from 'lucide-react'
+import { Upload, FileJson, AlertCircle, CheckCircle, Clock, HelpCircle, ChevronDown, ChevronUp, ExternalLink, Swords, Trophy, Sparkles, MousePointerClick, LayoutList } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
+import { useTeamBlocks } from '../hooks/useTeamBlocks'
 import { importExaltyMatches } from '../../../lib/team/exaltyMatchImporter'
 import {
   parseTimeline,
@@ -13,6 +14,10 @@ import {
   getSnapshotsAtMinutes,
 } from '../../../lib/team/exaltyTimelineParser'
 import { supabase } from '../../../lib/supabase'
+import { detectBlocks } from '../../../lib/team/blockDetector'
+import { AutoBlockProposal } from '../matchs/components/AutoBlockProposal'
+import { CreateBlockModal } from '../matchs/components/CreateBlockModal'
+import type { DetectedBlock } from '../../../types/matchBlocks'
 
 // ─── Composant drop zone réutilisable ─────────────────────────────────────────
 
@@ -67,28 +72,47 @@ function DropZone({ files, onFiles, accept, color }: {
 
 // ─── Carte d'import commune (Scrim + Tournament) ──────────────────────────────
 
+type ImportMode = 'simple' | 'auto' | 'manual'
+
+const IMPORT_MODES: { id: ImportMode; label: string; Icon: React.ElementType; desc: string }[] = [
+  { id: 'simple', label: 'Simple',  Icon: LayoutList,        desc: 'Import sans groupement' },
+  { id: 'auto',   label: 'Auto',    Icon: Sparkles,          desc: 'Détection auto des sessions' },
+  { id: 'manual', label: 'Manuel',  Icon: MousePointerClick, desc: 'Sélection manuelle des parties' },
+]
+
 function MatchImportCard({
   type,
   players,
   teamId,
+  allMatches,
   onImported,
+  onBlocksRefetch,
 }: {
   type: 'scrim' | 'tournament'
   players: any[]
   teamId: string
+  allMatches: any[]
   onImported: () => void
+  onBlocksRefetch: () => void
 }) {
   const [files, setFiles] = useState<File[]>([])
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [importMode, setImportMode] = useState<ImportMode>('simple')
+
+  // Post-import state
+  const [parsedGameIds, setParsedGameIds] = useState<number[]>([])
+  const [detectedBlocks, setDetectedBlocks] = useState<DetectedBlock[]>([])
+  const [manualSelected, setManualSelected] = useState<Set<number>>(new Set())
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [showProposal, setShowProposal] = useState(false)
 
   const isScrim = type === 'scrim'
   const icon = isScrim ? <Swords size={22} className="text-accent-blue" /> : <Trophy size={22} className="text-amber-400" />
   const label = isScrim ? 'Import Scrim' : 'Import Tournament'
   const modelFile = isScrim ? 'Scrim1.json' : 'tr1.json'
-  const accent = isScrim ? 'accent-blue' : 'amber-400'
   const borderHover = isScrim ? 'hover:border-accent-blue/40' : 'hover:border-amber-500/40'
   const btnColor = isScrim ? 'bg-accent-blue hover:bg-accent-blue/90' : 'bg-amber-500 hover:bg-amber-500/90'
   const helpStepColor = isScrim ? 'text-accent-blue' : 'text-amber-400'
@@ -98,6 +122,9 @@ function MatchImportCard({
     setImporting(true)
     setError(null)
     setSuccess(null)
+    setDetectedBlocks([])
+    setManualSelected(new Set())
+    setShowProposal(false)
     try {
       const teamPlayers = players.map((p) => ({
         id: p.id,
@@ -116,9 +143,33 @@ function MatchImportCard({
         setError(res.errors.join(' — '))
       } else {
         setSuccess(
-          `${res.imported} match(es) importé(s) en tant que ${isScrim ? 'Scrim' : 'Tournament'}${res.skipped > 0 ? ` · ${res.skipped} déjà présents` : ''}`
+          `${res.imported} partie(s) importée(s)${res.skipped > 0 ? ` · ${res.skipped} déjà présente(s)` : ''}`
         )
-        if (res.imported > 0) onImported()
+        if (res.imported > 0) {
+          // Sauvegarder les game_id parsés pour les modes auto/manuel
+          const gameIds = originals.map((m) => Number(m.gameId || m.metadata?.matchId || 0)).filter(Boolean)
+          setParsedGameIds(gameIds)
+
+          // Construire des objets légers pour blockDetector
+          const forDetect = originals.map((m) => ({
+            id: String(m.gameId ?? ''),
+            game_id: Number(m.gameId ?? 0),
+            game_creation: m.gameCreation ?? null,
+            game_duration: m.gameDuration ?? null,
+          }))
+
+          if (importMode === 'auto') {
+            const detected = detectBlocks(forDetect)
+            setDetectedBlocks(detected)
+            setShowProposal(true)
+          } else if (importMode === 'manual') {
+            const allIds = new Set(forDetect.map((m) => m.game_id))
+            setManualSelected(allIds)
+            setShowProposal(true)
+          }
+
+          onImported()
+        }
       }
       setFiles([])
     } catch (e: any) {
@@ -128,8 +179,16 @@ function MatchImportCard({
     }
   }
 
+  // Pour le mode Manuel : résoudre game_ids → UUIDs Supabase
+  const resolveMatchIds = (gameIds: number[]) => {
+    return allMatches
+      .filter((m) => gameIds.includes(Number(m.game_id)))
+      .map((m) => m.id as string)
+  }
+
   return (
-    <div className={`bg-dark-card border border-dark-border rounded-2xl p-6 hover:${borderHover} transition-colors`}>
+    <div className={`bg-dark-card border border-dark-border rounded-2xl p-6 ${borderHover} transition-colors`}>
+      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <div className={`p-2.5 rounded-xl ${isScrim ? 'bg-accent-blue/15' : 'bg-amber-500/15'}`}>
           {icon}
@@ -146,6 +205,31 @@ function MatchImportCard({
           Aide
           {showHelp ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
         </button>
+      </div>
+
+      {/* Mode d'import */}
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Mode de groupement</p>
+        <div className="flex gap-2">
+          {IMPORT_MODES.map(({ id, label: mLabel, Icon, desc }) => (
+            <button
+              key={id}
+              onClick={() => { setImportMode(id); setShowProposal(false) }}
+              className={`flex-1 flex flex-col items-center gap-1 py-2 px-2 rounded-xl border text-xs font-medium transition-colors ${
+                importMode === id
+                  ? 'border-accent-blue/50 bg-accent-blue/10 text-accent-blue'
+                  : 'border-dark-border text-gray-500 hover:text-gray-300 bg-dark-bg/40'
+              }`}
+              title={desc}
+            >
+              <Icon size={13} />
+              {mLabel}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-gray-600 mt-1.5 text-center">
+          {IMPORT_MODES.find((m) => m.id === importMode)?.desc}
+        </p>
       </div>
 
       {showHelp && (
@@ -187,6 +271,84 @@ function MatchImportCard({
           <><CheckCircle size={16} />Importer en {isScrim ? 'Scrim' : 'Tournament'}</>
         )}
       </button>
+
+      {/* ── Mode Auto : proposition de blocs ── */}
+      {importMode === 'auto' && showProposal && (
+        detectedBlocks.length > 0 ? (
+          <AutoBlockProposal
+            teamId={teamId}
+            detected={detectedBlocks}
+            allMatches={allMatches}
+            onDone={() => { setShowProposal(false); onBlocksRefetch() }}
+          />
+        ) : (
+          <div className="mt-4 p-3 bg-dark-bg/50 border border-dark-border rounded-xl text-xs text-gray-500 text-center">
+            Aucun groupe détecté (parties trop espacées dans le temps).
+          </div>
+        )
+      )}
+
+      {/* ── Mode Manuel : sélection + création bloc ── */}
+      {importMode === 'manual' && showProposal && parsedGameIds.length > 0 && (
+        <div className="mt-4 p-4 bg-dark-bg/50 border border-accent-blue/20 rounded-xl space-y-3">
+          <p className="text-xs font-semibold text-accent-blue">
+            <MousePointerClick size={12} className="inline mr-1" />
+            Sélectionnez les parties à grouper
+          </p>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {allMatches
+              .filter((m) => parsedGameIds.includes(Number(m.game_id)))
+              .map((m) => {
+                const dateStr = m.game_creation
+                  ? new Date(m.game_creation).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                  : ''
+                const checked = manualSelected.has(Number(m.game_id))
+                return (
+                  <label key={m.id} className="flex items-center gap-3 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-dark-bg transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setManualSelected((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(Number(m.game_id))) next.delete(Number(m.game_id))
+                          else next.add(Number(m.game_id))
+                          return next
+                        })
+                      }}
+                      className="accent-accent-blue"
+                    />
+                    <span className={`text-xs font-medium ${m.our_win ? 'text-green-400' : 'text-red-400'}`}>
+                      {m.our_win ? 'V' : 'D'}
+                    </span>
+                    <span className="text-xs text-gray-400 flex-1">{dateStr}</span>
+                  </label>
+                )
+              })}
+          </div>
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            disabled={manualSelected.size === 0}
+            className="w-full py-2 bg-accent-blue hover:bg-accent-blue/90 text-white rounded-xl text-sm font-medium disabled:opacity-50 transition-colors"
+          >
+            Créer un bloc avec {manualSelected.size} partie{manualSelected.size > 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
+
+      {/* Modal création bloc (mode Manuel) */}
+      {createModalOpen && (
+        <CreateBlockModal
+          teamId={teamId}
+          prefillMatchIds={resolveMatchIds([...manualSelected])}
+          onClose={() => setCreateModalOpen(false)}
+          onSaved={() => {
+            setCreateModalOpen(false)
+            setShowProposal(false)
+            onBlocksRefetch()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -196,6 +358,7 @@ function MatchImportCard({
 export const ImportPage = () => {
   const { team, players = [], refetch: refetchTeam } = useTeam()
   const { matches = [], refetch: refetchMatches } = useTeamMatches(team?.id)
+  const { refetch: refetchBlocks } = useTeamBlocks(team?.id)
 
   const [showLCUGuide, setShowLCUGuide] = useState(false)
 
@@ -436,10 +599,10 @@ export const ImportPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* Import Scrim */}
-        <MatchImportCard type="scrim" players={players} teamId={team.id} onImported={handleImported} />
+        <MatchImportCard type="scrim" players={players} teamId={team.id} allMatches={matches} onImported={handleImported} onBlocksRefetch={refetchBlocks} />
 
         {/* Import Tournament */}
-        <MatchImportCard type="tournament" players={players} teamId={team.id} onImported={handleImported} />
+        <MatchImportCard type="tournament" players={players} teamId={team.id} allMatches={matches} onImported={handleImported} onBlocksRefetch={refetchBlocks} />
 
         {/* Import Timeline */}
         <div className="bg-dark-card border border-dark-border rounded-2xl p-6">

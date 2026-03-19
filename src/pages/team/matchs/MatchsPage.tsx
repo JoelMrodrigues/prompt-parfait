@@ -1,75 +1,40 @@
 /**
- * Page Matchs - Liste des parties avec filtre Scrim / Tournament
+ * Page Matchs — Vue Blocs (sessions groupées) ou Vue Plate (liste simple)
  */
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { RefreshCw, FileJson, Swords, Trophy, LayoutList } from 'lucide-react'
+import { RefreshCw, FileJson, Swords, Trophy, LayoutList, FolderOpen, Plus, Trash2 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
-import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
+import { useTeamBlocks } from '../hooks/useTeamBlocks'
+import { deleteBlock } from '../../../services/supabase/blockQueries'
+import { MatchRow } from './components/MatchRow'
+import { BlockCard } from './components/BlockCard'
+import { CreateBlockModal } from './components/CreateBlockModal'
+import { AssignMatchesModal } from './components/AssignMatchesModal'
+import type { TeamMatchBlock } from '../../../types/matchBlocks'
 
-const ROLE_SORT_KEY: Record<string, number> = {
-  TOP: 0, JNG: 1, JUNGLE: 1, MID: 2, ADC: 3, BOT: 3, SUP: 4, SUPPORT: 4,
-}
-
-type MatchType = 'all' | 'scrim' | 'tournament'
+type MatchType  = 'all' | 'scrim' | 'tournament'
+type ViewMode   = 'blocks' | 'flat'
 
 const TYPE_FILTERS: { id: MatchType; label: string; Icon: React.ElementType }[] = [
-  { id: 'all',        label: 'Tous',        Icon: LayoutList },
-  { id: 'scrim',      label: 'Scrims',      Icon: Swords     },
-  { id: 'tournament', label: 'Tournois',    Icon: Trophy     },
+  { id: 'all',        label: 'Tous',     Icon: LayoutList },
+  { id: 'scrim',      label: 'Scrims',   Icon: Swords     },
+  { id: 'tournament', label: 'Tournois', Icon: Trophy     },
 ]
-
-function sortByRole(participants: any[]) {
-  return [...participants].sort((a, b) => {
-    const rA = (a.role || '').toUpperCase().replace(/\s/g, '')
-    const rB = (b.role || '').toUpperCase().replace(/\s/g, '')
-    return (ROLE_SORT_KEY[rA] ?? 99) - (ROLE_SORT_KEY[rB] ?? 99)
-  })
-}
-
-function ChampionStrip({ participants, side }: { participants: any[]; side: 'blue' | 'red' }) {
-  const sorted = sortByRole(participants)
-  const sideColor = side === 'blue' ? 'text-blue-400' : 'text-red-400'
-  const sideLabel = side === 'blue' ? 'Blue' : 'Red'
-  return (
-    <div className="flex items-center gap-3 min-w-0">
-      <span className={`text-xs font-semibold w-8 shrink-0 ${sideColor}`}>{sideLabel}</span>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {sorted.map((p, i) => (
-          <img
-            key={p.id ?? i}
-            src={getChampionImage(p.champion_name)}
-            alt={getChampionDisplayName(p.champion_name) || p.champion_name}
-            className="w-8 h-8 rounded-lg object-cover border border-dark-border"
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function TypeBadge({ type }: { type?: string | null }) {
-  if (!type || type === 'scrim') {
-    return (
-      <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/20">
-        <Swords size={10} />
-        Scrim
-      </span>
-    )
-  }
-  return (
-    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
-      <Trophy size={10} />
-      Tournoi
-    </span>
-  )
-}
 
 export const MatchsPage = () => {
   const { team } = useTeam()
-  const { matches, loading, refetch } = useTeamMatches(team?.id)
-  const [filter, setFilter] = useState<MatchType>('all')
+  const { matches, loading: matchesLoading, refetch: refetchMatches } = useTeamMatches(team?.id)
+  const { blocks, loading: blocksLoading, refetch: refetchBlocks } = useTeamBlocks(team?.id)
+
+  const [filter, setFilter]     = useState<MatchType>('all')
+  const [viewMode, setViewMode] = useState<ViewMode>('blocks')
+
+  // Modals
+  const [createModalOpen, setCreateModalOpen]     = useState(false)
+  const [editBlock, setEditBlock]                 = useState<TeamMatchBlock | null>(null)
+  const [assignBlock, setAssignBlock]             = useState<TeamMatchBlock | null>(null)
+  const [deletingId, setDeletingId]               = useState<string | null>(null)
 
   if (!team) {
     return (
@@ -79,12 +44,40 @@ export const MatchsPage = () => {
     )
   }
 
+  // ── Filtrage ─────────────────────────────────────────────────────────────
   const filtered = matches.filter((m) => {
     if (filter === 'all') return true
-    const t = m.match_type || 'scrim'
-    return t === filter
+    return (m.match_type || 'scrim') === filter
   })
 
+  const loading = matchesLoading || blocksLoading
+
+  // ── Helpers blocs ─────────────────────────────────────────────────────────
+  const matchesForBlock = (blockId: string) => filtered.filter((m) => m.block_id === blockId)
+  const ungrouped = filtered.filter((m) => !m.block_id)
+
+  const visibleBlocks = blocks.filter((b) => {
+    if (filter === 'scrim')      return b.block_type !== 'tournament'
+    if (filter === 'tournament') return b.block_type === 'tournament'
+    return true
+  }).filter((b) => matchesForBlock(b.id).length > 0 || viewMode === 'blocks')
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleDelete = async (block: TeamMatchBlock) => {
+    if (!confirm(`Supprimer le bloc "${block.name}" ? Les parties seront conservées mais non groupées.`)) return
+    setDeletingId(block.id)
+    await deleteBlock(block.id)
+    setDeletingId(null)
+    refetchBlocks()
+    refetchMatches()
+  }
+
+  const handleRefetch = () => {
+    refetchMatches()
+    refetchBlocks()
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
@@ -100,11 +93,39 @@ export const MatchsPage = () => {
           <div>
             <h2 className="font-display text-2xl font-bold">Matchs</h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              {matches.length} partie{matches.length !== 1 ? 's' : ''} importée{matches.length !== 1 ? 's' : ''}
+              {matches.length} partie{matches.length !== 1 ? 's' : ''}
+              {viewMode === 'blocks' && blocks.length > 0 ? ` · ${blocks.length} bloc${blocks.length > 1 ? 's' : ''}` : ''}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Vue toggle */}
+          <div className="flex items-center bg-dark-bg border border-dark-border rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setViewMode('blocks')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                viewMode === 'blocks'
+                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <FolderOpen size={13} />
+              Blocs
+            </button>
+            <button
+              onClick={() => setViewMode('flat')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                viewMode === 'flat'
+                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <LayoutList size={13} />
+              Plate
+            </button>
+          </div>
+
           {/* Filtre type */}
           <div className="flex items-center bg-dark-bg border border-dark-border rounded-xl p-1 gap-1">
             {TYPE_FILTERS.map(({ id, label, Icon }) => (
@@ -122,8 +143,21 @@ export const MatchsPage = () => {
               </button>
             ))}
           </div>
+
+          {/* Nouveau bloc */}
+          {viewMode === 'blocks' && (
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              <Plus size={14} />
+              Nouveau bloc
+            </button>
+          )}
+
+          {/* Refresh */}
           <button
-            onClick={refetch}
+            onClick={handleRefetch}
             disabled={loading}
             className="p-2 bg-dark-bg border border-dark-border rounded-xl hover:border-accent-blue/50 transition-colors disabled:opacity-50"
             title="Actualiser"
@@ -150,71 +184,104 @@ export const MatchsPage = () => {
               : 'Essayez un autre filtre.'}
           </p>
         </div>
-      ) : (
+      ) : viewMode === 'flat' ? (
+        /* ── Vue Plate ─────────────────────────────────────────────── */
         <div className="space-y-3">
-          {filtered.map((m) => {
-            const allParticipants = m.team_match_participants || []
-            const ourTeam = allParticipants.filter((p) => p.team_side === 'our' || !p.team_side)
-            const enemyTeam = allParticipants.filter((p) => p.team_side === 'enemy')
-            const isOurBlue = m.our_team_id === 100
-            const blueSide = isOurBlue ? ourTeam : enemyTeam
-            const redSide = isOurBlue ? enemyTeam : ourTeam
-            const durationMin = m.game_duration ? Math.round(m.game_duration / 60) : null
-            const dateStr = m.game_creation
-              ? new Date(m.game_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-              : null
-
-            return (
-              <Link
-                key={m.id}
-                to={`/team/matchs/${m.id}`}
-                className="block bg-dark-card border border-dark-border rounded-2xl p-4 hover:border-accent-blue/40 hover:bg-dark-card/80 transition-[border-color,background-color] group"
-              >
-                {/* Ligne du haut : résultat + infos + date */}
-                <div className="flex flex-wrap items-center gap-3 mb-3">
-                  {/* Résultat */}
-                  <div className={`flex items-center justify-center w-20 h-9 rounded-xl font-bold text-sm ${
-                    m.our_win
-                      ? 'bg-green-500/15 text-green-400 border border-green-500/25'
-                      : 'bg-red-500/15 text-red-400 border border-red-500/25'
-                  }`}>
-                    {m.our_win ? 'Victoire' : 'Défaite'}
-                  </div>
-
-                  {/* Type */}
-                  <TypeBadge type={m.match_type} />
-
-                  {/* Durée */}
-                  {durationMin != null && (
-                    <span className="text-sm text-gray-400">{durationMin} min</span>
-                  )}
-
-                  {/* Side */}
-                  {m.our_team_id != null && (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      m.our_team_id === 100
-                        ? 'text-blue-400 bg-blue-500/10'
-                        : 'text-red-400 bg-red-500/10'
-                    }`}>
-                      {m.our_team_id === 100 ? 'Blue side' : 'Red side'}
-                    </span>
-                  )}
-
-                  {/* Date */}
-                  {dateStr && (
-                    <span className="ml-auto text-xs text-gray-500">{dateStr}</span>
-                  )}
-                </div>
-
-                {/* Champions */}
-                <div className="flex flex-col gap-2">
-                  <ChampionStrip participants={blueSide} side="blue" />
-                  <ChampionStrip participants={redSide} side="red" />
-                </div>
-              </Link>
-            )
-          })}
+          {filtered.map((m) => <MatchRow key={m.id} match={m} />)}
         </div>
+      ) : (
+        /* ── Vue Blocs ─────────────────────────────────────────────── */
+        <div className="space-y-4">
+          {/* Blocs */}
+          {visibleBlocks.map((block) => (
+            <BlockCard
+              key={block.id}
+              block={block}
+              matches={matchesForBlock(block.id)}
+              onEdit={setEditBlock}
+              onDelete={handleDelete}
+              onManageMatches={setAssignBlock}
+            />
+          ))}
+
+          {/* Blocs vides (si aucune partie après filtre) */}
+          {blocks
+            .filter((b) => matchesForBlock(b.id).length === 0)
+            .filter((b) => {
+              if (filter === 'scrim')      return b.block_type !== 'tournament'
+              if (filter === 'tournament') return b.block_type === 'tournament'
+              return true
+            })
+            .map((block) => (
+              <div
+                key={block.id}
+                className="rounded-2xl border border-dark-border/50 bg-dark-card/40 p-4 flex items-center gap-3 opacity-60"
+              >
+                {block.block_type === 'tournament'
+                  ? <Trophy size={14} className="text-amber-400 shrink-0" />
+                  : <Swords size={14} className="text-violet-400 shrink-0" />
+                }
+                <span className="text-sm text-gray-400 flex-1">{block.name}</span>
+                <span className="text-xs text-gray-600">Bloc vide</span>
+                <button
+                  onClick={() => setAssignBlock(block)}
+                  className="text-xs text-accent-blue hover:underline"
+                >
+                  Ajouter des parties
+                </button>
+                <button
+                  onClick={() => handleDelete(block)}
+                  disabled={deletingId === block.id}
+                  className="p-1 rounded text-gray-600 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))
+          }
+
+          {/* Parties non groupées */}
+          {ungrouped.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-dark-border/40" />
+                <span className="text-xs text-gray-600 px-2">
+                  {ungrouped.length} partie{ungrouped.length > 1 ? 's' : ''} non groupée{ungrouped.length > 1 ? 's' : ''}
+                </span>
+                <div className="flex-1 h-px bg-dark-border/40" />
+              </div>
+              {ungrouped.map((m) => <MatchRow key={m.id} match={m} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modals */}
+      {(createModalOpen || editBlock) && team && (
+        <CreateBlockModal
+          teamId={team.id}
+          editBlock={editBlock ?? undefined}
+          onClose={() => { setCreateModalOpen(false); setEditBlock(null) }}
+          onSaved={() => {
+            setCreateModalOpen(false)
+            setEditBlock(null)
+            refetchBlocks()
+            refetchMatches()
+          }}
+        />
+      )}
+
+      {assignBlock && (
+        <AssignMatchesModal
+          block={assignBlock}
+          allMatches={matches}
+          onClose={() => setAssignBlock(null)}
+          onSaved={() => {
+            setAssignBlock(null)
+            refetchMatches()
+            refetchBlocks()
+          }}
+        />
       )}
     </div>
   )
