@@ -205,7 +205,7 @@ function TeamPreview() {
               initial={{ opacity: 0, x: 20 }}
               animate={{
                 opacity: 1, x: 0,
-                backgroundColor: isActive ? 'rgba(147,51,234,0.12)' : 'transparent',
+                backgroundColor: isActive ? 'rgba(147,51,234,0.12)' : 'rgba(147,51,234,0)',
                 borderColor: isActive ? 'rgba(147,51,234,0.4)' : 'rgba(42,37,53,0.6)',
               }}
               transition={{ delay: i * 0.08, duration: 0.35, borderColor: { duration: 0.3 }, backgroundColor: { duration: 0.3 } }}

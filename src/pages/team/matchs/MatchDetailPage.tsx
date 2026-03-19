@@ -11,7 +11,7 @@ import {
   updateParticipantRole,
 } from '../../../services/supabase/matchQueries'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
-import { loadItems, getItemImageUrl, getItemName } from '../../../lib/items'
+import { loadItems, getItemImageUrl, getItemName, isItemsLoaded } from '../../../lib/items'
 
 const TABS = [
   { id: 'resume', label: 'Résumé', icon: BarChart3 },
@@ -160,9 +160,13 @@ export const MatchDetailPage = () => {
   const [match, setMatch] = useState(null)
   const [participants, setParticipants] = useState([])
   const [timelineSnapshot, setTimelineSnapshot] = useState(null)
-  const [itemsLoaded, setItemsLoaded] = useState(false)
+  const [itemsLoaded, setItemsLoaded] = useState(isItemsLoaded)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('resume')
+
+  useEffect(() => {
+    if (!itemsLoaded) loadItems().then(() => setItemsLoaded(true))
+  }, [])
 
   useEffect(() => {
     if (!matchId) {
@@ -172,19 +176,8 @@ export const MatchDetailPage = () => {
 
     let cancelled = false
 
-    let itemsTimeout
     const fetchMatch = async () => {
       try {
-        loadItems()
-          .then(() => {
-            if (!cancelled) setItemsLoaded(true)
-          })
-          .catch(() => {
-            if (!cancelled) setItemsLoaded(true)
-          })
-        itemsTimeout = setTimeout(() => {
-          if (!cancelled) setItemsLoaded(true)
-        }, 3000)
 
         const { data: matchData, error: matchError } = await fetchMatchById(matchId)
 
@@ -223,7 +216,6 @@ export const MatchDetailPage = () => {
       } catch {
         if (!cancelled) setMatch(null)
       } finally {
-        clearTimeout(itemsTimeout)
         if (!cancelled) setLoading(false)
       }
     }

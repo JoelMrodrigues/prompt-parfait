@@ -18,10 +18,10 @@
  */
 import { useEffect, useRef } from 'react'
 import { useTeam } from './useTeam'
+import { useToast } from '../../../contexts/ToastContext'
 import { supabase } from '../../../lib/supabase'
 import {
   fetchSoloqChampionStats,
-  fetchSoloqMatches,
   fetchSoloqMatchIds,
   fetchUnenrichedMatchIds,
   upsertSoloqMatches,
@@ -37,6 +37,8 @@ import {
 } from '../../../lib/constants'
 import { apiFetch } from '../../../lib/apiFetch'
 import { logger } from '../../../lib/logger'
+import { buildSoloqMatchRow } from '../../../lib/soloq/matchRowBuilder'
+import { setSyncStatus } from '../../../lib/syncStatus'
 
 const SYNC_LOOP_INTERVAL_MS = AUTOSYNC_LOOP_INTERVAL_MS
 const DELAY_BEFORE_FIRST_RUN_MS = 2000
@@ -54,10 +56,15 @@ function hasValidPseudo(p: { pseudo?: string | null }) {
 
 export function useTeamAutoSync() {
   const { team, players, updatePlayer } = useTeam()
+  const { error: toastError } = useToast()
+  const toastRef = useRef(toastError)
+  toastRef.current = toastError
   const runningRef = useRef(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const abortRef = useRef(false)
   const updatePlayerRef = useRef(updatePlayer)
   const playersRef = useRef(players)
+  const teamIdRef = useRef<string | null>(null)
   updatePlayerRef.current = updatePlayer
   playersRef.current = players
 
@@ -67,6 +74,9 @@ export function useTeamAutoSync() {
     if (!toSync.length) return
     if (runningRef.current) return
 
+    abortRef.current = false
+    teamIdRef.current = team.id
+
     const runLoop = async () => {
       const currentPlayers = playersRef.current
       const updatePlayerFn = updatePlayerRef.current
@@ -74,13 +84,19 @@ export function useTeamAutoSync() {
 
       runningRef.current = true
       logger.debug(LOG_PREFIX, '--- Début du cycle ---', listToSync.length, 'joueur(s)')
+      let upsertErrorShown = false
 
       try {
         for (let i = 0; i < listToSync.length; i++) {
+          if (abortRef.current) {
+            logger.debug(LOG_PREFIX, 'Cycle interrompu (changement équipe)')
+            break
+          }
           const player = listToSync[i]
           const pseudo = (player.pseudo || '').trim()
           const name = player.player_name || pseudo
           const region = (player.region || 'euw1').toLowerCase()
+          setSyncStatus({ isSyncing: true, currentPlayer: name })
 
           // PUUID en cache : si connu, tous les endpoints l'utilisent directement (0 re-lookup)
           let cachedPuuid: string | null = player.puuid || null
@@ -154,14 +170,19 @@ export function useTeamAutoSync() {
             const allRiotIds: string[] = []
             let start = 0
             let idsRetry404 = 0
-            while (allRiotIds.length < totalRiot) {
+            const MAX_PAGES = Math.ceil(totalRiot / MATCH_IDS_PAGE) + 2
+            let pageCount = 0
+            while (allRiotIds.length < totalRiot && pageCount < MAX_PAGES) {
+              if (abortRef.current) break
+              pageCount++
               const idsRes = await apiFetch(
                 `/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}`
               )
               const idsData = await idsRes.json().catch(() => ({}))
-              if (idsRes.status === 429 && (idsData.retry_after ?? idsData.retryAfter)) {
-                const wait = Math.max(2000, (idsData.retry_after ?? idsData.retryAfter) * 1000)
+              if (idsRes.status === 429) {
+                const wait = Math.max(2000, ((idsData.retry_after ?? idsData.retryAfter) || 2) * 1000)
                 await delay(wait)
+                pageCount-- // ne pas compter cette tentative
                 continue
               }
               // Retry unique sur 404 (joueur introuvable transient côté Riot)
@@ -169,6 +190,7 @@ export function useTeamAutoSync() {
                 idsRetry404++
                 logger.warn(LOG_PREFIX, name, '| match-ids 404 — retry dans 3s...')
                 await delay(3000)
+                pageCount--
                 continue
               }
               if (!idsData.success || !Array.isArray(idsData.matchIds)) {
@@ -192,15 +214,6 @@ export function useTeamAutoSync() {
             const idsToSync = allRiotIds.slice(0, totalRiot)
 
             // ─── 3) IDs déjà en base → manquants = idsToSync − base ───
-            const { count: countInDb } = await fetchSoloqMatches({
-              playerId: player.id,
-              accountSource: 'primary',
-              seasonStart: SEASON_16_START_MS,
-              offset: 0,
-              limit: 1,
-              withCount: true,
-            })
-            const inDb = countInDb ?? 0
             const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS)
             const existingSet = new Set(existingIds || [])
             const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
@@ -221,27 +234,15 @@ export function useTeamAutoSync() {
                     continue
                   }
                   if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0 && supabase) {
-                    const rows = detailsData.matches.map((m: any) => ({
-                      player_id: player.id,
-                      riot_match_id: m.matchId,
-                      account_source: 'primary',
-                      champion_id: m.championId ?? null,
-                      champion_name: m.championName ?? null,
-                      opponent_champion: m.opponentChampionName ?? null,
-                      win: !!m.win,
-                      kills: m.kills ?? 0,
-                      deaths: m.deaths ?? 0,
-                      assists: m.assists ?? 0,
-                      game_duration: m.gameDuration ?? 0,
-                      game_creation: m.gameCreation ?? 0,
-                      total_damage: m.totalDamage ?? null,
-                      gold_earned: m.goldEarned ?? null,
-                      cs: m.cs ?? null,
-                      vision_score: m.visionScore ?? null,
-                      match_json: m.matchJson ?? null,
-                    }))
+                    const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'primary'))
                     const { error: upsertErr } = await upsertSoloqMatches(rows)
-                    if (upsertErr) logger.warn(LOG_PREFIX, name, '| upsert erreur:', upsertErr)
+                    if (upsertErr) {
+                      logger.warn(LOG_PREFIX, name, '| upsert erreur:', upsertErr)
+                      if (!upsertErrorShown) {
+                        upsertErrorShown = true
+                        toastRef.current(`Erreur sauvegarde SoloQ (${name}) — les données seront re-tentées au prochain cycle`)
+                      }
+                    }
                   }
                 } catch (err) {
                   logger.warn(LOG_PREFIX, name, '| erreur match-details:', err)
@@ -268,27 +269,15 @@ export function useTeamAutoSync() {
                     continue
                   }
                   if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0 && supabase) {
-                    const rows = detailsData.matches.map((m: any) => ({
-                      player_id: player.id,
-                      riot_match_id: m.matchId,
-                      account_source: 'primary',
-                      champion_id: m.championId ?? null,
-                      champion_name: m.championName ?? null,
-                      opponent_champion: m.opponentChampionName ?? null,
-                      win: !!m.win,
-                      kills: m.kills ?? 0,
-                      deaths: m.deaths ?? 0,
-                      assists: m.assists ?? 0,
-                      game_duration: m.gameDuration ?? 0,
-                      game_creation: m.gameCreation ?? 0,
-                      total_damage: m.totalDamage ?? null,
-                      gold_earned: m.goldEarned ?? null,
-                      cs: m.cs ?? null,
-                      vision_score: m.visionScore ?? null,
-                      match_json: m.matchJson ?? null,
-                    }))
+                    const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'primary'))
                     const { error: upsertErr } = await upsertSoloqMatches(rows)
-                    if (upsertErr) logger.warn(LOG_PREFIX, name, '| enrichissement upsert erreur:', upsertErr)
+                    if (upsertErr) {
+                      logger.warn(LOG_PREFIX, name, '| enrichissement upsert erreur:', upsertErr)
+                      if (!upsertErrorShown) {
+                        upsertErrorShown = true
+                        toastRef.current(`Erreur sauvegarde SoloQ (${name}) — les données seront re-tentées au prochain cycle`)
+                      }
+                    }
                   }
                 } catch (err) {
                   logger.warn(LOG_PREFIX, name, '| enrichissement match-details erreur:', err)
@@ -367,9 +356,12 @@ export function useTeamAutoSync() {
         logger.warn(LOG_PREFIX, 'Erreur boucle', e)
       } finally {
         runningRef.current = false
+        setSyncStatus({ isSyncing: false, currentPlayer: '', lastCycleAt: Date.now() })
       }
 
-      timeoutRef.current = setTimeout(runLoop, SYNC_LOOP_INTERVAL_MS)
+      if (!abortRef.current) {
+        timeoutRef.current = setTimeout(runLoop, SYNC_LOOP_INTERVAL_MS)
+      }
     }
 
     const t = setTimeout(() => {
@@ -378,6 +370,7 @@ export function useTeamAutoSync() {
     logger.debug(LOG_PREFIX, 'Démarré (premier cycle dans', DELAY_BEFORE_FIRST_RUN_MS / 1000, 's)')
 
     return () => {
+      abortRef.current = true
       clearTimeout(t)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)

@@ -157,6 +157,18 @@ export const TeamOverviewPage = () => {
   const [weeklyGames, setWeeklyGames] = useState<Record<string, number | null>>({})
   const [weeklyLoading, setWeeklyLoading] = useState(false)
 
+  // Charge depuis le cache sessionStorage au mount (TTL 2h)
+  useEffect(() => {
+    if (!team?.id) return
+    try {
+      const raw = sessionStorage.getItem(`weeklyGames_${team.id}`)
+      if (raw) {
+        const { data, ts } = JSON.parse(raw)
+        if (Date.now() - ts < 2 * 60 * 60 * 1000) setWeeklyGames(data)
+      }
+    } catch {}
+  }, [team?.id])
+
   const refreshWeeklyGames = async () => {
     if (!players.length) return
     setWeeklyLoading(true)
@@ -170,6 +182,7 @@ export const TeamOverviewPage = () => {
       const map: Record<string, number | null> = {}
       for (const r of results) map[r.id] = r.count
       setWeeklyGames(map)
+      if (team?.id) sessionStorage.setItem(`weeklyGames_${team.id}`, JSON.stringify({ data: map, ts: Date.now() }))
     } finally {
       setWeeklyLoading(false)
     }

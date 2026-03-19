@@ -121,6 +121,14 @@ export async function importExaltyMatches(matchesJson, teamId, teamPlayers, matc
             base.item3 = int(p.stats.item3)
             base.item4 = int(p.stats.item4)
             base.item5 = int(p.stats.item5)
+            base.perk0 = p.stats.perk0 ?? null
+            base.perk1 = p.stats.perk1 ?? null
+            base.perk2 = p.stats.perk2 ?? null
+            base.perk3 = p.stats.perk3 ?? null
+            base.perk4 = p.stats.perk4 ?? null
+            base.perk5 = p.stats.perk5 ?? null
+            base.perk_primary_style = p.stats.perkPrimaryStyle ?? null
+            base.perk_sub_style = p.stats.perkSubStyle ?? null
           }
           return base
         }

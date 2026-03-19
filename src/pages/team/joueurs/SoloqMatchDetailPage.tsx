@@ -7,16 +7,20 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Sword, Clock, BarChart3, Layers, TrendingUp } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
-import { loadItems, getItemImageUrl } from '../../../lib/items'
+import { loadItems, getItemImageUrl, isItemsLoaded } from '../../../lib/items'
+import { fetchAllRunes } from '../../../services/supabase/runeQueries'
 import { GoldDiffChart } from './charts/GoldDiffChart'
 import { useSoloqMatchDetail } from './hooks/useSoloqMatchDetail'
 
 const TABS = [
   { id: 'resume', label: 'Résumé', icon: Sword },
   { id: 'timeline', label: 'Timeline', icon: TrendingUp },
-  { id: 'build', label: 'Build', icon: Layers },
+  { id: 'build-runes', label: 'Builds & Runes', icon: Layers },
   { id: 'stats', label: 'Stats', icon: BarChart3 },
 ]
+
+const DD_RUNE = (icon: string) =>
+  `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/${icon.toLowerCase()}`
 
 function statCard(label: string, value: string | number | null) {
   return (
@@ -31,8 +35,12 @@ export function SoloqMatchDetailPage() {
   const { playerId, riotMatchId } = useParams<{ playerId: string; riotMatchId: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('resume')
-  const [itemsReady, setItemsReady] = useState(false)
-  useEffect(() => { loadItems().then(() => setItemsReady(true)) }, [])
+  const [itemsReady, setItemsReady] = useState(isItemsLoaded)
+  const [runesCache, setRunesCache] = useState<Array<{ id: number; name: string; icon: string }>>([])
+  useEffect(() => {
+    if (!itemsReady) loadItems().then(() => setItemsReady(true))
+    fetchAllRunes().then(({ data }) => { if (data) setRunesCache(data as any) })
+  }, [])
 
   const { matchData, timelineData, loading, timelineLoading, error } = useSoloqMatchDetail(
     playerId,
@@ -214,7 +222,7 @@ export function SoloqMatchDetailPage() {
           {m.runes && (
             <div className="bg-dark-card rounded-2xl border border-dark-border p-5">
               <h3 className="text-sm font-semibold text-gray-300 mb-3">Runes</h3>
-              <RunesSummary runes={m.runes} />
+              <RunesDisplay runes={m.runes} runesCache={runesCache} />
             </div>
           )}
         </div>
@@ -238,20 +246,26 @@ export function SoloqMatchDetailPage() {
         </div>
       )}
 
-      {/* ── Tab: Build ───────────────────────────────────────────── */}
-      {activeTab === 'build' && (
-        <div className="bg-dark-card rounded-2xl border border-dark-border p-5">
-          <h3 className="text-sm font-semibold text-gray-300 mb-4">Build</h3>
-          {items.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {mainItems.map((itemId, i) => (
-                <ItemCard key={i} itemId={itemId} slot={i + 1} />
-              ))}
-              {trinket > 0 && <ItemCard itemId={trinket} slot={7} label="Trinket" />}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">Build non disponible (partie non importée avec les nouvelles données)</p>
-          )}
+      {/* ── Tab: Builds & Runes ──────────────────────────────────── */}
+      {activeTab === 'build-runes' && (
+        <div className="bg-dark-card rounded-2xl border border-dark-border p-5 space-y-6">
+          {/* Runes */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Runes</h3>
+            <RunesDisplay runes={m.runes} runesCache={runesCache} />
+          </div>
+          {/* Build */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">Build final</h3>
+            {items.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {mainItems.map((itemId, i) => <ItemCard key={i} itemId={itemId} slot={i + 1} />)}
+                {trinket > 0 && <ItemCard itemId={trinket} slot={7} label="Trinket" />}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">Build non disponible (partie non enrichie)</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -272,25 +286,36 @@ export function SoloqMatchDetailPage() {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function RunesSummary({ runes }: { runes: any }) {
-  const styles = runes?.styles ?? []
-  if (!styles.length) return <p className="text-gray-500 text-sm">Runes non disponibles</p>
-
+function RuneIcon({ id, runesCache, size = 'sm' }: { id: number; runesCache: Array<{ id: number; name: string; icon: string }>; size?: 'lg' | 'sm' }) {
+  const r = runesCache.find((x) => Number(x.id) === id)
+  if (!r?.icon) return <div className={`${size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'} rounded-full bg-dark-bg/60 border border-dark-border/50`} title={String(id)} />
   return (
-    <div className="flex flex-col gap-2">
-      {styles.map((style: any, si: number) => {
-        const selections: any[] = style.selections ?? []
-        return (
-          <div key={si} className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500 w-16">{si === 0 ? 'Principal' : 'Secondaire'}</span>
-            {selections.map((sel: any, i: number) => (
-              <span key={i} className="text-xs bg-dark-bg/60 border border-dark-border rounded px-2 py-0.5 text-gray-300">
-                {sel.perk}
-              </span>
-            ))}
-          </div>
-        )
-      })}
+    <img src={DD_RUNE(r.icon)} alt={r.name} title={r.name}
+      className={`${size === 'lg' ? 'w-10 h-10' : 'w-7 h-7'} rounded-full object-cover bg-dark-bg border border-dark-border/50`}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+    />
+  )
+}
+
+function RunesDisplay({ runes, runesCache }: { runes: any; runesCache: Array<{ id: number; name: string; icon: string }> }) {
+  if (!runes?.styles?.length) return <p className="text-gray-500 text-sm">Runes non disponibles (partie non enrichie)</p>
+  const primary = runes.styles.find((s: any) => s.description === 'primaryStyle')
+  const sub = runes.styles.find((s: any) => s.description === 'subStyle')
+  return (
+    <div className="flex items-center gap-4 flex-wrap">
+      {/* Branche principale */}
+      <div className="flex items-center gap-2">
+        {primary?.selections?.map((sel: any, i: number) => (
+          <RuneIcon key={i} id={sel.perk} runesCache={runesCache} size={i === 0 ? 'lg' : 'sm'} />
+        ))}
+      </div>
+      {sub?.selections?.length > 0 && <div className="w-px h-8 bg-dark-border/60" />}
+      {/* Branche secondaire */}
+      <div className="flex items-center gap-2">
+        {sub?.selections?.map((sel: any, i: number) => (
+          <RuneIcon key={i} id={sel.perk} runesCache={runesCache} size="sm" />
+        ))}
+      </div>
     </div>
   )
 }

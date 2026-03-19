@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
+import { useSyncStatus } from '../../lib/syncStatus'
 
 const SIDEBAR_GROUPS = [
   {
@@ -55,6 +56,7 @@ const SIDEBAR_GROUPS = [
 
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, isTeamOwner } = useTeam()
+  const { isSyncing, currentPlayer } = useSyncStatus()
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [creatingTeam, setCreatingTeam] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
@@ -207,6 +209,18 @@ export const TeamSidebar = () => {
       </div>
 
       {editModalOpen && <TeamEditModal onClose={() => setEditModalOpen(false)} />}
+
+      {/* Indicateur auto-sync */}
+      <div className="px-4 py-2 border-b border-dark-border/40 min-h-[28px] flex items-center gap-2">
+        {isSyncing ? (
+          <>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-[10px] text-gray-500 truncate">Sync : {currentPlayer}</span>
+          </>
+        ) : (
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-700 shrink-0" />
+        )}
+      </div>
 
       {/* Navigation groupée */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">

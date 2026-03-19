@@ -79,7 +79,6 @@ export function usePlayerDetail(playerId: string | undefined) {
     selectedSoloqAccount,
     soloqAccountSource,
     activeSoloqPseudo,
-    setSelectedSoloqSub,
     updatePlayer,
     refetch,
     toastError,

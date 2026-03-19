@@ -12,6 +12,7 @@ import { useSoloqMoodSync } from './hooks/useSoloqMoodSync'
 import { useTeamMoodSync } from './hooks/useTeamMoodSync'
 import { useTeamMatches } from './hooks/useTeamMatches'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
+import { loadItems } from '../../lib/items'
 
 export const TeamLayout = () => {
   const location = useLocation()
@@ -24,6 +25,11 @@ export const TeamLayout = () => {
   // Le cache module-level garantit que MatchsPage, PlayerDetailPage, etc.
   // reçoivent les données instantanément sans re-fetcher.
   useTeamMatches(team?.id)
+
+  // Pré-charge les items Community Dragon une seule fois pour tout le layout.
+  // Les pages enfants (PlayerDetailPage, MatchDetailPage, SoloqMatchDetailPage)
+  // n'ont plus besoin d'appeler loadItems() individuellement.
+  useEffect(() => { loadItems() }, [])
 
   // Apply saved team accent color globally
   useEffect(() => {

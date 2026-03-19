@@ -40,6 +40,8 @@ export interface Team {
   accent_color?: string | null
   invite_token?: string | null
   created_at?: string
+  lp_goal?: number | null
+  lp_goal_deadline?: string | null
 }
 
 export interface Player {
@@ -59,6 +61,9 @@ export interface Player {
   soloq_total_match_ids_secondary?: number | null
   top_champions?: string | unknown[] | null
   champion_pools?: unknown[]
+  opgg_link?: string | null
+  lolpro_link?: string | null
+  region?: string | null
 }
 
 export interface TeamContextValue {

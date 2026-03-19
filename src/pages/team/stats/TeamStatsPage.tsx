@@ -1021,11 +1021,15 @@ function SideSection({
                     <th className="px-4 py-3 text-center text-blue-400/70 hidden md:table-cell">Blue KDA</th>
                     <th className="px-4 py-3 text-center text-rose-400">Red WR</th>
                     <th className="px-4 py-3 text-center text-rose-400/70 hidden md:table-cell">Red KDA</th>
-                    <th className="px-4 py-3 text-center">Parties</th>
+                    <th className="px-4 py-3 text-center">
+                      <span className="text-blue-400">B</span>
+                      <span className="text-gray-600 mx-1">/</span>
+                      <span className="text-rose-400">R</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {playerSideStats.map(({ player, blue, red, total }) => (
+                  {playerSideStats.map(({ player, blue, red }) => (
                     <tr
                       key={player.id}
                       className="border-t border-dark-border/50 hover:bg-dark-bg/40 transition-colors"
@@ -1067,7 +1071,11 @@ function SideSection({
                           ? `${red.kda.toFixed(1)} (${red.avgK.toFixed(1)}/${red.avgD.toFixed(1)}/${red.avgA.toFixed(1)})`
                           : '—'}
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-500">{total}</td>
+                      <td className="px-4 py-3 text-center text-sm tabular-nums">
+                        <span className="text-blue-400">{blue.games}</span>
+                        <span className="text-gray-600 mx-1">/</span>
+                        <span className="text-rose-400">{red.games}</span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

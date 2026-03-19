@@ -177,11 +177,40 @@ export async function fetchUnenrichedMatchIds(
     .eq('player_id', playerId)
     .eq('account_source', accountSource)
     .gte('game_creation', seasonStart)
-    .is('match_json', null)
+    .or('match_json.is.null,runes.is.null')
     .order('game_creation', { ascending: false })
     .limit(limit)
   if (error) return { data: [], error }
   return { data: (data || []).map((r: { riot_match_id: string }) => r.riot_match_id).filter(Boolean), error: null }
+}
+
+/**
+ * Récupère les parties SoloQ de plusieurs joueurs en une seule requête (évite N+1).
+ */
+export async function fetchMultiPlayerSoloqMatches({
+  playerIds,
+  accountSource,
+  seasonStart,
+  minDuration,
+  columns = '*',
+}: {
+  playerIds: string[]
+  accountSource: string
+  seasonStart: number
+  minDuration?: number
+  columns?: string
+}) {
+  if (!playerIds.length) return { data: [] as any[], error: null }
+  let query = supabase
+    .from('player_soloq_matches')
+    .select(columns)
+    .in('player_id', playerIds)
+    .eq('account_source', accountSource)
+    .gte('game_creation', seasonStart)
+    .order('game_creation', { ascending: false })
+  if (minDuration) query = query.gte('game_duration', minDuration)
+  const { data, error } = await query
+  return { data: data ?? [], error }
 }
 
 export async function upsertSoloqMatches(rows: Array<Record<string, unknown>>) {

@@ -83,6 +83,13 @@ export function getItemName(itemId: number | string): string {
 }
 
 /**
+ * Retourne true si le cache items est déjà chargé
+ */
+export function isItemsLoaded(): boolean {
+  return cachedItems !== null
+}
+
+/**
  * Retourne les infos item (name, imageUrl) pour un id
  */
 export function getItemInfo(itemId: number | string) {

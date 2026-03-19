@@ -3,6 +3,7 @@
  * Extrait de usePlayerDetail.ts pour alléger le fichier principal.
  */
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useSyncStatus } from '../../../../lib/syncStatus'
 import { supabase } from '../../../../lib/supabase'
 import { aggregateChampionStats } from '../../../../lib/team/statsAggregation'
 import {
@@ -14,30 +15,7 @@ import {
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC, PAGE_SIZE } from '../../../../lib/constants'
 import { apiFetch } from '../../../../lib/apiFetch'
 import { rowToMatch, parseLpFromRank } from '../utils/playerDetailHelpers'
-
-function mapMatchRow(m: any, playerId: string, accountSource: string) {
-  return {
-    player_id: playerId,
-    riot_match_id: m.matchId,
-    account_source: accountSource,
-    champion_id: m.championId ?? null,
-    champion_name: m.championName ?? null,
-    opponent_champion: m.opponentChampionName ?? null,
-    win: !!m.win,
-    kills: m.kills ?? 0,
-    deaths: m.deaths ?? 0,
-    assists: m.assists ?? 0,
-    game_duration: m.gameDuration ?? 0,
-    game_creation: m.gameCreation ?? 0,
-    total_damage: m.totalDamage ?? null,
-    cs: m.cs ?? null,
-    vision_score: m.visionScore ?? null,
-    gold_earned: m.goldEarned ?? null,
-    items: m.items ?? null,
-    runes: m.runes ?? null,
-    match_json: m.matchJson ?? null,
-  }
-}
+import { buildSoloqMatchRow } from '../../../../lib/soloq/matchRowBuilder'
 
 interface Params {
   player: any
@@ -45,7 +23,6 @@ interface Params {
   selectedSoloqAccount: number
   soloqAccountSource: string
   activeSoloqPseudo: string
-  setSelectedSoloqSub: (s: string) => void
   updatePlayer: (id: string, updates: any) => Promise<any>
   refetch: () => Promise<void>
   toastError: (msg: string) => void
@@ -58,7 +35,6 @@ export function usePlayerSoloqData({
   selectedSoloqAccount,
   soloqAccountSource,
   activeSoloqPseudo,
-  setSelectedSoloqSub,
   updatePlayer,
   refetch,
   toastError,
@@ -70,20 +46,19 @@ export function usePlayerSoloqData({
   const [matchHistoryLoadMoreLoading, setMatchHistoryLoadMoreLoading] = useState(false)
   const [matchHistoryHasMore, setMatchHistoryHasMore] = useState(false)
   const [matchHistoryCountInDb, setMatchHistoryCountInDb] = useState<number | null>(null)
-  const [loadAllFromRiotLoading, setLoadAllFromRiotLoading] = useState(false)
-  const [rateLimitSeconds, setRateLimitSeconds] = useState<number | null>(null)
-  const [refreshTotalLoading, setRefreshTotalLoading] = useState(false)
   const [soloqTopChampionsFromDb, setSoloqTopChampionsFromDb] = useState<any[]>([])
   const [allChampionsFromDb, setAllChampionsFromDb] = useState<any[]>([])
   const [soloqTopChampionsLoading, setSoloqTopChampionsLoading] = useState(false)
   const [championModalChampion, setChampionModalChampion] = useState<string | null>(null)
   const [championModalMatches, setChampionModalMatches] = useState<any[]>([])
   const [championModalMatchesLoading, setChampionModalMatchesLoading] = useState(false)
+  const [refreshTotalLoading, setRefreshTotalLoading] = useState(false)
   const [gameDetailMatch, setGameDetailMatch] = useState<any>(null)
   const [lpGraphMatches, setLpGraphMatches] = useState<any[]>([])
   const [lpGraphLoading, setLpGraphLoading] = useState(false)
 
   const matchHistoryPlayerIdRef = useRef<string | null>(null)
+  const { lastCycleAt } = useSyncStatus()
 
   // ─── LP curve ─────────────────────────────────────────────────────────────
   const lpCurvePoints = useMemo(() => {
@@ -103,16 +78,6 @@ export function usePlayerSoloqData({
     return points
   }, [player?.rank, lpGraphMatches])
 
-  // ─── Rate limit countdown ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (rateLimitSeconds == null || rateLimitSeconds <= 0) return
-    const t = setInterval(
-      () => setRateLimitSeconds((s) => (s != null && s > 0 ? s - 1 : null)),
-      1000
-    )
-    return () => clearInterval(t)
-  }, [rateLimitSeconds])
-
   // ─── Reset on player/account change ──────────────────────────────────────
   useEffect(() => {
     setMatchHistory([])
@@ -120,7 +85,6 @@ export function usePlayerSoloqData({
     setMatchHistoryCountInDb(null)
     setSoloqTopChampionsFromDb([])
     setAllChampionsFromDb([])
-    setRateLimitSeconds(null)
     setChampionModalChampion(null)
     setChampionModalMatches([])
     setGameDetailMatch(null)
@@ -160,6 +124,23 @@ export function usePlayerSoloqData({
       .finally(() => { if (!cancelled) setLpGraphLoading(false) })
     return () => { cancelled = true }
   }, [player?.id, soloqAccountSource])
+
+  // ─── Rafraîchissement silencieux après chaque cycle auto-sync ────────────
+  // Quand l'auto-sync enrichit des parties (items/runes), lpGraphMatches doit
+  // être rechargé pour que BuildsRunesSection reflète les nouvelles données.
+  useEffect(() => {
+    if (!lastCycleAt || !player?.id) return
+    fetchSoloqMatches({
+      playerId: player.id,
+      accountSource: soloqAccountSource,
+      seasonStart: SEASON_16_START_MS,
+      offset: 0,
+      limit: 300,
+    }).then(({ data }) => {
+      if (Array.isArray(data))
+        setLpGraphMatches(data.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC))
+    }).catch(() => {})
+  }, [lastCycleAt, player?.id, soloqAccountSource])
 
   // ─── Load functions ───────────────────────────────────────────────────────
 
@@ -256,63 +237,6 @@ export function usePlayerSoloqData({
 
   // ─── Riot API handlers ────────────────────────────────────────────────────
 
-  async function handleLoadAllFromRiot() {
-    const LOG = `[LoadAllRiot][${player?.player_name ?? '?'}]`
-    if (!activeSoloqPseudo?.trim() || (!activeSoloqPseudo.includes('#') && !activeSoloqPseudo.includes('/'))) {
-      console.warn(LOG, 'Pseudo invalide :', activeSoloqPseudo)
-      toastInfo('Pseudo au format GameName#TagLine requis')
-      return
-    }
-    if (rateLimitSeconds != null && rateLimitSeconds > 0) return
-    console.log(LOG, 'Démarrage | pseudo:', activeSoloqPseudo, '| gamesInDb:', matchHistoryCountInDb ?? 0, '→ start forcé à 0 pour ré-enrichir les parties existantes')
-    setLoadAllFromRiotLoading(true)
-    setRateLimitSeconds(null)
-    try {
-      let start = 0 // toujours 0 : l'upsert met à jour les lignes existantes avec les champs enrichis
-      let totalLoaded = 0
-      matchHistoryPlayerIdRef.current = null
-      for (;;) {
-        console.log(LOG, `Fetch page start=${start}`)
-        const res = await apiFetch(
-          `/api/riot/match-history?pseudo=${encodeURIComponent(activeSoloqPseudo.trim())}&start=${start}&limit=${PAGE_SIZE}`
-        )
-        console.log(LOG, 'Réponse HTTP :', res.status)
-        const data = await res.json().catch(() => ({}))
-        console.log(LOG, 'Page data :', { success: data.success, error: data.error, matchesCount: Array.isArray(data.matches) ? data.matches.length : 'N/A', hasMore: data.hasMore })
-        if (res.status === 429 && (data.retryAfter ?? data.retry_after)) {
-          const s16 = Array.isArray(data.matches)
-            ? data.matches.filter((m: any) => (m.gameCreation || 0) >= SEASON_16_START_MS)
-            : []
-          if (s16.length > 0 && supabase) {
-            await upsertSoloqMatches(s16.map((m: any) => mapMatchRow(m, player!.id, soloqAccountSource)))
-            totalLoaded += s16.length
-            await loadSoloqTopChampionsFromDb()
-          }
-          setRateLimitSeconds(Math.max(1, parseInt(data.retryAfter ?? data.retry_after, 10) || 120))
-          break
-        }
-        if (!data.success || !Array.isArray(data.matches)) {
-          if (data.error && !res.ok) throw new Error(data.error)
-          break
-        }
-        const s16 = data.matches.filter((m: any) => (m.gameCreation || 0) >= SEASON_16_START_MS)
-        if (s16.length > 0 && supabase) {
-          await upsertSoloqMatches(s16.map((m: any) => mapMatchRow(m, player!.id, soloqAccountSource)))
-          totalLoaded += s16.length
-          await loadSoloqTopChampionsFromDb()
-        }
-        if (!data.hasMore) break
-        start += PAGE_SIZE
-      }
-      await loadMatchHistoryFromSupabase(0, PAGE_SIZE, false)
-      if (totalLoaded > 0) setSelectedSoloqSub('historiques')
-    } catch (e: any) {
-      toastError('Erreur: ' + (e.message || 'Impossible de charger'))
-    } finally {
-      setLoadAllFromRiotLoading(false)
-    }
-  }
-
   async function handleRefreshTotal() {
     if (!activeSoloqPseudo?.trim() || (!activeSoloqPseudo.includes('#') && !activeSoloqPseudo.includes('/'))) return
     setRefreshTotalLoading(true)
@@ -345,9 +269,8 @@ export function usePlayerSoloqData({
       const res = await apiFetch(url)
       console.log(LOG, 'Réponse HTTP :', res.status, res.statusText)
       const data = await res.json().catch(() => ({}))
-      console.log(LOG, 'Données reçues :', { success: data.success, error: data.error, rank: data.rank, totalMatchIds: data.totalMatchIds, matchesCount: Array.isArray(data.matches) ? data.matches.length : 'N/A', rateLimitSeconds: data.rateLimitSeconds })
+      console.log(LOG, 'Données reçues :', { success: data.success, error: data.error, rank: data.rank, totalMatchIds: data.totalMatchIds, matchesCount: Array.isArray(data.matches) ? data.matches.length : 'N/A' })
       if (!data.success) {
-        if (data.rateLimitSeconds != null) setRateLimitSeconds(Math.max(1, data.rateLimitSeconds))
         throw new Error(data.error || 'Erreur API')
       }
       const updates: Record<string, unknown> = {}
@@ -371,7 +294,7 @@ export function usePlayerSoloqData({
         : []
       console.log(LOG, `Parties S16 à upsert : ${s16.length} / ${Array.isArray(data.matches) ? data.matches.length : 0} reçues`)
       if (s16.length > 0 && supabase) {
-        const { error: upsertErr } = await upsertSoloqMatches(s16.map((m: any) => mapMatchRow(m, player.id, 'primary')))
+        const { error: upsertErr } = await upsertSoloqMatches(s16.map((m: any) => buildSoloqMatchRow(m, player.id, 'primary')))
         if (upsertErr) console.error(LOG, 'Erreur upsert Supabase :', upsertErr)
         else console.log(LOG, 'Upsert OK')
         if (selectedCard === 'soloq') {
@@ -406,7 +329,7 @@ export function usePlayerSoloqData({
     syncing,
     matchHistory, matchHistoryLoading, matchHistoryLoadMoreLoading,
     matchHistoryHasMore, matchHistoryCountInDb,
-    loadAllFromRiotLoading, rateLimitSeconds, refreshTotalLoading,
+    refreshTotalLoading,
     soloqTopChampionsFromDb, allChampionsFromDb, soloqTopChampionsLoading,
     championModalChampion, championModalMatches, championModalMatchesLoading,
     gameDetailMatch, setGameDetailMatch,
@@ -415,7 +338,6 @@ export function usePlayerSoloqData({
     loadSoloqTopChampionsFromDb,
     openChampionModal,
     closeChampionModal,
-    handleLoadAllFromRiot,
     handleRefreshTotal,
     handleRefreshData,
   }

@@ -12,7 +12,7 @@ import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { MoodSoloQCard, type MoodRow } from './components/MoodSoloQCard'
 import { MoodTeamCard } from './components/MoodTeamCard'
 import { PlayerStatsComparisonCard, type DetailedStats } from './components/PlayerStatsComparisonCard'
-import { fetchSoloqMatches } from '../../../services/supabase/playerQueries'
+import { fetchMultiPlayerSoloqMatches } from '../../../services/supabase/playerQueries'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants'
 
 export const JoueursPage = () => {
@@ -34,72 +34,86 @@ export const JoueursPage = () => {
   )
 
   // Effet 1 : mood SoloQ (5 dernières parties) — pour les cartes Mood
+  // Une seule requête pour tous les joueurs sans cache → pas de N+1
   useEffect(() => {
     if (!players.length) return
     let cancelled = false
     const load = async () => {
       const next: Record<string, MoodRow> = {}
-      await Promise.allSettled(
-        players.map(async (p) => {
-          if (p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object') {
-            const m = p.soloq_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
-            next[p.id] = { wins: m.wins ?? 0, losses: m.losses ?? 0, kda: m.kda ?? '—', count: m.count ?? 0 }
-            return
-          }
-          const { data: matches } = await fetchSoloqMatches({ playerId: p.id, accountSource: 'primary', seasonStart: SEASON_16_START_MS, offset: 0, limit: 5 })
-          if (cancelled) return
-          const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC)
-          const wins = list.filter((m: any) => m.win).length
-          const losses = list.length - wins
+      // Joueurs avec cache : pas de requête
+      const cached = players.filter((p) => p.soloq_mood_last_5 && typeof p.soloq_mood_last_5 === 'object')
+      for (const p of cached) {
+        const m = p.soloq_mood_last_5 as { wins?: number; losses?: number; kda?: string; count?: number }
+        next[p.id] = { wins: m.wins ?? 0, losses: m.losses ?? 0, kda: m.kda ?? '—', count: m.count ?? 0 }
+      }
+      // Joueurs sans cache : une seule requête groupée
+      const toFetch = players.filter((p) => !p.soloq_mood_last_5)
+      if (toFetch.length > 0) {
+        const { data } = await fetchMultiPlayerSoloqMatches({
+          playerIds: toFetch.map((p) => p.id),
+          accountSource: 'primary',
+          seasonStart: SEASON_16_START_MS,
+          minDuration: REMAKE_THRESHOLD_SEC,
+          columns: 'player_id,win,kills,deaths,assists,game_duration',
+        })
+        if (cancelled) return
+        // Grouper par joueur, prendre les 5 premières (déjà triées desc)
+        const byPlayer: Record<string, any[]> = {}
+        for (const m of data || []) {
+          if (!byPlayer[m.player_id]) byPlayer[m.player_id] = []
+          if (byPlayer[m.player_id].length < 5) byPlayer[m.player_id].push(m)
+        }
+        for (const p of toFetch) {
+          const list = byPlayer[p.id] || []
+          const wins = list.filter((m) => m.win).length
           const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
           const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
           const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
           const kda = list.length > 0 ? (tD > 0 ? ((tK + tA) / tD).toFixed(1) : (tK + tA).toFixed(1)) : '—'
-          next[p.id] = { wins, losses, kda, count: list.length }
-        })
-      )
+          next[p.id] = { wins, losses: list.length - wins, kda, count: list.length }
+        }
+      }
       if (!cancelled) setSoloqMoodFetched(next)
     }
     load()
     return () => { cancelled = true }
   }, [playersKey])
 
-  // Effet 2 : stats SoloQ complètes (toutes les parties) — pour la carte de comparaison
+  // Effet 2 : stats SoloQ complètes — une seule requête pour tous les joueurs
   const playersIdKey = useMemo(() => players.map((p) => p.id).join(','), [players])
   useEffect(() => {
     if (!players.length) return
     let cancelled = false
     const load = async () => {
+      const { data } = await fetchMultiPlayerSoloqMatches({
+        playerIds: players.map((p) => p.id),
+        accountSource: 'primary',
+        seasonStart: SEASON_16_START_MS,
+        minDuration: REMAKE_THRESHOLD_SEC,
+        columns: 'player_id,win,kills,deaths,assists,game_duration,total_damage,gold_earned,match_json',
+      })
+      if (cancelled) return
       const next: DetailedStats = {}
-      await Promise.allSettled(
-        players.map(async (p) => {
-          const { data: matches } = await fetchSoloqMatches({ playerId: p.id, accountSource: 'primary', seasonStart: SEASON_16_START_MS, offset: 0, limit: 1000 })
-          if (cancelled) return
-          const list = (matches || []).filter((m: any) => (m.game_duration || 0) >= REMAKE_THRESHOLD_SEC)
-          const wins = list.filter((m: any) => m.win).length
-          const tK = list.reduce((s: number, m: any) => s + (m.kills ?? 0), 0)
-          const tD = list.reduce((s: number, m: any) => s + (m.deaths ?? 0), 0)
-          const tA = list.reduce((s: number, m: any) => s + (m.assists ?? 0), 0)
-
-          // Parties enrichies = celles qui ont total_damage OU match_json.totalDamageDealtToChampions
-          // (absent sur les vieux imports via useTeamAutoSync — désormais corrigé pour les nouveaux)
-          // On calcule dmg/gold/Win%BR uniquement sur ces parties pour éviter un dénominateur faussé
-          const getDmg = (m: any): number | null => m.total_damage ?? m.match_json?.totalDamageDealtToChampions ?? null
-          const getGold = (m: any): number | null => m.gold_earned ?? m.match_json?.goldEarned ?? null
-          const enriched = list.filter((m: any) => getDmg(m) !== null)
-          const tDmg = enriched.reduce((s: number, m: any) => s + (getDmg(m) as number), 0)
-          const tGold = enriched.reduce((s: number, m: any) => s + (getGold(m) ?? 0), 0)
-          const tDurSec = enriched.reduce((s: number, m: any) => s + (m.game_duration ?? 0), 0)
-
-          // Win% B/R : côté bleu/rouge via match_json.teamId (disponible uniquement sur parties enrichies)
-          const gamesBlue = enriched.filter((m: any) => m.match_json?.teamId === 100).length
-          const winsBlue  = enriched.filter((m: any) => m.match_json?.teamId === 100 && m.win).length
-          const gamesRed  = enriched.filter((m: any) => m.match_json?.teamId === 200).length
-          const winsRed   = enriched.filter((m: any) => m.match_json?.teamId === 200 && m.win).length
-          next[p.id] = { k: tK, d: tD, a: tA, wins, count: list.length, dmg: tDmg, gold: tGold, durationSec: tDurSec, pinks: 0, winsBlue, gamesBlue, winsRed, gamesRed }
-        })
-      )
-      if (!cancelled) setSoloqDetailedStats(next)
+      for (const m of data || []) {
+        const pid = m.player_id
+        if (!next[pid]) next[pid] = { k: 0, d: 0, a: 0, wins: 0, count: 0, dmg: 0, gold: 0, durationSec: 0, pinks: 0, winsBlue: 0, gamesBlue: 0, winsRed: 0, gamesRed: 0 }
+        next[pid].k += m.kills ?? 0
+        next[pid].d += m.deaths ?? 0
+        next[pid].a += m.assists ?? 0
+        if (m.win) next[pid].wins++
+        next[pid].count++
+        const getDmg = (): number | null => m.total_damage ?? m.match_json?.totalDamageDealtToChampions ?? null
+        const dmg = getDmg()
+        if (dmg !== null) {
+          next[pid].dmg += dmg
+          next[pid].gold += m.gold_earned ?? m.match_json?.goldEarned ?? 0
+          next[pid].durationSec += m.game_duration ?? 0
+          const teamId = m.match_json?.teamId
+          if (teamId === 100) { next[pid].gamesBlue++; if (m.win) next[pid].winsBlue++ }
+          else if (teamId === 200) { next[pid].gamesRed++; if (m.win) next[pid].winsRed++ }
+        }
+      }
+      setSoloqDetailedStats(next)
     }
     load()
     return () => { cancelled = true }
