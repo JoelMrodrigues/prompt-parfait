@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Swords, Trophy } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../../lib/championImages'
@@ -57,7 +58,7 @@ interface MatchRowProps {
   compact?: boolean
 }
 
-export function MatchRow({ match: m, compact = false }: MatchRowProps) {
+export const MatchRow = memo(function MatchRow({ match: m, compact = false }: MatchRowProps) {
   const allParticipants = m.team_match_participants || []
   const ourTeam = allParticipants.filter((p: any) => p.team_side === 'our' || !p.team_side)
   const enemyTeam = allParticipants.filter((p: any) => p.team_side === 'enemy')
@@ -112,4 +113,4 @@ export function MatchRow({ match: m, compact = false }: MatchRowProps) {
       </div>
     </Link>
   )
-}
+})

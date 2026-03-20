@@ -9,50 +9,60 @@ import { assignMatchesToBlock } from '../../../../services/supabase/blockQueries
 import type { TeamMatchBlock } from '../../../../types/matchBlocks'
 import { getChampionImage } from '../../../../lib/championImages'
 
-function ChampionMini({ name }: { name: string }) {
-  return (
-    <img
-      src={getChampionImage(name)}
-      alt={name}
-      className="w-5 h-5 rounded object-cover border border-dark-border"
-    />
-  )
-}
 
 function MatchMiniRow({ match: m, inBlock, onToggle }: { match: any; inBlock: boolean; onToggle: () => void }) {
   const our = (m.team_match_participants || [])
     .filter((p: any) => p.team_side === 'our' || !p.team_side)
     .slice(0, 5)
   const dateStr = m.game_creation
-    ? new Date(m.game_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
-    : ''
+    ? new Date(m.game_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })
+    : '—'
   const durMin = m.game_duration ? Math.round(m.game_duration / 60) : null
 
   return (
-    <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-colors ${
-      inBlock ? 'border-accent-blue/30 bg-accent-blue/5' : 'border-dark-border bg-dark-bg/30'
-    }`}>
-      <div className={`shrink-0 w-14 h-7 flex items-center justify-center rounded-lg text-xs font-bold ${
+    <button
+      onClick={onToggle}
+      className={`w-full flex items-center gap-2 p-2.5 rounded-xl border transition-colors cursor-pointer text-left ${
+        inBlock
+          ? 'border-accent-blue/30 bg-accent-blue/5 hover:bg-accent-blue/10'
+          : 'border-dark-border bg-dark-bg/30 hover:border-accent-blue/30 hover:bg-dark-bg/60'
+      }`}
+      title={inBlock ? 'Retirer du bloc' : 'Ajouter au bloc'}
+    >
+      {/* Résultat */}
+      <div className={`shrink-0 w-8 h-7 flex items-center justify-center rounded-lg text-xs font-bold ${
         m.our_win ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'
       }`}>
         {m.our_win ? 'V' : 'D'}
       </div>
+
+      {/* Champions */}
       <div className="flex items-center gap-1 flex-1 min-w-0">
-        {our.map((p: any, i: number) => p.champion_name && <ChampionMini key={i} name={p.champion_name} />)}
+        {our.map((p: any, i: number) => p.champion_name && (
+          <img
+            key={i}
+            src={getChampionImage(p.champion_name)}
+            alt={p.champion_name}
+            className="w-7 h-7 rounded object-cover border border-dark-border"
+          />
+        ))}
       </div>
-      <span className="text-xs text-gray-500 shrink-0">{dateStr}{durMin ? ` · ${durMin}m` : ''}</span>
-      <button
-        onClick={onToggle}
-        className={`shrink-0 p-1 rounded-lg border transition-colors ${
-          inBlock
-            ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
-            : 'border-accent-blue/30 text-accent-blue hover:bg-accent-blue/10'
-        }`}
-        title={inBlock ? 'Retirer du bloc' : 'Ajouter au bloc'}
-      >
+
+      {/* Date + durée */}
+      <div className="shrink-0 text-right">
+        <p className="text-xs text-gray-300">{dateStr}</p>
+        {durMin && <p className="text-[10px] text-gray-500">{durMin} min</p>}
+      </div>
+
+      {/* Indicateur +/- */}
+      <div className={`shrink-0 p-1.5 rounded-lg border ${
+        inBlock
+          ? 'border-red-500/30 text-red-400'
+          : 'border-accent-blue/30 text-accent-blue'
+      }`}>
         {inBlock ? <Minus size={13} /> : <Plus size={13} />}
-      </button>
-    </div>
+      </div>
+    </button>
   )
 }
 
@@ -129,7 +139,7 @@ export function AssignMatchesModal({ block, allMatches, onClose, onSaved }: Prop
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.15 }}
-          className="bg-dark-card border border-dark-border rounded-2xl w-full max-w-2xl flex flex-col"
+          className="bg-dark-card border border-dark-border rounded-2xl w-full max-w-4xl flex flex-col"
           style={{ maxHeight: 'calc(100vh - 2rem)' }}
         >
           {/* Header */}

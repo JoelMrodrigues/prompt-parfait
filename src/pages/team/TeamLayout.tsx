@@ -11,6 +11,7 @@ import { useTeamAutoSync } from './hooks/useTeamAutoSync'
 import { useSoloqMoodSync } from './hooks/useSoloqMoodSync'
 import { useTeamMoodSync } from './hooks/useTeamMoodSync'
 import { useTeamMatches } from './hooks/useTeamMatches'
+import { useTeamBlocks } from './hooks/useTeamBlocks'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
 import { loadItems } from '../../lib/items'
 
@@ -22,9 +23,9 @@ export const TeamLayout = () => {
   useSoloqMoodSync()
   useTeamMoodSync()
   // Pré-fetch en arrière-plan dès l'entrée dans la section équipe.
-  // Le cache module-level garantit que MatchsPage, PlayerDetailPage, etc.
-  // reçoivent les données instantanément sans re-fetcher.
+  // Le cache module-level garantit que MatchsPage reçoit les données instantanément.
   useTeamMatches(team?.id)
+  useTeamBlocks(team?.id)
 
   // Pré-charge les items Community Dragon une seule fois pour tout le layout.
   // Les pages enfants (PlayerDetailPage, MatchDetailPage, SoloqMatchDetailPage)

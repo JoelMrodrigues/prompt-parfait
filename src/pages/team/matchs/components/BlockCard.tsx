@@ -1,9 +1,10 @@
 /**
  * Carte de bloc — dossier dépliable contenant une session de parties.
+ * Animation CSS pure (grid-template-rows) — pas de Framer Motion pour éviter
+ * l'overhead JS sur chaque re-render de la liste.
  */
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { ChevronDown, ChevronUp, Swords, Trophy, Layers, Pencil, Trash2, Settings2, BarChart2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import type { TeamMatchBlock, BlockFormat } from '../../../../types/matchBlocks'
 import { MatchRow } from './MatchRow'
 import { BlockStats } from './BlockStats'
@@ -49,7 +50,14 @@ interface BlockCardProps {
   onManageMatches: (block: TeamMatchBlock) => void
 }
 
-export function BlockCard({ block, matches, onEdit, onDelete, onManageMatches }: BlockCardProps) {
+/** CSS grid trick : grid-template-rows 0fr→1fr pour expand/collapse sans JS animation */
+const collapseStyle = (open: boolean): React.CSSProperties => ({
+  display: 'grid',
+  gridTemplateRows: open ? '1fr' : '0fr',
+  transition: 'grid-template-rows 200ms ease',
+})
+
+export const BlockCard = memo(function BlockCard({ block, matches, onEdit, onDelete, onManageMatches }: BlockCardProps) {
   const [open, setOpen] = useState(false)
   const [showStats, setShowStats] = useState(false)
 
@@ -69,43 +77,46 @@ export function BlockCard({ block, matches, onEdit, onDelete, onManageMatches }:
                                         'border-dark-border bg-dark-card'
 
   return (
-    <div className={`rounded-2xl border transition-colors ${typeColor}`}>
+    <div className={`rounded-2xl border ${typeColor}`}>
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 p-4">
-        {/* Toggle */}
+        {/* Zone cliquable principale (tout sauf les boutons d'action) */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className="p-1.5 rounded-lg hover:bg-dark-bg/80 transition-colors shrink-0"
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
         >
-          {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-        </button>
+          {/* Chevron */}
+          <span className="p-1.5 rounded-lg hover:bg-dark-bg/80 transition-colors shrink-0">
+            {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+          </span>
 
-        {/* Icône type */}
-        <BlockTypeIcon type={block.block_type} />
+          {/* Icône type */}
+          <BlockTypeIcon type={block.block_type} />
 
-        {/* Nom + adversaire */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-white truncate">{block.name}</span>
-            {block.opponent_name && (
-              <span className="text-xs text-gray-500">VS {block.opponent_name}</span>
+          {/* Nom + adversaire */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-white truncate">{block.name}</span>
+              {block.opponent_name && (
+                <span className="text-xs text-gray-500">VS {block.opponent_name}</span>
+              )}
+            </div>
+            {(firstDate || matches.length > 0) && (
+              <p className="text-[10px] text-gray-600 mt-0.5">
+                {matches.length} partie{matches.length > 1 ? 's' : ''}
+                {firstDate ? ` · ${firstDate}${lastDate && lastDate !== firstDate ? ` → ${lastDate}` : ''}` : ''}
+              </p>
             )}
           </div>
-          {(firstDate || matches.length > 0) && (
-            <p className="text-[10px] text-gray-600 mt-0.5">
-              {matches.length} partie{matches.length > 1 ? 's' : ''}
-              {firstDate ? ` · ${firstDate}${lastDate && lastDate !== firstDate ? ` → ${lastDate}` : ''}` : ''}
-            </p>
-          )}
-        </div>
 
-        {/* Format + Bilan */}
-        <div className="flex items-center gap-2 shrink-0">
-          <FormatBadge format={block.format} gameCount={block.game_count} />
-          <RecordBadge wins={wins} losses={losses} />
-        </div>
+          {/* Format + Bilan */}
+          <div className="flex items-center gap-2 shrink-0">
+            <FormatBadge format={block.format} gameCount={block.game_count} />
+            <RecordBadge wins={wins} losses={losses} />
+          </div>
+        </button>
 
-        {/* Actions */}
+        {/* Actions (hors zone cliquable) */}
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => onManageMatches(block)}
@@ -138,58 +149,41 @@ export function BlockCard({ block, matches, onEdit, onDelete, onManageMatches }:
         </div>
       )}
 
-      {/* ── Body dépliable ─────────────────────────────────────────── */}
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            key="body"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 border-t border-dark-border/40 pt-3 space-y-2">
-              {matches.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">
-                  Aucune partie — utilisez{' '}
-                  <button onClick={() => onManageMatches(block)} className="underline text-accent-blue">Gérer les parties</button>
-                  .
-                </p>
-              ) : (
-                <>
-                  {matches.map((m) => <MatchRow key={m.id} match={m} compact />)}
+      {/* ── Body dépliable (CSS grid, zéro JS d'animation) ─────────── */}
+      <div style={collapseStyle(open)}>
+        <div style={{ minHeight: 0, overflow: 'hidden' }}>
+          <div className="px-4 pb-4 border-t border-dark-border/40 pt-3 space-y-2">
+            {matches.length === 0 ? (
+              <p className="text-xs text-gray-600 text-center py-4">
+                Aucune partie — utilisez{' '}
+                <button onClick={() => onManageMatches(block)} className="underline text-accent-blue">Gérer les parties</button>
+                .
+              </p>
+            ) : (
+              <>
+                {matches.map((m) => <MatchRow key={m.id} match={m} compact />)}
 
-                  {/* Toggle stats */}
-                  <button
-                    onClick={() => setShowStats((v) => !v)}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors pt-1"
-                  >
-                    <BarChart2 size={12} />
-                    {showStats ? 'Masquer les stats' : 'Voir les stats du bloc'}
-                    {showStats ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                  </button>
+                {/* Toggle stats */}
+                <button
+                  onClick={() => setShowStats((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors pt-1"
+                >
+                  <BarChart2 size={12} />
+                  {showStats ? 'Masquer les stats' : 'Voir les stats du bloc'}
+                  {showStats ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                </button>
 
-                  <AnimatePresence initial={false}>
-                    {showStats && (
-                      <motion.div
-                        key="stats"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.18 }}
-                        className="overflow-hidden"
-                      >
-                        <BlockStats matches={matches} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {/* Stats (CSS grid collapse aussi) */}
+                <div style={collapseStyle(showStats)}>
+                  <div style={{ minHeight: 0, overflow: 'hidden' }}>
+                    <BlockStats matches={matches} />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
-}
+})

@@ -7,31 +7,44 @@ import { perf } from '../../lib/logger'
 // ─── TEAM MATCHES ────────────────────────────────────────────────────────────
 
 // Requête légère — pour la liste des matchs (MatchsPage, ImportPage)
-// Split en 2 requêtes pour éviter le JSON aggregation PostgREST (embedded join lent)
+// Utilise un RPC SECURITY DEFINER pour éviter les évaluations RLS row-by-row
+// et fusionner les participants en un seul round-trip.
 export async function fetchTeamMatchesList(teamId: string) {
   perf.start('fetchTeamMatchesList')
 
-  // Étape 1 : matchs seulement (pas de join)
+  const { data, error } = await supabase.rpc('get_team_matches_list', {
+    p_team_id: teamId,
+    p_limit: 200,
+  })
+
+  if (error) {
+    console.warn('[fetchTeamMatchesList] RPC failed, using fallback:', error.message)
+    const result = await fetchTeamMatchesListFallback(teamId)
+    perf.end('fetchTeamMatchesList')
+    return result
+  }
+
+  perf.end('fetchTeamMatchesList')
+  const parsed = typeof data === 'string' ? JSON.parse(data) : data
+  return { data: parsed?.matches ?? [], error: null }
+}
+
+async function fetchTeamMatchesListFallback(teamId: string) {
   const { data: matches, error } = await supabase
     .from('team_matches')
     .select('*')
     .eq('team_id', teamId)
     .order('game_creation', { ascending: false })
-    .limit(50)
+    .limit(200)
 
-  if (error || !matches?.length) {
-    perf.end('fetchTeamMatchesList')
-    return { data: matches ?? [], error }
-  }
+  if (error || !matches?.length) return { data: matches ?? [], error }
 
-  // Étape 2 : participants pour ces matchs (1 seule requête .in)
   const matchIds = matches.map((m: Record<string, unknown>) => m.id)
   const { data: participants } = await supabase
     .from('team_match_participants')
     .select('id, match_id, player_id, champion_name, role, team_side, win, kills, deaths, assists')
     .in('match_id', matchIds)
 
-  // Fusion en mémoire
   const partsByMatch: Record<string, Array<Record<string, unknown>>> = {}
   for (const p of participants ?? []) {
     const mid = p.match_id as string
@@ -39,8 +52,6 @@ export async function fetchTeamMatchesList(teamId: string) {
     partsByMatch[mid].push(p)
   }
   const data = matches.map((m: Record<string, unknown>) => ({ ...m, team_match_participants: partsByMatch[m.id as string] ?? [] }))
-
-  perf.end('fetchTeamMatchesList')
   return { data, error: null }
 }
 

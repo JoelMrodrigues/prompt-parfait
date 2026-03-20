@@ -1,5 +1,6 @@
 /**
- * Page Matchs — Vue Blocs (sessions groupées) ou Vue Plate (liste simple)
+ * MatchsTestPage — reconstruction étape par étape
+ * Étape 4 : modals Nouveau bloc / Édition / Suppression / Gestion des parties
  */
 import { useState, useMemo, useCallback, useTransition } from 'react'
 import { LayoutList, FolderOpen, Swords, Trophy, Plus, RefreshCw } from 'lucide-react'
@@ -7,10 +8,10 @@ import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useTeamBlocks } from '../hooks/useTeamBlocks'
 import { deleteBlock } from '../../../services/supabase/blockQueries'
-import { MatchRow } from './components/MatchRow'
-import { BlockCard } from './components/BlockCard'
-import { CreateBlockModal } from './components/CreateBlockModal'
-import { AssignMatchesModal } from './components/AssignMatchesModal'
+import { MatchRow } from '../matchs/components/MatchRow'
+import { BlockCard } from '../matchs/components/BlockCard'
+import { CreateBlockModal } from '../matchs/components/CreateBlockModal'
+import { AssignMatchesModal } from '../matchs/components/AssignMatchesModal'
 import type { TeamMatchBlock } from '../../../types/matchBlocks'
 
 type MatchType = 'all' | 'scrim' | 'tournament'
@@ -22,7 +23,7 @@ const TYPE_FILTERS: { id: MatchType; label: string; Icon: React.ElementType }[] 
   { id: 'tournament', label: 'Tournois', Icon: Trophy     },
 ]
 
-export const MatchsPage = () => {
+export const MatchsTestPage = () => {
   const { team } = useTeam()
   const { matches, loading: matchesLoading, refetch: refetchMatches } = useTeamMatches(team?.id)
   const { blocks, refetch: refetchBlocks }                            = useTeamBlocks(team?.id)
@@ -86,11 +87,7 @@ export const MatchsPage = () => {
   }, [refetchMatches, refetchBlocks])
 
   if (!team) {
-    return (
-      <div className="max-w-2xl mx-auto text-center py-12">
-        <p className="text-gray-400">Créez d'abord une équipe depuis la Vue d'ensemble.</p>
-      </div>
-    )
+    return <div className="text-gray-400 text-center py-12">Aucune équipe sélectionnée.</div>
   }
 
   return (

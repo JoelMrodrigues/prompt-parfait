@@ -99,6 +99,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const initializedRef = useRef(false)
+  const fetchingRef   = useRef(false)
+  const lastParamsRef = useRef<string>('')
 
   useEffect(() => {
     if (user && supabase) {
@@ -107,21 +109,35 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false)
       if (!user) {
         initializedRef.current = false
+        lastParamsRef.current = ''
         setTeam(null)
         setAllTeams([])
         setPlayers([])
       }
     }
-  }, [user, profile?.active_team_id])
+  }, [user?.id, profile?.active_team_id])
 
   const fetchTeam = async () => {
     if (!supabase) { setLoading(false); return }
+    // Dédupliquer : ignorer si un fetch est déjà en cours ou si les params n'ont pas changé
+    const params = `${user?.id}|${profile?.active_team_id ?? ''}`
+    if (fetchingRef.current) return
+    if (params === lastParamsRef.current && initializedRef.current) return
+    fetchingRef.current = true
+    lastParamsRef.current = params
     if (!initializedRef.current) setLoading(true)
     perf.start('TeamContext.fetchTeam')
     try {
-      perf.start('fetchAllTeams')
-      const { data: teamsData, error: teamsError } = await fetchAllTeams(user.id)
-      perf.end('fetchAllTeams')
+      // Parallélisation : teams + players (si active_team_id connu) partent en même temps
+      const knownTeamId = profile?.active_team_id ?? null
+      const [
+        { data: teamsData, error: teamsError },
+        prefetchedPlayers,
+      ] = await Promise.all([
+        fetchAllTeams(user.id),
+        knownTeamId ? fetchPlayersByTeam(knownTeamId) : Promise.resolve(null),
+      ])
+
       if (teamsError) {
         setTeam(null); setAllTeams([]); setPlayers([])
         setLoading(false); return
@@ -130,23 +146,27 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       setAllTeams(teamsData || [])
 
       let activeTeam = null
-      if (profile?.active_team_id) {
-        activeTeam = teamsData?.find((t) => t.id === profile.active_team_id) ?? null
+      if (knownTeamId) {
+        activeTeam = teamsData?.find((t) => t.id === knownTeamId) ?? null
       }
       if (!activeTeam && teamsData?.length > 0) {
         activeTeam = teamsData[0]
-        if (user && !profile?.active_team_id) {
+        if (user && !knownTeamId) {
           await upsertProfile(user.id, { active_team_id: activeTeam.id })
+          // Pré-mettre à jour lastParamsRef pour que le prochain useEffect
+          // (déclenché par profile.active_team_id null→UUID) ne relance pas fetchTeam
+          lastParamsRef.current = `${user.id}|${activeTeam.id}`
         }
       }
 
       setTeam(activeTeam)
       if (activeTeam) {
-        perf.start('fetchPlayersByTeam')
-        const { data: playersData, error: playersError } = await fetchPlayersByTeam(activeTeam.id)
-        perf.end('fetchPlayersByTeam')
-        if (playersError) throw playersError
-        setPlayers(playersData || [])
+        // Si l'équipe active correspond au prefetch, réutiliser — sinon re-fetch
+        const players = (prefetchedPlayers && activeTeam.id === knownTeamId)
+          ? prefetchedPlayers
+          : await fetchPlayersByTeam(activeTeam.id)
+        if (players.error) throw players.error
+        setPlayers(players.data || [])
       } else {
         setPlayers([])
       }
@@ -155,6 +175,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       setTeam(null); setPlayers([])
     } finally {
       initializedRef.current = true
+      fetchingRef.current = false
       setLoading(false)
       perf.end('TeamContext.fetchTeam')
     }
