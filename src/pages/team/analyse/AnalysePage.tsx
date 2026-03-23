@@ -264,7 +264,7 @@ export const AnalysePage = () => {
         description="Analysez les performances collectives sur les matchs officiels. Synergies, objectifs, early game et rapport d'équipe complet."
         tags={['Objectifs', 'Draft', 'Early game', 'Synergies', 'Timeline', 'Blocs']}
         splash={SPLASH.team}
-        disabled
+        href="/team/analyse/team"
         accent="#a78bfa"
         accentDim="#8b5cf6"
         btnBg="#7c3aed"
