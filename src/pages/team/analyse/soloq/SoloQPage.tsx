@@ -13,11 +13,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTeam } from '../../hooks/useTeam'
 import { getRankColorText } from '../../joueurs/utils/playerDetailHelpers'
-import { SEASON_16_START_MS, getBackendUrl } from '../../../../lib/constants'
+import { SEASON_16_START_MS } from '../../../../lib/constants'
 import { useLayout } from '../../../../contexts/LayoutContext'
 import { supabase } from '../../../../lib/supabase'
 import { getChampionImage, getChampionDisplayName } from '../../../../lib/championImages'
+import { computeAnalyse, computeRapport } from './analyseAlgo'
 import type { Player } from '../../../../contexts/TeamContext'
+import type { SplitStats, ChampionStat, AnalysisResult } from './types'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -55,55 +57,7 @@ const POSITION_LABEL: Record<string, string> = {
 }
 
 type ResultTab = 'resume' | 'analyse' | 'rapport'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface SplitStats {
-  games: number
-  winRate: number
-  avgKDA: number
-  avgDeaths: number
-  avgCsPerMin: number | null
-  avgVision: number | null
-  avgDamage: number | null
-  avgGold: number | null
-}
-
-interface ChampionStat {
-  name: string
-  games: number
-  wins: number
-  winRate: number
-  kda: number
-  avgCs: number | null
-  avgDamage: number | null
-}
-
-interface AnalysisResult {
-  totalGames: number
-  wins: number
-  winRate: number
-  avgKills: number
-  avgDeaths: number
-  avgAssists: number
-  kda: number
-  avgCs: number | null
-  avgCsPerMin: number | null
-  avgVision: number | null
-  avgGold: number | null
-  avgDamage: number | null
-  winsStats: SplitStats
-  lossesStats: SplitStats
-  champions: ChampionStat[]
-  playerName: string
-  playerPosition?: string
-  playerRank?: string
-  dateFrom: string
-  dateTo: string
-}
-
 type AnalysisStatus = 'idle' | 'loading' | 'done' | 'error' | 'empty'
-type AiStatus = 'idle' | 'loading' | 'done' | 'error'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -484,87 +438,55 @@ function TabResume({ result, axes }: { result: AnalysisResult; axes: Set<string>
   )
 }
 
-// ─── Onglet IA (Analyse / Rapport) ────────────────────────────────────────────
+// ─── Onglet Algo (Analyse / Rapport) ─────────────────────────────────────────
 
-function TabAI({
-  result, axes, endpoint, cacheKey,
+function TabAlgo({
+  result, axes, type, cacheKey,
 }: {
   result: AnalysisResult
   axes: Set<string>
-  endpoint: 'analyse' | 'rapport'
+  type: 'analyse' | 'rapport'
   cacheKey: string
 }) {
-  const [status, setStatus]   = useState<AiStatus>('idle')
   const [content, setContent] = useState<string>('')
+  const [loading, setLoading] = useState(false)
 
-  // Reset si le joueur ou la période change
   useEffect(() => {
-    setStatus('idle')
     setContent('')
   }, [cacheKey])
 
-  const handleGenerate = async () => {
-    setStatus('loading')
+  const handleGenerate = () => {
+    setLoading(true)
     setContent('')
-
-    const payload = {
-      player: {
-        name: result.playerName,
-        position: result.playerPosition,
-        rank: result.playerRank,
-      },
-      period: {
-        from: result.dateFrom,
-        to: result.dateTo,
-        games: result.totalGames,
-      },
-      global: {
-        winRate: result.winRate,
-        kda: result.kda,
-        avgKills: result.avgKills,
-        avgDeaths: result.avgDeaths,
-        avgAssists: result.avgAssists,
-        avgCsPerMin: result.avgCsPerMin,
-        avgVision: result.avgVision,
-        avgDamage: result.avgDamage,
-        avgGold: result.avgGold,
-      },
-      wins: result.winsStats,
-      losses: result.lossesStats,
-      champions: result.champions.slice(0, 8).map(c => ({
-        name: c.name,
-        games: c.games,
-        winRate: c.winRate,
-        kda: c.kda,
-        avgCs: c.avgCs,
-      })),
-      selectedAxes: [...axes],
-    }
-
-    try {
-      const res = await fetch(`${getBackendUrl()}/api/analyse/soloq/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json() as { text: string }
-      setContent(data.text)
-      setStatus('done')
-    } catch {
-      setStatus('error')
-    }
+    // Petit délai pour l'UX (calcul instantané mais on montre un loader bref)
+    setTimeout(() => {
+      const text = type === 'analyse'
+        ? computeAnalyse(result, axes)
+        : computeRapport(result, axes)
+      setContent(text)
+      setLoading(false)
+    }, 400)
   }
 
-  const isAnalyse  = endpoint === 'analyse'
-  const Icon       = isAnalyse ? Brain : ClipboardList
-  const title      = isAnalyse ? 'Analyse IA' : 'Rapport de coaching'
+  const isAnalyse   = type === 'analyse'
+  const Icon        = isAnalyse ? Brain : ClipboardList
+  const title       = isAnalyse ? 'Analyse' : 'Rapport de coaching'
   const description = isAnalyse
     ? 'Patterns victoires/défaites · Points forts & faibles · Corrélations clés'
     : 'Priorités d\'entraînement · Actions concrètes · Métriques cibles'
-  const btnLabel   = isAnalyse ? 'Générer l\'analyse →' : 'Générer le rapport →'
 
-  if (status === 'idle') {
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 size={36} className="animate-spin text-accent-blue mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">{isAnalyse ? 'Analyse en cours…' : 'Génération du rapport…'}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!content) {
     return (
       <div className="h-full flex items-center justify-center p-8">
         <div className="text-center max-w-sm">
@@ -577,35 +499,7 @@ function TabAI({
             onClick={handleGenerate}
             className="px-6 py-2.5 bg-accent-blue hover:bg-accent-blue/90 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-accent-blue/20"
           >
-            {btnLabel}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 size={36} className="animate-spin text-accent-blue mx-auto mb-4" />
-          <p className="text-gray-500 font-medium">
-            {isAnalyse ? 'Analyse en cours…' : 'Génération du rapport…'}
-          </p>
-          <p className="text-gray-700 text-sm mt-1">Claude analyse les données</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'error') {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle size={36} className="text-red-500 mx-auto mb-4" />
-          <p className="text-gray-400 font-medium">Erreur lors de la génération</p>
-          <button onClick={handleGenerate} className="mt-4 px-4 py-2 bg-dark-card border border-dark-border rounded-xl text-sm text-gray-400 hover:text-white transition-colors">
-            Réessayer
+            {isAnalyse ? 'Générer l\'analyse →' : 'Générer le rapport →'}
           </button>
         </div>
       </div>
@@ -613,21 +507,13 @@ function TabAI({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="p-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="p-6">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <Icon size={16} className="text-accent-blue" />
           <h3 className="font-display font-bold text-white">{title}</h3>
         </div>
-        <button
-          onClick={() => { setStatus('idle'); setContent('') }}
-          className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-        >
+        <button onClick={handleGenerate} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
           Regénérer
         </button>
       </div>
@@ -963,8 +849,8 @@ export const SoloQPage = () => {
             {analysisStatus === 'done' && analysisResult && (
               <motion.div key={`done-${activeTab}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                 {activeTab === 'resume'  && <TabResume  result={analysisResult} axes={axes} />}
-                {activeTab === 'analyse' && <TabAI result={analysisResult} axes={axes} endpoint="analyse" cacheKey={aiCacheKey} />}
-                {activeTab === 'rapport' && <TabAI result={analysisResult} axes={axes} endpoint="rapport" cacheKey={aiCacheKey} />}
+                {activeTab === 'analyse' && <TabAlgo result={analysisResult} axes={axes} type="analyse" cacheKey={aiCacheKey} />}
+                {activeTab === 'rapport' && <TabAlgo result={analysisResult} axes={axes} type="rapport" cacheKey={aiCacheKey} />}
               </motion.div>
             )}
           </AnimatePresence>
