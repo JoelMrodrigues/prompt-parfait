@@ -143,8 +143,9 @@ Sois concis, pas plus de 400 mots. Utilise des chiffres précis.`
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
     res.json({ text })
   } catch (err: unknown) {
-    console.error('[analyse] Erreur Claude:', err)
-    res.status(500).json({ error: 'Erreur API Claude' })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[analyse] Erreur Claude:', msg)
+    res.status(500).json({ error: msg })
   }
 })
 
@@ -194,9 +195,22 @@ Sois ultra-concret : pas de généralités, des actions précises en jeu. Max 45
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
     res.json({ text })
   } catch (err: unknown) {
-    console.error('[rapport] Erreur Claude:', err)
-    res.status(500).json({ error: 'Erreur API Claude' })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[rapport] Erreur Claude:', msg)
+    res.status(500).json({ error: msg })
   }
+})
+
+// ─── GET /api/analyse/ping ────────────────────────────────────────────────────
+// Endpoint de diagnostic — vérifie que la clé est présente
+
+router.get('/ping', (_req: Request, res: Response) => {
+  const key = process.env.ANTHROPIC_API_KEY?.trim()
+  res.json({
+    ok: !!key,
+    keyPresent: !!key,
+    keyPrefix: key ? key.slice(0, 10) + '...' : null,
+  })
 })
 
 export default router
