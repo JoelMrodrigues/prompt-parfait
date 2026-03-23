@@ -23,6 +23,8 @@ const PlayerDetailPage = lazy(() => import('./pages/team/joueurs/PlayerDetailPag
 const SoloqMatchDetailPage = lazy(() => import('./pages/team/joueurs/SoloqMatchDetailPage').then(m => ({ default: m.SoloqMatchDetailPage })))
 const ChampionPoolPage = lazy(() => import('./pages/team/champion-pool/ChampionPoolPage').then(m => ({ default: m.ChampionPoolPage })))
 const MatchsPage = lazy(() => import('./pages/team/matchs/MatchsPage').then(m => ({ default: m.MatchsPage })))
+const AnalysePage  = lazy(() => import('./pages/team/analyse/AnalysePage').then(m => ({ default: m.AnalysePage })))
+const SoloQPage    = lazy(() => import('./pages/team/analyse/soloq/SoloQPage').then(m => ({ default: m.SoloQPage })))
 const MatchDetailPage = lazy(() => import('./pages/team/matchs/MatchDetailPage').then(m => ({ default: m.MatchDetailPage })))
 const TeamStatsPage = lazy(() => import('./pages/team/stats/TeamStatsPage').then(m => ({ default: m.TeamStatsPage })))
 const DraftsPage = lazy(() => import('./pages/team/drafts/DraftsPage').then(m => ({ default: m.DraftsPage })))
@@ -83,6 +85,8 @@ function AppRoutes() {
             <Route path="joueurs/:playerId" element={<PlayerDetailPage />} />
             <Route path="joueurs/:playerId/soloq/:riotMatchId" element={<SoloqMatchDetailPage />} />
             <Route path="champion-pool" element={<ChampionPoolPage />} />
+            <Route path="analyse" element={<AnalysePage />} />
+            <Route path="analyse/soloq" element={<SoloQPage />} />
             <Route path="matchs" element={<MatchsPage />} />
             <Route path="matchs/:matchId" element={<MatchDetailPage />} />
             <Route path="planning" element={<PlanningPage />} />

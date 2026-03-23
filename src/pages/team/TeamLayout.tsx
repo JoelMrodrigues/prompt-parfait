@@ -14,6 +14,7 @@ import { useTeamMatches } from './hooks/useTeamMatches'
 import { useTeamBlocks } from './hooks/useTeamBlocks'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
 import { loadItems } from '../../lib/items'
+import { LayoutProvider } from '../../contexts/LayoutContext'
 
 export const TeamLayout = () => {
   const location = useLocation()
@@ -58,6 +59,7 @@ export const TeamLayout = () => {
   }
 
   return (
+    <LayoutProvider>
     <div className="min-h-screen bg-dark-bg flex">
       {/* Sidebar */}
       <TeamSidebar />
@@ -73,5 +75,6 @@ export const TeamLayout = () => {
         </main>
       </div>
     </div>
+    </LayoutProvider>
   )
 }

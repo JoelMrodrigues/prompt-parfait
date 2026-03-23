@@ -21,10 +21,13 @@ import {
   Settings,
   Upload,
   FlaskConical,
+  LineChart,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
 import { useSyncStatus } from '../../lib/syncStatus'
+import { useLayout } from '../../contexts/LayoutContext'
 
 const SIDEBAR_GROUPS = [
   {
@@ -40,6 +43,7 @@ const SIDEBAR_GROUPS = [
     items: [
       { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
+      { id: 'analyse', label: 'Analyse', icon: LineChart, path: '/team/analyse' },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
       { id: 'test', label: 'Test', icon: FlaskConical, path: '/team/test' },
     ],
@@ -56,6 +60,7 @@ const SIDEBAR_GROUPS = [
 
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, isTeamOwner } = useTeam()
+  const { sidebarOpen, setSidebarOpen } = useLayout()
   const { isSyncing, currentPlayer } = useSyncStatus()
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [creatingTeam, setCreatingTeam] = useState(false)
@@ -99,7 +104,47 @@ export const TeamSidebar = () => {
   }
 
   return (
-    <aside className="w-60 bg-dark-card border-r border-dark-border flex flex-col shrink-0">
+    <aside
+      className="bg-dark-card border-r border-dark-border flex flex-col shrink-0 overflow-hidden"
+      style={{ width: sidebarOpen ? '15rem' : '2.5rem', transition: 'width 300ms ease' }}
+    >
+      {/* Mini strip — icônes seules quand sidebar repliée */}
+      {!sidebarOpen && (
+        <div className="flex flex-col items-center py-3 gap-1 w-10">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-600 hover:text-white hover:bg-dark-bg/60 transition-colors mb-1"
+            title="Ouvrir la navigation"
+          >
+            <PanelLeftOpen size={15} />
+          </button>
+          <div className="w-5 h-px bg-dark-border/60 mb-1" />
+          {SIDEBAR_GROUPS.flatMap((g) => g.items).map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.id}
+                to={item.path}
+                title={item.label}
+                className={({ isActive }) =>
+                  `w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-accent-blue/15 text-accent-blue'
+                      : 'text-gray-600 hover:text-gray-300 hover:bg-dark-bg/60'
+                  }`
+                }
+              >
+                <Icon size={15} />
+              </NavLink>
+            )
+          })}
+        </div>
+      )}
+      {/* Full sidebar — visible uniquement quand sidebarOpen */}
+      <div
+        className="flex flex-col flex-1 overflow-hidden"
+        style={{ display: sidebarOpen ? 'flex' : 'none' }}
+      >
       {/* Team Switcher */}
       <div className="px-3 py-3 border-b border-dark-border" ref={switcherRef}>
         <div className="flex items-center gap-1">
@@ -246,7 +291,7 @@ export const TeamSidebar = () => {
                     >
                       <Icon size={17} className="shrink-0" />
                       <span className="flex-1 truncate">{item.label}</span>
-                      {item.soon && (
+                      {('soon' in item) && (item as any).soon && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-dark-bg border border-dark-border text-gray-600">
                           Bientôt
                         </span>
@@ -259,6 +304,7 @@ export const TeamSidebar = () => {
           </div>
         ))}
       </nav>
+      </div>{/* end full sidebar */}
     </aside>
   )
 }
