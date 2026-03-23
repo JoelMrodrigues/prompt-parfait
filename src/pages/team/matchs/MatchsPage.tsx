@@ -7,6 +7,7 @@ import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useTeamBlocks } from '../hooks/useTeamBlocks'
 import { deleteBlock } from '../../../services/supabase/blockQueries'
+import { deleteMatch } from '../../../services/supabase/matchQueries'
 import { MatchRow } from './components/MatchRow'
 import { BlockCard } from './components/BlockCard'
 import { CreateBlockModal } from './components/CreateBlockModal'
@@ -79,6 +80,12 @@ export const MatchsPage = () => {
     refetchBlocks()
     refetchMatches()
   }, [refetchBlocks, refetchMatches])
+
+  const handleDeleteMatch = useCallback(async (matchId: string) => {
+    if (!confirm('Supprimer cette partie définitivement ?')) return
+    await deleteMatch(matchId)
+    refetchMatches()
+  }, [refetchMatches])
 
   const handleRefetch = useCallback(() => {
     refetchMatches()
@@ -179,7 +186,7 @@ export const MatchsPage = () => {
 
         /* ── Vue Plate ─────────────────────────────────────────── */
         <div className="space-y-3">
-          {filtered.map((m) => <MatchRow key={m.id} match={m} />)}
+          {filtered.map((m) => <MatchRow key={m.id} match={m} onDelete={handleDeleteMatch} />)}
         </div>
 
       ) : (
@@ -209,7 +216,7 @@ export const MatchsPage = () => {
                   <div className="flex-1 h-px bg-dark-border/40" />
                 </div>
               )}
-              {ungrouped.map((m) => <MatchRow key={m.id} match={m} />)}
+              {ungrouped.map((m) => <MatchRow key={m.id} match={m} onDelete={handleDeleteMatch} />)}
             </div>
           )}
         </div>

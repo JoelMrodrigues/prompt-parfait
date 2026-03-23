@@ -1,6 +1,6 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Swords, Trophy } from 'lucide-react'
+import { Swords, Trophy, Trash2 } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../../lib/championImages'
 
 const ROLE_SORT_KEY: Record<string, number> = {
@@ -56,9 +56,20 @@ export function TypeBadge({ type }: { type?: string | null }) {
 interface MatchRowProps {
   match: any
   compact?: boolean
+  onDelete?: (matchId: string) => Promise<void>
 }
 
-export const MatchRow = memo(function MatchRow({ match: m, compact = false }: MatchRowProps) {
+export const MatchRow = memo(function MatchRow({ match: m, compact = false, onDelete }: MatchRowProps) {
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!onDelete) return
+    setDeleting(true)
+    await onDelete(m.id)
+    setDeleting(false)
+  }
   const allParticipants = m.team_match_participants || []
   const ourTeam = allParticipants.filter((p: any) => p.team_side === 'our' || !p.team_side)
   const enemyTeam = allParticipants.filter((p: any) => p.team_side === 'enemy')
@@ -71,46 +82,60 @@ export const MatchRow = memo(function MatchRow({ match: m, compact = false }: Ma
     : null
 
   return (
-    <Link
-      to={`/team/matchs/${m.id}`}
-      className="block bg-dark-card border border-dark-border rounded-xl p-3.5 hover:border-accent-blue/40 hover:bg-dark-card/80 transition-[border-color,background-color] group"
-    >
-      {/* Ligne du haut : résultat + infos */}
-      <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
-        <div className={`flex items-center justify-center w-18 h-8 px-3 rounded-lg font-bold text-xs ${
-          m.our_win
-            ? 'bg-green-500/15 text-green-400 border border-green-500/25'
-            : 'bg-red-500/15 text-red-400 border border-red-500/25'
-        }`}>
-          {m.our_win ? 'Victoire' : 'Défaite'}
+    <div className="relative group/row">
+      <Link
+        to={`/team/matchs/${m.id}`}
+        className="block bg-dark-card border border-dark-border rounded-xl p-3.5 hover:border-accent-blue/40 hover:bg-dark-card/80 transition-[border-color,background-color]"
+      >
+        {/* Ligne du haut : résultat + infos */}
+        <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
+          <div className={`flex items-center justify-center w-18 h-8 px-3 rounded-lg font-bold text-xs ${
+            m.our_win
+              ? 'bg-green-500/15 text-green-400 border border-green-500/25'
+              : 'bg-red-500/15 text-red-400 border border-red-500/25'
+          }`}>
+            {m.our_win ? 'Victoire' : 'Défaite'}
+          </div>
+
+          {!compact && <TypeBadge type={m.match_type} />}
+
+          {durationMin != null && (
+            <span className="text-xs text-gray-400">{durationMin} min</span>
+          )}
+
+          {m.our_team_id != null && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              m.our_team_id === 100
+                ? 'text-blue-400 bg-blue-500/10'
+                : 'text-red-400 bg-red-500/10'
+            }`}>
+              {m.our_team_id === 100 ? 'Blue' : 'Red'}
+            </span>
+          )}
+
+          {dateStr && (
+            <span className="ml-auto text-xs text-gray-500 pr-6">{dateStr}</span>
+          )}
         </div>
 
-        {!compact && <TypeBadge type={m.match_type} />}
+        {/* Champions */}
+        <div className="flex flex-col gap-1.5">
+          <ChampionStrip participants={blueSide} side="blue" />
+          <ChampionStrip participants={redSide} side="red" />
+        </div>
+      </Link>
 
-        {durationMin != null && (
-          <span className="text-xs text-gray-400">{durationMin} min</span>
-        )}
-
-        {m.our_team_id != null && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-            m.our_team_id === 100
-              ? 'text-blue-400 bg-blue-500/10'
-              : 'text-red-400 bg-red-500/10'
-          }`}>
-            {m.our_team_id === 100 ? 'Blue' : 'Red'}
-          </span>
-        )}
-
-        {dateStr && (
-          <span className="ml-auto text-xs text-gray-500">{dateStr}</span>
-        )}
-      </div>
-
-      {/* Champions */}
-      <div className="flex flex-col gap-1.5">
-        <ChampionStrip participants={blueSide} side="blue" />
-        <ChampionStrip participants={redSide} side="red" />
-      </div>
-    </Link>
+      {/* Bouton supprimer */}
+      {onDelete && (
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          title="Supprimer cette partie"
+          className="absolute top-2.5 right-2.5 p-1.5 rounded-lg text-gray-600 hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover/row:opacity-100 transition-all disabled:opacity-40"
+        >
+          <Trash2 size={13} className={deleting ? 'animate-pulse' : ''} />
+        </button>
+      )}
+    </div>
   )
 })

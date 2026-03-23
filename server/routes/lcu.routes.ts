@@ -130,7 +130,7 @@ router.post('/timeline', async (req: Request, res: Response) => {
 
   try {
     const client = lcuClient(port, password)
-    const { data } = await client.get(`/lol-match-history/v1/games/${gameId}/timeline`)
+    const { data } = await client.get(`/lol-match-history/v1/game-timelines/${gameId}`)
     return res.json({ success: true, timeline: data })
   } catch (err: any) {
     return res.status(503).json({ success: false, error: `Erreur LCU timeline — ${err.message}` })

@@ -79,6 +79,14 @@ export async function fetchMatchById(matchId: string) {
   return { data, error }
 }
 
+export async function deleteMatch(matchId: string) {
+  // Supprime dans l'ordre pour respecter les FK (si pas de CASCADE en base)
+  await supabase.from('team_match_timeline').delete().eq('match_id', matchId)
+  await supabase.from('team_match_participants').delete().eq('match_id', matchId)
+  const { error } = await supabase.from('team_matches').delete().eq('id', matchId)
+  return { error }
+}
+
 // ─── PARTICIPANTS ─────────────────────────────────────────────────────────────
 
 export async function fetchParticipantsByMatch(matchId: string) {
