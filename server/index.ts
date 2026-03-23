@@ -7,6 +7,7 @@ import { loadServerEnv, resolveRiotApiKey } from './config/env.js'
 import riotRoutes from './routes/riot.routes.js'
 import statsRoutes from './routes/stats.routes.js'
 import lcuRoutes from './routes/lcu.routes.js'
+import analyseRoutes from './routes/analyse.routes.js'
 
 loadServerEnv()
 resolveRiotApiKey()
@@ -34,7 +35,7 @@ const corsOptions = {
 
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors(corsOptions))
-app.use(express.json({ limit: '10kb' }))
+app.use(express.json({ limit: '50kb' }))
 
 // Rate limiting — 100 req/min par IP sur les routes API
 const apiLimiter = rateLimit({
@@ -49,6 +50,7 @@ app.use('/api', apiLimiter)
 app.use('/api/riot', riotRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/lcu', lcuRoutes)
+app.use('/api/analyse', analyseRoutes)
 
 app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
