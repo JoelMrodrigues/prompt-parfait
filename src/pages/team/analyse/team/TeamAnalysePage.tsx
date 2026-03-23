@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useTeam } from '../../hooks/useTeam'
+
 import { useLayout } from '../../../../contexts/LayoutContext'
 import { supabase } from '../../../../lib/supabase'
 import { SEASON_16_START_MS } from '../../../../lib/constants'
@@ -68,12 +69,14 @@ function kdaColor(kda: number) {
 function normalizeRole(role: string | null): string {
   if (!role) return 'UNKNOWN'
   const r = role.toUpperCase()
-  if (r === 'UTILITY') return 'SUPPORT'
-  if (r === 'SUP')     return 'SUPPORT'
-  if (r === 'BOTTOM')  return 'BOT'
-  if (r === 'JUG')     return 'JUNGLE'
+  if (r === 'UTILITY' || r === 'SUP' || r === 'DUO_SUPPORT') return 'SUPPORT'
+  if (r === 'BOTTOM' || r === 'ADC' || r === 'CARRY' || r === 'DUO_CARRY') return 'BOT'
+  if (r === 'JUG')    return 'JUNGLE'
+  if (r === 'MIDDLE') return 'MID'
   return r
 }
+
+const POSITION_ORDER = ['TOP', 'JUNGLE', 'MID', 'BOT', 'SUPPORT', 'ADC', 'BOTTOM', 'SUP']
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
@@ -361,9 +364,16 @@ function TabAlgo({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const TeamAnalysePage = () => {
-  const { team } = useTeam()
+  const { team, players } = useTeam()
   const { sidebarOpen, setSidebarOpen } = useLayout()
   const navigate = useNavigate()
+
+  // Joueurs triés par position
+  const sortedPlayers = [...players].sort((a, b) => {
+    const ia = POSITION_ORDER.indexOf(a.position?.toUpperCase() ?? '')
+    const ib = POSITION_ORDER.indexOf(b.position?.toUpperCase() ?? '')
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+  })
 
   useEffect(() => {
     setSidebarOpen(false)
@@ -373,7 +383,8 @@ export const TeamAnalysePage = () => {
   const [datePreset, setDatePreset]     = useState<DatePresetId>('season')
   const [dateFrom, setDateFrom]         = useState(SEASON_START)
   const [dateTo, setDateTo]             = useState(TODAY)
-  const [matchType, setMatchType]       = useState<MatchTypeFilter>('all')
+  const [matchType, setMatchType]         = useState<MatchTypeFilter>('all')
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null)
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle')
   const [analysisResult, setAnalysisResult] = useState<TeamAnalysisResult | null>(null)
   const [activeTab, setActiveTab]       = useState<ResultTab>('resume')
@@ -451,27 +462,38 @@ export const TeamAnalysePage = () => {
 
     if (matches.length === 0) { setAnalysisStatus('empty'); return }
 
-    const n     = matches.length
-    const wins  = matches.filter(m => m.our_win)
-    const losses = matches.filter(m => !m.our_win)
+    // Si un joueur est sélectionné, ne garder que les matchs où il a joué
+    const relevantMatches = selectedPlayerId
+      ? matches.filter(m => m.team_match_participants.some(
+          p => p.player_id === selectedPlayerId && (p.team_side === 'our' || p.win === m.our_win)
+        ))
+      : matches
 
-    // Participants de notre côté uniquement
-    const ourParticipants = (list: typeof matches) =>
-      list.flatMap(m => m.team_match_participants.filter(p => p.team_side === 'our' || p.win === m.our_win))
+    if (relevantMatches.length === 0) { setAnalysisStatus('empty'); return }
+
+    const n      = relevantMatches.length
+    const wins   = relevantMatches.filter(m => m.our_win)
+    const losses = relevantMatches.filter(m => !m.our_win)
+
+    // Participants de notre côté — filtrés par joueur si sélectionné
+    const ourParticipants = (list: typeof matches) => {
+      const base = list.flatMap(m => m.team_match_participants.filter(p => p.team_side === 'our' || p.win === m.our_win))
+      return selectedPlayerId ? base.filter(p => p.player_id === selectedPlayerId) : base
+    }
 
     // Durée
-    const durAll = matches.filter(m => m.game_duration > 0)
+    const durAll = relevantMatches.filter(m => m.game_duration > 0)
     const avgGameDuration = durAll.length ? durAll.reduce((s, m) => s + m.game_duration, 0) / durAll.length : null
 
     // KDA global (nos joueurs)
-    const allOur = ourParticipants(matches)
+    const allOur = ourParticipants(relevantMatches)
     const avgKills   = allOur.length ? allOur.reduce((s, p) => s + (p.kills ?? 0), 0) / allOur.length : 0
     const avgDeaths  = allOur.length ? allOur.reduce((s, p) => s + (p.deaths ?? 0), 0) / allOur.length : 0
     const avgAssists = allOur.length ? allOur.reduce((s, p) => s + (p.assists ?? 0), 0) / allOur.length : 0
     const avgKda     = (avgKills + avgAssists) / Math.max(avgDeaths, 1)
 
     // Objectifs
-    const objAll = matches.filter(m => m.objectives != null && m.our_team_id != null)
+    const objAll = relevantMatches.filter(m => m.objectives != null && m.our_team_id != null)
     const getObj = (match: typeof matches[0]) => {
       if (!match.objectives || !match.our_team_id) return null
       return match.objectives[String(match.our_team_id)] ?? null
@@ -488,13 +510,13 @@ export const TeamAnalysePage = () => {
 
     const hasObjectives = objAll.length > 0
 
-    const avgDragonKills = objAvg(matches, 'dragonKills')
-    const avgBaronKills  = objAvg(matches, 'baronKills')
-    const avgTowerKills  = objAvg(matches, 'towerKills')
-    const firstBloodRate = firstRate(matches, 'firstBlood')
-    const firstDragonRate = firstRate(matches, 'firstDragon')
-    const firstBaronRate = firstRate(matches, 'firstBaron')
-    const firstTowerRate = firstRate(matches, 'firstTower')
+    const avgDragonKills  = objAvg(relevantMatches, 'dragonKills')
+    const avgBaronKills   = objAvg(relevantMatches, 'baronKills')
+    const avgTowerKills   = objAvg(relevantMatches, 'towerKills')
+    const firstBloodRate  = firstRate(relevantMatches, 'firstBlood')
+    const firstDragonRate = firstRate(relevantMatches, 'firstDragon')
+    const firstBaronRate  = firstRate(relevantMatches, 'firstBaron')
+    const firstTowerRate  = firstRate(relevantMatches, 'firstTower')
 
     // Calcul split stats (V/D)
     const calcSplit = (list: typeof matches): TeamSplitStats => {
@@ -527,9 +549,10 @@ export const TeamAnalysePage = () => {
     const ROLES = ['TOP', 'JUNGLE', 'MID', 'BOT', 'SUPPORT']
     const roleMap = new Map<string, { kills: number; deaths: number; assists: number; dmg: number; dmgG: number; gold: number; goldG: number; cs: number; csG: number; vision: number; visG: number; dur: number; durG: number; games: number; champs: Map<string, number> }>()
 
-    for (const m of matches) {
+    for (const m of relevantMatches) {
       for (const p of m.team_match_participants) {
         if (p.team_side !== 'our' && p.win !== m.our_win) continue
+        if (selectedPlayerId && p.player_id !== selectedPlayerId) continue
         const role = normalizeRole(p.role)
         if (!ROLES.includes(role)) continue
         const r = roleMap.get(role) ?? { kills: 0, deaths: 0, assists: 0, dmg: 0, dmgG: 0, gold: 0, goldG: 0, cs: 0, csG: 0, vision: 0, visG: 0, dur: 0, durG: 0, games: 0, champs: new Map() }
@@ -570,10 +593,11 @@ export const TeamAnalysePage = () => {
 
     // Top champions équipe
     const champMap = new Map<string, { role: string; games: number; wins: number; kills: number; deaths: number; assists: number }>()
-    for (const m of matches) {
+    for (const m of relevantMatches) {
       for (const p of m.team_match_participants) {
         if (!p.champion_name) continue
         if (p.team_side !== 'our' && p.win !== m.our_win) continue
+        if (selectedPlayerId && p.player_id !== selectedPlayerId) continue
         const key = `${p.champion_name}|${normalizeRole(p.role)}`
         const c = champMap.get(key) ?? { role: normalizeRole(p.role), games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 }
         c.games++
@@ -631,10 +655,50 @@ export const TeamAnalysePage = () => {
             </button>
           </div>
           <h2 className="font-display text-sm font-bold text-white">Configuration</h2>
-          <p className="text-[11px] text-gray-500 mt-0.5">Analyse collective · Matchs d'équipe</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">
+            {selectedPlayerId
+              ? `${sortedPlayers.find(p => p.id === selectedPlayerId)?.player_name ?? '—'} · Matchs d'équipe`
+              : 'Analyse collective · Matchs d\'équipe'
+            }
+          </p>
         </div>
 
         <div className="flex-1 flex flex-col overflow-y-auto">
+          {/* Joueur */}
+          {sortedPlayers.length > 0 && (
+            <>
+              <div className="px-4 py-4">
+                <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 mb-3">Joueur</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setSelectedPlayerId(null)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                      selectedPlayerId === null
+                        ? 'bg-accent-blue/15 border-accent-blue/40 text-accent-blue'
+                        : 'border-dark-border text-gray-500 hover:text-white hover:border-gray-600'
+                    }`}
+                  >
+                    ALL
+                  </button>
+                  {sortedPlayers.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPlayerId(p.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                        selectedPlayerId === p.id
+                          ? 'bg-accent-blue/15 border-accent-blue/40 text-accent-blue'
+                          : 'border-dark-border text-gray-500 hover:text-white hover:border-gray-600'
+                      }`}
+                    >
+                      {p.player_name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="border-t border-dark-border/40 mx-4" />
+            </>
+          )}
+
           {/* Période */}
           <div className="px-4 py-4">
             <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 mb-3">Période</p>
