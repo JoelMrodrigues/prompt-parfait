@@ -196,61 +196,59 @@ export function computeAnalyse(result: TeamAnalysisResult): string {
 // ─── computeRapport ────────────────────────────────────────────────────────────
 
 export function computeRapport(result: TeamAnalysisResult): string {
-  const insights = buildInsights(result)
-    .filter(i => !i.favorableInWins && i.magnitude >= 10)
+  // Tous les insights triés par magnitude — pas de filtre favorableInWins
+  // Le coaching porte sur ce qui varie le plus entre V et D, quelle que soit la direction
+  const allInsights = buildInsights(result).filter(i => i.magnitude >= 5)
 
-  // Identifier les 3 priorités
   const priorities: { title: string; problem: string; target: string; actions: string[] }[] = []
 
-  // Priorité 1 : ce qui discrimine le plus entre V et D
-  const p1 = insights[0]
-  if (p1) {
-    const diff = relDiff(p1.winsVal, p1.lossVal)!
-    const target = p1.higherIsBetter
-      ? `Atteindre **${f1(p1.winsVal)}** (niveau victoire) contre ${f1(p1.lossVal)} actuel en défaite`
-      : `Descendre à **${f1(p1.winsVal)}** (niveau victoire) contre ${f1(p1.lossVal)} en défaite`
+  // Priorités 1 & 2 : les métriques les plus discriminantes
+  for (const ins of allInsights.slice(0, 2)) {
+    const diff = relDiff(ins.winsVal, ins.lossVal)!
+    const improving = !ins.favorableInWins // vrai = on doit s'améliorer en défaite
+
+    let problem: string
+    let target: string
+
+    if (improving) {
+      problem = `**${ins.label}** chute de **${Math.abs(diff).toFixed(0)}%** en défaite : ${f1(ins.winsVal)} V → ${f1(ins.lossVal)} D`
+      target = ins.higherIsBetter
+        ? `Remonter à **${f1(ins.winsVal)}** même dans les parties difficiles`
+        : `Contenir à **${f1(ins.winsVal)}** même dans les parties difficiles`
+    } else {
+      problem = `**${ins.label}** est un point fort en victoire (${f1(ins.winsVal)} V vs ${f1(ins.lossVal)} D, +${Math.abs(diff).toFixed(0)}%) — c'est ce qui fait gagner`
+      target = `Consolider ce niveau pour le rendre constant : maintenir **${f1(ins.winsVal)}** ou plus sur ce critère`
+    }
+
     priorities.push({
-      title: p1.label,
-      problem: `**${p1.label}** diverge de **${Math.abs(diff).toFixed(0)}%** entre victoires (${f1(p1.winsVal)}) et défaites (${f1(p1.lossVal)})`,
+      title: ins.label,
+      problem,
       target,
-      actions: getActionsForMetric(p1.label, result),
+      actions: getActionsForMetric(ins.label, result),
     })
   }
 
-  // Priorité 2 : deuxième métrique ou rôle problématique
-  const p2 = insights[1]
-  if (p2) {
-    const diff = relDiff(p2.winsVal, p2.lossVal)!
-    priorities.push({
-      title: p2.label,
-      problem: `**${p2.label}** : ${f1(p2.winsVal)} V vs ${f1(p2.lossVal)} D (${Math.abs(diff).toFixed(0)}% d'écart)`,
-      target: p2.higherIsBetter
-        ? `Monter à **${f1(p2.winsVal)}** le niveau de victoire`
-        : `Réduire à **${f1(p2.winsVal)}** le niveau de victoire`,
-      actions: getActionsForMetric(p2.label, result),
-    })
-  }
-
-  // Priorité 3 : rôle le plus problématique
+  // Priorité 3 : rôle le plus contrasté en KDA
   const worstRole = result.roleStats
-    .filter(r => r.games >= 3)
+    .filter(r => r.games >= 2)
     .sort((a, b) => a.avgKda - b.avgKda)[0]
-  if (worstRole && worstRole.avgKda < 3 && priorities.length >= 2) {
+  if (worstRole) {
+    const roleLabel = worstRole.role === 'BOT' ? 'ADC' : worstRole.role
     priorities.push({
-      title: `Rôle ${worstRole.role}`,
-      problem: `**${worstRole.role}** affiche le KDA le plus bas (${worstRole.avgKda.toFixed(1)}) — ce joueur est souvent dans une situation difficile`,
-      target: `Viser un KDA de **${(worstRole.avgKda * 1.3).toFixed(1)}** sur ce rôle (amélioration de 30%)`,
+      title: `Rôle ${roleLabel}`,
+      problem: `**${roleLabel}** affiche le KDA le plus bas (${worstRole.avgKda.toFixed(1)}) — ce rôle est souvent en difficulté`,
+      target: `Viser un KDA de **${(worstRole.avgKda * 1.3).toFixed(1)}** sur ce rôle (+30%)`,
       actions: [
-        `Revoir la pick/ban : prioriser un champion de sécurité sur ${worstRole.role} pour limiter les contre-picks`,
-        `Analyser ensemble les parties perdues par ${worstRole.role} pour identifier les patterns de mort évitables`,
-        `En scrim : tester des compositions qui soutiennent davantage le ${worstRole.role} (peel, rotation, etc.)`,
+        `Revoir la pick/ban : prioriser un champion de sécurité sur ${roleLabel} pour limiter les contre-picks`,
+        `Analyser en VOD les 2-3 morts évitables du ${roleLabel} dans les parties perdues`,
+        `Tester des compositions qui soutiennent davantage le ${roleLabel} (peel, rotation, vision)`,
       ],
     })
   }
 
-  // Fallback si pas assez de données
+  // Si vraiment aucun insight (ex. 1 seule partie)
   if (priorities.length === 0) {
-    return `## 📊 Données insuffisantes\n\nPas assez de parties ou de variance entre victoires/défaites pour générer des priorités pertinentes.\n\nLancez l'analyse sur une période plus longue ou après avoir joué plus de matchs.`
+    return `## 📊 Données insuffisantes\n\nJouez au moins 3-4 matchs pour générer des priorités de coaching pertinentes.`
   }
 
   const icons = ['🥇', '🥈', '🥉']
