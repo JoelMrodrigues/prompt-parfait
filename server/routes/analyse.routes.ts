@@ -7,7 +7,13 @@ import { Router, type Request, type Response } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
 
 const router = Router()
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// Initialisation lazy — évite que la clé soit lue avant loadServerEnv()
+function getClient() {
+  const key = process.env.ANTHROPIC_API_KEY?.trim()
+  if (!key) throw new Error('ANTHROPIC_API_KEY manquante')
+  return new Anthropic({ apiKey: key })
+}
 
 // ─── Types partagés ────────────────────────────────────────────────────────────
 
@@ -128,7 +134,7 @@ Les 3-4 métriques les plus discriminantes pour ce joueur (celles qui varient le
 Sois concis, pas plus de 400 mots. Utilise des chiffres précis.`
 
   try {
-    const message = await client.messages.create({
+    const message = await getClient().messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
@@ -179,7 +185,7 @@ Structure ta réponse ainsi :
 Sois ultra-concret : pas de généralités, des actions précises en jeu. Max 450 mots.`
 
   try {
-    const message = await client.messages.create({
+    const message = await getClient().messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 1200,
       messages: [{ role: 'user', content: prompt }],
