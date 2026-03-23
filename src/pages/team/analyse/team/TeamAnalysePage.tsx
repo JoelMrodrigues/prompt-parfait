@@ -7,6 +7,7 @@ import {
   ArrowLeft, PanelLeftOpen, PanelLeftClose,
   Loader2, Search, AlertCircle, Trophy, Swords, Coins,
   TrendingUp, FileText, Brain, ClipboardList, Shield, Target,
+  Copy, Download, Check,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -295,6 +296,7 @@ function TabAlgo({
   onCache: (text: string) => void
 }) {
   const [loading, setLoading] = useState(false)
+  const [copied, setCopied]   = useState(false)
 
   const handleGenerate = () => {
     setLoading(true)
@@ -306,7 +308,24 @@ function TabAlgo({
     }, 400)
   }
 
-  const content     = cachedText
+  const content = cachedText
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const handleDownload = () => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `equipe_${type}_${result.dateFrom}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
   const isAnalyse   = type === 'analyse'
   const Icon        = isAnalyse ? Brain : ClipboardList
   const title       = isAnalyse ? 'Analyse collective' : 'Rapport de coaching'
@@ -352,9 +371,28 @@ function TabAlgo({
           <Icon size={16} className="text-accent-blue" />
           <h3 className="font-display font-bold text-white">{title}</h3>
         </div>
-        <button onClick={handleGenerate} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
-          Regénérer
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleCopy}
+            title="Copier"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-dark-bg border border-transparent hover:border-dark-border transition-all"
+          >
+            {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            {copied ? 'Copié !' : 'Copier'}
+          </button>
+          <button
+            onClick={handleDownload}
+            title="Télécharger"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-dark-bg border border-transparent hover:border-dark-border transition-all"
+          >
+            <Download size={12} />
+            .txt
+          </button>
+          <div className="w-px h-3.5 bg-dark-border mx-1" />
+          <button onClick={handleGenerate} className="text-xs text-gray-600 hover:text-gray-400 transition-colors px-1">
+            Regénérer
+          </button>
+        </div>
       </div>
       <MarkdownBlock text={content} />
     </motion.div>
