@@ -33,6 +33,7 @@ const corsOptions = {
   credentials: true,
 }
 
+app.set('trust proxy', 1) // Railway est derrière un reverse proxy
 app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors(corsOptions))
 app.use(express.json({ limit: '50kb' }))
