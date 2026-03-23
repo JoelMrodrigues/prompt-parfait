@@ -57,7 +57,15 @@ const POSITION_LABEL: Record<string, string> = {
   TOP: 'Top', JUNGLE: 'Jungle', MID: 'Mid', BOT: 'Bot', SUPPORT: 'Support', SUP: 'Support',
 }
 
-type ResultTab = 'resume' | 'analyse' | 'rapport'
+type ResultTab = 'resume' | 'analyse' | 'rapport' | 'evolution'
+
+type RawMatch = {
+  win: boolean; kills: number; deaths: number; assists: number
+  cs: number | null; vision_score: number | null; total_damage: number | null
+  game_duration: number; game_creation: number; champion_name: string | null
+}
+
+type MetricId = 'kda' | 'wr' | 'cs' | 'vision'
 type AnalysisStatus = 'idle' | 'loading' | 'done' | 'error' | 'empty'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -558,6 +566,240 @@ function TabAlgo({
   )
 }
 
+// ─── Onglet Évolution ────────────────────────────────────────────────────────
+
+const METRICS: { id: MetricId; label: string; format: (n: number) => string; color: string }[] = [
+  { id: 'kda',    label: 'KDA',      format: n => n.toFixed(2),                       color: '#60a5fa' },
+  { id: 'wr',     label: 'WR%',      format: n => `${Math.round(n * 100)}%`,           color: '#a78bfa' },
+  { id: 'cs',     label: 'CS/min',   format: n => n.toFixed(1),                       color: '#34d399' },
+  { id: 'vision', label: 'Vision',   format: n => Math.round(n).toString(),            color: '#fbbf24' },
+]
+
+function getMatchValue(m: RawMatch, metric: MetricId): number | null {
+  switch (metric) {
+    case 'kda':    return (m.kills + m.assists) / Math.max(m.deaths, 1)
+    case 'wr':     return m.win ? 1 : 0
+    case 'cs':     return m.cs != null && m.game_duration > 0 ? m.cs / (m.game_duration / 60) : null
+    case 'vision': return m.vision_score
+  }
+}
+
+function rollingAvg(values: (number | null)[], window: number, i: number): number | null {
+  const slice = values.slice(Math.max(0, i - window + 1), i + 1).filter(v => v != null) as number[]
+  return slice.length > 0 ? slice.reduce((s, v) => s + v, 0) / slice.length : null
+}
+
+function smoothPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return ''
+  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const cpX = ((pts[i].x + pts[i + 1].x) / 2).toFixed(1)
+    d += ` C ${cpX} ${pts[i].y.toFixed(1)}, ${cpX} ${pts[i + 1].y.toFixed(1)}, ${pts[i + 1].x.toFixed(1)} ${pts[i + 1].y.toFixed(1)}`
+  }
+  return d
+}
+
+function TrendChart({ matches, metric, window: W }: { matches: RawMatch[]; metric: MetricId; window: number }) {
+  const cfg = METRICS.find(m => m.id === metric)!
+
+  const values = matches.map(m => getMatchValue(m, metric))
+  const rolling = values.map((_, i) => rollingAvg(values, W, i))
+
+  // Filtrer les valeurs nulles pour les bornes Y
+  const allVals = [...values, ...rolling].filter(v => v != null) as number[]
+  if (allVals.length < 2) return <div className="h-40 flex items-center justify-center text-gray-700 text-sm">Pas assez de données</div>
+
+  const yMin = Math.max(0, Math.min(...allVals) * 0.85)
+  const yMax = Math.max(...allVals) * 1.1
+
+  const PAD = { top: 20, right: 16, bottom: 36, left: 44 }
+  const VW = 680; const VH = 180
+  const IW = VW - PAD.left - PAD.right
+  const IH = VH - PAD.top - PAD.bottom
+
+  const toX = (i: number) => PAD.left + (i / Math.max(matches.length - 1, 1)) * IW
+  const toY = (v: number) => PAD.top + IH - ((v - yMin) / Math.max(yMax - yMin, 0.001)) * IH
+
+  // Points de la courbe moyenne mobile (sans null)
+  const trendPts = rolling
+    .map((v, i) => v != null ? { x: toX(i), y: toY(v) } : null)
+    .filter(Boolean) as { x: number; y: number }[]
+
+  // Graduations Y (4 niveaux)
+  const yTicks = Array.from({ length: 4 }, (_, i) => yMin + (yMax - yMin) * (i / 3))
+
+  // Graduations X (dates — tous les ~5 points)
+  const step = Math.max(1, Math.ceil(matches.length / 6))
+  const xTicks = matches
+    .map((m, i) => i % step === 0 || i === matches.length - 1 ? { i, label: new Date(m.game_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) } : null)
+    .filter(Boolean) as { i: number; label: string }[]
+
+  return (
+    <svg viewBox={`0 0 ${VW} ${VH}`} width="100%" className="overflow-visible">
+      {/* Grille horizontale */}
+      {yTicks.map((v, i) => (
+        <g key={i}>
+          <line x1={PAD.left} x2={PAD.left + IW} y1={toY(v)} y2={toY(v)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <text x={PAD.left - 6} y={toY(v)} textAnchor="end" dominantBaseline="middle" fontSize={10} fill="#6b7280">
+            {cfg.format(v)}
+          </text>
+        </g>
+      ))}
+
+      {/* Axe X labels */}
+      {xTicks.map(({ i, label }) => (
+        <text key={i} x={toX(i)} y={VH - 6} textAnchor="middle" fontSize={9} fill="#6b7280">{label}</text>
+      ))}
+
+      {/* Zone remplie sous la courbe tendance */}
+      {trendPts.length >= 2 && (
+        <path
+          d={`${smoothPath(trendPts)} L ${trendPts[trendPts.length - 1].x} ${PAD.top + IH} L ${trendPts[0].x} ${PAD.top + IH} Z`}
+          fill={cfg.color} fillOpacity={0.06}
+        />
+      )}
+
+      {/* Courbe tendance */}
+      {trendPts.length >= 2 && (
+        <path d={smoothPath(trendPts)} fill="none" stroke={cfg.color} strokeWidth={2} strokeLinecap="round" />
+      )}
+
+      {/* Points par partie */}
+      {matches.map((m, i) => {
+        const v = values[i]
+        if (v == null) return null
+        return (
+          <circle key={i} cx={toX(i)} cy={toY(v)} r={3.5}
+            fill={m.win ? '#22c55e' : '#ef4444'}
+            stroke="rgba(0,0,0,0.4)" strokeWidth={1}
+          >
+            <title>{`${new Date(m.game_creation).toLocaleDateString('fr-FR')} — ${m.champion_name ?? '?'}\n${cfg.label}: ${cfg.format(v)}\n${m.win ? 'Victoire' : 'Défaite'}`}</title>
+          </circle>
+        )
+      })}
+    </svg>
+  )
+}
+
+function TabEvolution({ matches, playerName }: { matches: RawMatch[]; playerName: string }) {
+  const [metric, setMetric]   = useState<MetricId>('kda')
+  const [window, setWindow]   = useState(10)
+
+  const cfg = METRICS.find(m => m.id === metric)!
+
+  // Résumé : moyenne des N dernières parties vs N premières
+  const recent = matches.slice(-10)
+  const early  = matches.slice(0, 10)
+
+  const avg = (list: RawMatch[], m: MetricId) => {
+    const vals = list.map(x => getMatchValue(x, m)).filter(v => v != null) as number[]
+    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null
+  }
+
+  const recentAvg = avg(recent, metric)
+  const earlyAvg  = avg(early,  metric)
+  const trend = recentAvg != null && earlyAvg != null && earlyAvg > 0
+    ? ((recentAvg - earlyAvg) / earlyAvg) * 100
+    : null
+
+  if (matches.length < 3) {
+    return (
+      <div className="h-full flex items-center justify-center p-8">
+        <div className="text-center">
+          <TrendingUp size={40} className="text-gray-700 mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">Pas assez de parties</p>
+          <p className="text-gray-700 text-sm mt-1">Il faut au moins 3 parties pour afficher une évolution</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6 space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="font-display text-base font-bold text-white">{playerName} — Évolution</h2>
+          <p className="text-xs text-gray-500 mt-0.5">{matches.length} parties · chronologique</p>
+        </div>
+        {/* Fenêtre */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] text-gray-600 font-bold tracking-widest uppercase mr-1">Fenêtre</span>
+          {[5, 10, 20].map(w => (
+            <button key={w} onClick={() => setWindow(w)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${window === w ? 'bg-accent-blue/15 border-accent-blue/40 text-accent-blue' : 'border-dark-border text-gray-500 hover:text-white'}`}
+            >{w}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sélecteur métrique */}
+      <div className="flex gap-1.5 flex-wrap">
+        {METRICS.map(m => (
+          <button key={m.id} onClick={() => setMetric(m.id)}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${metric === m.id ? 'text-white border-transparent' : 'border-dark-border text-gray-500 hover:text-gray-300'}`}
+            style={metric === m.id ? { background: m.color + '33', borderColor: m.color + '66', color: m.color } : {}}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Graphique */}
+      <div className="bg-dark-card border border-dark-border rounded-xl p-4">
+        <TrendChart matches={matches} metric={metric} window={window} />
+        <div className="flex items-center gap-4 mt-3 text-[11px] text-gray-600">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Victoire</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> Défaite</span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-6 h-0.5 rounded-full" style={{ background: cfg.color }} />
+            Moy. mobile ({window} parties)
+          </span>
+        </div>
+      </div>
+
+      {/* Tendance résumée */}
+      {matches.length >= 10 && recentAvg != null && earlyAvg != null && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-dark-card border border-dark-border rounded-xl p-3 text-center">
+            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">10 premières</p>
+            <p className="text-lg font-bold font-display text-white">{cfg.format(earlyAvg)}</p>
+          </div>
+          <div className="bg-dark-card border border-dark-border rounded-xl p-3 text-center">
+            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">10 dernières</p>
+            <p className="text-lg font-bold font-display text-white">{cfg.format(recentAvg)}</p>
+          </div>
+          <div className={`border rounded-xl p-3 text-center ${trend == null ? 'bg-dark-card border-dark-border' : trend >= 5 ? 'bg-emerald-500/10 border-emerald-500/30' : trend <= -5 ? 'bg-red-500/10 border-red-500/30' : 'bg-dark-card border-dark-border'}`}>
+            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-1">Tendance</p>
+            <p className={`text-lg font-bold font-display ${trend == null ? 'text-gray-500' : trend >= 5 ? 'text-emerald-400' : trend <= -5 ? 'text-red-400' : 'text-gray-400'}`}>
+              {trend == null ? '—' : `${trend >= 0 ? '+' : ''}${trend.toFixed(0)}%`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 5 dernières parties */}
+      <div>
+        <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 mb-3">5 dernières parties</p>
+        <div className="space-y-1.5">
+          {[...matches].slice(-5).reverse().map((m, i) => {
+            const v = getMatchValue(m, metric)
+            return (
+              <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-xl border text-sm ${m.win ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-red-500/15 bg-red-500/5'}`}>
+                <span className={`text-xs font-bold w-4 ${m.win ? 'text-emerald-400' : 'text-red-400'}`}>{m.win ? 'V' : 'D'}</span>
+                <span className="text-gray-500 text-xs flex-1">
+                  {m.champion_name ?? '?'} · {new Date(m.game_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                </span>
+                <span className="font-semibold text-white text-xs">{v != null ? cfg.format(v) : '—'}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const SoloQPage = () => {
@@ -578,6 +820,7 @@ export const SoloQPage = () => {
   const [axesModalOpen, setAxesModalOpen]   = useState(false)
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle')
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [rawMatches, setRawMatches]         = useState<RawMatch[]>([])
   const [activeTab, setActiveTab]           = useState<ResultTab>('resume')
   const [cachedContent, setCachedContent]   = useState<Record<string, string>>({})
 
@@ -608,6 +851,7 @@ export const SoloQPage = () => {
     if (!selectedPlayer) return
     setAnalysisStatus('loading')
     setAnalysisResult(null)
+    setRawMatches([])
     setActiveTab('resume')
     setCachedContent({})
 
@@ -720,6 +964,9 @@ export const SoloQPage = () => {
     // Force TS to treat splitAvg return as expected (unused helper, clean unused import)
     void splitAvg
 
+    // Stocke les matchs bruts en ordre chronologique (pour le graphe évolution)
+    setRawMatches([...matches].reverse())
+
     setAnalysisResult({
       totalGames: n, wins: wins.length, winRate: wins.length / n,
       avgKills, avgDeaths, avgAssists, kda,
@@ -736,9 +983,10 @@ export const SoloQPage = () => {
   }
 
   const TABS: { id: ResultTab; label: string; icon: React.ElementType }[] = [
-    { id: 'resume',  label: 'Résumé',   icon: FileText    },
-    { id: 'analyse', label: 'Analyse',  icon: Brain       },
-    { id: 'rapport', label: 'Rapport',  icon: ClipboardList },
+    { id: 'resume',    label: 'Résumé',    icon: FileText     },
+    { id: 'analyse',   label: 'Analyse',   icon: Brain        },
+    { id: 'rapport',   label: 'Rapport',   icon: ClipboardList },
+    { id: 'evolution', label: 'Évolution', icon: TrendingUp   },
   ]
 
   return (
@@ -898,9 +1146,10 @@ export const SoloQPage = () => {
             )}
             {analysisStatus === 'done' && analysisResult && (
               <motion.div key={`done-${activeTab}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                {activeTab === 'resume'  && <TabResume  result={analysisResult} axes={axes} />}
-                {activeTab === 'analyse' && <TabAlgo result={analysisResult} axes={axes} type="analyse" cachedText={cachedContent['analyse'] ?? ''} onCache={(t) => setCachedContent(p => ({ ...p, analyse: t }))} />}
-                {activeTab === 'rapport' && <TabAlgo result={analysisResult} axes={axes} type="rapport" cachedText={cachedContent['rapport'] ?? ''} onCache={(t) => setCachedContent(p => ({ ...p, rapport: t }))} />}
+                {activeTab === 'resume'    && <TabResume result={analysisResult} axes={axes} />}
+                {activeTab === 'analyse'   && <TabAlgo result={analysisResult} axes={axes} type="analyse" cachedText={cachedContent['analyse'] ?? ''} onCache={(t) => setCachedContent(p => ({ ...p, analyse: t }))} />}
+                {activeTab === 'rapport'   && <TabAlgo result={analysisResult} axes={axes} type="rapport" cachedText={cachedContent['rapport'] ?? ''} onCache={(t) => setCachedContent(p => ({ ...p, rapport: t }))} />}
+                {activeTab === 'evolution' && <TabEvolution matches={rawMatches} playerName={analysisResult.playerName} />}
               </motion.div>
             )}
           </AnimatePresence>
