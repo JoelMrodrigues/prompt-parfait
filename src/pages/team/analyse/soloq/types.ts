@@ -5,8 +5,12 @@ export interface SplitStats {
   avgDeaths: number
   avgCsPerMin: number | null
   avgVision: number | null
+  avgVisionPerMin: number | null
   avgDamage: number | null
+  avgDmgPerMin: number | null
   avgGold: number | null
+  avgGoldPerMin: number | null
+  avgGameDuration: number | null // secondes
 }
 
 export interface ChampionStat {
@@ -32,6 +36,7 @@ export interface AnalysisResult {
   avgVision: number | null
   avgGold: number | null
   avgDamage: number | null
+  avgGameDuration: number | null
   winsStats: SplitStats
   lossesStats: SplitStats
   champions: ChampionStat[]

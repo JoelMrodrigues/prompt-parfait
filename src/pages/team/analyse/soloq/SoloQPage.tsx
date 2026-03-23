@@ -441,32 +441,30 @@ function TabResume({ result, axes }: { result: AnalysisResult; axes: Set<string>
 // ─── Onglet Algo (Analyse / Rapport) ─────────────────────────────────────────
 
 function TabAlgo({
-  result, axes, type, cacheKey,
+  result, axes, type, cachedText, onCache,
 }: {
   result: AnalysisResult
   axes: Set<string>
   type: 'analyse' | 'rapport'
-  cacheKey: string
+  cachedText: string
+  onCache: (text: string) => void
 }) {
-  const [content, setContent] = useState<string>('')
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    setContent('')
-  }, [cacheKey])
 
   const handleGenerate = () => {
     setLoading(true)
-    setContent('')
+    onCache('')
     // Petit délai pour l'UX (calcul instantané mais on montre un loader bref)
     setTimeout(() => {
       const text = type === 'analyse'
         ? computeAnalyse(result, axes)
         : computeRapport(result, axes)
-      setContent(text)
+      onCache(text)
       setLoading(false)
     }, 400)
   }
+
+  const content = cachedText
 
   const isAnalyse   = type === 'analyse'
   const Icon        = isAnalyse ? Brain : ClipboardList
@@ -543,6 +541,7 @@ export const SoloQPage = () => {
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle')
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [activeTab, setActiveTab]           = useState<ResultTab>('resume')
+  const [cachedContent, setCachedContent]   = useState<Record<string, string>>({})
 
   const dateFromRef = useRef<HTMLInputElement>(null)
   const dateToRef   = useRef<HTMLInputElement>(null)
@@ -572,6 +571,7 @@ export const SoloQPage = () => {
     setAnalysisStatus('loading')
     setAnalysisResult(null)
     setActiveTab('resume')
+    setCachedContent({})
 
     const fromMs = new Date(dateFrom).getTime()
     const toMs   = new Date(dateTo).getTime() + 86_400_000
@@ -620,25 +620,40 @@ export const SoloQPage = () => {
     const dmgAll   = matches.filter(m => m.total_damage != null)
     const avgDamage = dmgAll.length ? dmgAll.reduce((s, m) => s + m.total_damage!, 0) / dmgAll.length : null
 
+    const durAll  = matches.filter(m => m.game_duration > 0)
+    const avgGameDuration = durAll.length ? durAll.reduce((s, m) => s + m.game_duration, 0) / durAll.length : null
+
     // Breakdown victoires / défaites
     const calcSplit = (list: typeof matches): SplitStats => {
-      if (list.length === 0) return { games: 0, winRate: 0, avgKDA: 0, avgDeaths: 0, avgCsPerMin: null, avgVision: null, avgDamage: null, avgGold: null }
+      if (list.length === 0) return {
+        games: 0, winRate: 0, avgKDA: 0, avgDeaths: 0,
+        avgCsPerMin: null, avgVision: null, avgVisionPerMin: null,
+        avgDamage: null, avgDmgPerMin: null, avgGold: null, avgGoldPerMin: null, avgGameDuration: null,
+      }
       const k = list.reduce((s, m) => s + m.kills, 0) / list.length
       const d = list.reduce((s, m) => s + m.deaths, 0) / list.length
       const a = list.reduce((s, m) => s + m.assists, 0) / list.length
-      const csL = list.filter(m => m.cs != null && m.game_duration > 0)
-      const visL = list.filter(m => m.vision_score != null)
-      const dmgL = list.filter(m => m.total_damage != null)
-      const goldL = list.filter(m => m.gold_earned != null)
+      const csL    = list.filter(m => m.cs != null && m.game_duration > 0)
+      const visL   = list.filter(m => m.vision_score != null)
+      const visMinL = list.filter(m => m.vision_score != null && m.game_duration > 0)
+      const dmgL   = list.filter(m => m.total_damage != null)
+      const dmgMinL = list.filter(m => m.total_damage != null && m.game_duration > 0)
+      const goldL  = list.filter(m => m.gold_earned != null)
+      const goldMinL = list.filter(m => m.gold_earned != null && m.game_duration > 0)
+      const durL   = list.filter(m => m.game_duration > 0)
       return {
         games: list.length,
         winRate: list.filter(m => m.win).length / list.length,
         avgKDA: (k + a) / Math.max(d, 1),
         avgDeaths: d,
-        avgCsPerMin: csL.length ? csL.reduce((s, m) => s + m.cs! / (m.game_duration / 60), 0) / csL.length : null,
-        avgVision:   visL.length ? visL.reduce((s, m) => s + m.vision_score!, 0) / visL.length : null,
-        avgDamage:   dmgL.length ? dmgL.reduce((s, m) => s + m.total_damage!, 0) / dmgL.length : null,
-        avgGold:     goldL.length ? goldL.reduce((s, m) => s + m.gold_earned!, 0) / goldL.length : null,
+        avgCsPerMin:    csL.length    ? csL.reduce((s, m)    => s + m.cs!            / (m.game_duration / 60), 0) / csL.length    : null,
+        avgVision:      visL.length   ? visL.reduce((s, m)   => s + m.vision_score!, 0)                          / visL.length    : null,
+        avgVisionPerMin:visMinL.length? visMinL.reduce((s, m)=> s + m.vision_score!  / (m.game_duration / 60), 0)/ visMinL.length : null,
+        avgDamage:      dmgL.length   ? dmgL.reduce((s, m)   => s + m.total_damage!, 0)                          / dmgL.length    : null,
+        avgDmgPerMin:   dmgMinL.length? dmgMinL.reduce((s, m)=> s + m.total_damage!  / (m.game_duration / 60), 0)/ dmgMinL.length : null,
+        avgGold:        goldL.length  ? goldL.reduce((s, m)  => s + m.gold_earned!, 0)                           / goldL.length   : null,
+        avgGoldPerMin:  goldMinL.length? goldMinL.reduce((s, m)=> s + m.gold_earned! / (m.game_duration / 60), 0)/ goldMinL.length: null,
+        avgGameDuration:durL.length   ? durL.reduce((s, m)   => s + m.game_duration, 0)                          / durL.length    : null,
       }
     }
 
@@ -670,7 +685,7 @@ export const SoloQPage = () => {
     setAnalysisResult({
       totalGames: n, wins: wins.length, winRate: wins.length / n,
       avgKills, avgDeaths, avgAssists, kda,
-      avgCs, avgCsPerMin, avgVision, avgGold, avgDamage,
+      avgCs, avgCsPerMin, avgVision, avgGold, avgDamage, avgGameDuration,
       winsStats:   calcSplit(wins),
       lossesStats: calcSplit(losses),
       champions,
@@ -681,9 +696,6 @@ export const SoloQPage = () => {
     })
     setAnalysisStatus('done')
   }
-
-  // Clé de cache pour les onglets IA — change quand joueur/période change
-  const aiCacheKey = `${selectedPlayer?.id}-${dateFrom}-${dateTo}`
 
   const TABS: { id: ResultTab; label: string; icon: React.ElementType }[] = [
     { id: 'resume',  label: 'Résumé',   icon: FileText    },
@@ -849,8 +861,8 @@ export const SoloQPage = () => {
             {analysisStatus === 'done' && analysisResult && (
               <motion.div key={`done-${activeTab}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
                 {activeTab === 'resume'  && <TabResume  result={analysisResult} axes={axes} />}
-                {activeTab === 'analyse' && <TabAlgo result={analysisResult} axes={axes} type="analyse" cacheKey={aiCacheKey} />}
-                {activeTab === 'rapport' && <TabAlgo result={analysisResult} axes={axes} type="rapport" cacheKey={aiCacheKey} />}
+                {activeTab === 'analyse' && <TabAlgo result={analysisResult} axes={axes} type="analyse" cachedText={cachedContent['analyse'] ?? ''} onCache={(t) => setCachedContent(p => ({ ...p, analyse: t }))} />}
+                {activeTab === 'rapport' && <TabAlgo result={analysisResult} axes={axes} type="rapport" cachedText={cachedContent['rapport'] ?? ''} onCache={(t) => setCachedContent(p => ({ ...p, rapport: t }))} />}
               </motion.div>
             )}
           </AnimatePresence>
