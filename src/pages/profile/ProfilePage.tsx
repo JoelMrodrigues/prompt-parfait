@@ -6,6 +6,7 @@ import { UserCircle, Save, Check, Mail, KeyRound, AlertCircle, Camera, Loader2 }
 import { useAuth } from '../../contexts/AuthContext'
 import { upsertProfile } from '../../services/supabase/profileQueries'
 import { supabase } from '../../lib/supabase'
+import { AvatarPickerModal } from './AvatarPickerModal'
 
 export const ProfilePage = () => {
   const { user, profile, refreshProfile } = useAuth()
@@ -24,17 +25,25 @@ export const ProfilePage = () => {
   }, [])
 
   // Avatar
-  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
-  // URL locale pour affichage immédiat sans attendre le re-render du contexte
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(null)
 
   const avatarSrc = localAvatarUrl ?? profile?.avatar_url ?? null
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !user || !supabase) return
+  /** Sélection d'un preset (URL statique) — sauvegarde directement en DB */
+  const handleSelectPreset = async (url: string) => {
+    if (!user) return
+    setAvatarError(null)
+    setLocalAvatarUrl(url)
+    await upsertProfile(user.id, { avatar_url: url })
+    await refreshProfile()
+  }
+
+  /** Upload perso → Supabase Storage */
+  const handleUpload = async (file: File) => {
+    if (!user || !supabase) return
     if (!file.type.startsWith('image/')) { setAvatarError('Fichier image requis (jpg, png, webp…)'); return }
     if (file.size > 2 * 1024 * 1024) { setAvatarError('Taille max : 2 Mo'); return }
     setUploadingAvatar(true)
@@ -49,7 +58,6 @@ export const ProfilePage = () => {
       if (uploadErr) throw uploadErr
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       const url = `${publicUrl}?t=${Date.now()}`
-      // Affichage immédiat local
       setLocalAvatarUrl(url)
       await upsertProfile(user.id, { avatar_url: url })
       await refreshProfile()
@@ -58,7 +66,6 @@ export const ProfilePage = () => {
       setLocalAvatarUrl(null)
     } finally {
       setUploadingAvatar(false)
-      e.target.value = ''
     }
   }
 
@@ -111,10 +118,9 @@ export const ProfilePage = () => {
 
       {/* Avatar */}
       <div className="bg-dark-card border border-dark-border rounded-xl p-6 mb-6 flex items-center gap-5">
-        <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
         <button
           type="button"
-          onClick={() => avatarInputRef.current?.click()}
+          onClick={() => setPickerOpen(true)}
           disabled={uploadingAvatar}
           className="relative group shrink-0 w-16 h-16 rounded-full overflow-hidden focus:outline-none"
           title="Changer l'avatar"
@@ -132,7 +138,6 @@ export const ProfilePage = () => {
               <UserCircle size={40} className="text-gray-500" />
             </div>
           )}
-          {/* Overlay hover */}
           <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             {uploadingAvatar
               ? <Loader2 size={20} className="text-white animate-spin" />
@@ -144,14 +149,13 @@ export const ProfilePage = () => {
           <p className="text-sm text-gray-500">{user?.email}</p>
           <button
             type="button"
-            onClick={() => avatarInputRef.current?.click()}
+            onClick={() => setPickerOpen(true)}
             disabled={uploadingAvatar}
             className="text-xs text-accent-blue hover:underline mt-1 disabled:opacity-50"
           >
-            {uploadingAvatar ? 'Upload en cours…' : 'Changer la photo de profil'}
+            {uploadingAvatar ? 'Upload en cours…' : 'Changer votre avatar'}
           </button>
           {avatarError && <p className="text-xs text-red-400 mt-1">{avatarError}</p>}
-          <p className="text-xs text-gray-600 mt-0.5">JPG, PNG, WebP · max 2 Mo</p>
         </div>
       </div>
 
@@ -267,6 +271,17 @@ export const ProfilePage = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal picker */}
+      {pickerOpen && (
+        <AvatarPickerModal
+          onClose={() => { setPickerOpen(false); setAvatarError(null) }}
+          onSelect={handleSelectPreset}
+          onUpload={handleUpload}
+          uploading={uploadingAvatar}
+          uploadError={avatarError}
+        />
+      )}
     </div>
   )
 }
