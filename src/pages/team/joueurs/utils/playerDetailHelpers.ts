@@ -21,6 +21,22 @@ export const ROLE_LABELS: Record<string, string> = {
   SUP: 'Support',
 }
 
+export function getRankImage(rank: string | null | undefined): string | null {
+  if (!rank) return null
+  const r = rank.toLowerCase()
+  if (r.includes('challenger')) return '/resources/rang/Challenger.webp'
+  if (r.includes('grandmaster')) return '/resources/rang/Grandmaster.webp'
+  if (r.includes('master')) return '/resources/rang/Master.webp'
+  if (r.includes('diamond')) return '/resources/rang/diamond.webp'
+  if (r.includes('emerald')) return '/resources/rang/Emerald.webp'
+  if (r.includes('platinum')) return '/resources/rang/Platinum.webp'
+  if (r.includes('gold')) return '/resources/rang/Gold.webp'
+  if (r.includes('silver')) return '/resources/rang/Silver.webp'
+  if (r.includes('bronze')) return '/resources/rang/Bronze.webp'
+  if (r.includes('iron')) return '/resources/rang/Iron.webp'
+  return null
+}
+
 export function getRankColor(rank: string | null | undefined): string {
   if (!rank) return 'from-gray-500 to-gray-700'
   const r = rank.toLowerCase()
