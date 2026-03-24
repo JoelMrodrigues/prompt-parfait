@@ -34,6 +34,7 @@ const ImportPage = lazy(() => import('./pages/team/import/ImportPage').then(m =>
 const PlanningPage = lazy(() => import('./pages/team/planning/PlanningPage').then(m => ({ default: m.PlanningPage })))
 
 // Pages annexes (lazy)
+const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage').then(m => ({ default: m.UpdatePasswordPage })))
 const ProfilePage = lazy(() => import('./pages/profile/ProfilePage').then(m => ({ default: m.ProfilePage })))
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const TeamsPage = lazy(() => import('./pages/teams/TeamsPage').then(m => ({ default: m.TeamsPage })))
@@ -104,6 +105,7 @@ function AppRoutes() {
           <Route path="stats/pro/players" element={<ProPlayers />} />
           <Route path="stats/pro/tournaments" element={<ProTournaments />} />
           <Route path="login" element={<Login />} />
+          <Route path="update-password" element={<UpdatePasswordPage />} />
           <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />

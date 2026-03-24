@@ -1,6 +1,6 @@
 # Email Templates — Guide de mise en place
 
-Deux templates HTML à coller dans le dashboard Supabase.
+5 templates HTML à coller dans le dashboard Supabase.
 
 ## Accès
 
@@ -10,47 +10,84 @@ Deux templates HTML à coller dans le dashboard Supabase.
 
 ## 1. Confirmation d'inscription (`confirm-signup.html`)
 
-| Champ         | Valeur                                        |
-|---------------|-----------------------------------------------|
-| **Template**  | `Confirm signup`                              |
-| **Subject**   | `Confirmez votre compte — Void.pro`           |
-| **Body**      | contenu de `confirm-signup.html`              |
+| Champ        | Valeur                                       |
+|--------------|----------------------------------------------|
+| **Template** | `Confirm signup`                             |
+| **Subject**  | `Confirmez votre compte — Void.pro`          |
+| **Body**     | contenu de `confirm-signup.html`             |
 
-**Variable utilisée :** `{{ .ConfirmationURL }}` — générée automatiquement par Supabase.
+Variables : `{{ .ConfirmationURL }}`
 
 ---
 
 ## 2. Réinitialisation mot de passe (`reset-password.html`)
 
-| Champ         | Valeur                                              |
-|---------------|-----------------------------------------------------|
-| **Template**  | `Reset password`                                    |
-| **Subject**   | `Réinitialisation de votre mot de passe — Void.pro`      |
-| **Body**      | contenu de `reset-password.html`                    |
+| Champ        | Valeur                                                   |
+|--------------|----------------------------------------------------------|
+| **Template** | `Reset password`                                         |
+| **Subject**  | `Réinitialisation de votre mot de passe — Void.pro`      |
+| **Body**     | contenu de `reset-password.html`                         |
 
-**Variable utilisée :** `{{ .ConfirmationURL }}` — générée automatiquement par Supabase.
+Variables : `{{ .ConfirmationURL }}`
 
 ---
 
-## Redirect URL (important)
+## 3. Magic Link (`magic-link.html`)
 
-Dans **Authentication → URL Configuration** :
+| Champ        | Valeur                                       |
+|--------------|----------------------------------------------|
+| **Template** | `Magic Link`                                 |
+| **Subject**  | `Votre lien de connexion — Void.pro`         |
+| **Body**     | contenu de `magic-link.html`                 |
 
-- **Site URL** : `https://ton-domaine.vercel.app`
+Variables : `{{ .ConfirmationURL }}`
+
+---
+
+## 4. Changement d'email (`change-email.html`)
+
+| Champ        | Valeur                                                    |
+|--------------|-----------------------------------------------------------|
+| **Template** | `Change Email Address`                                    |
+| **Subject**  | `Confirmez votre nouvelle adresse email — Void.pro`       |
+| **Body**     | contenu de `change-email.html`                            |
+
+Variables : `{{ .ConfirmationURL }}` · `{{ .Email }}` · `{{ .NewEmail }}`
+
+---
+
+## 5. Invitation utilisateur (`invite-user.html`)
+
+| Champ        | Valeur                                       |
+|--------------|----------------------------------------------|
+| **Template** | `Invite User`                                |
+| **Subject**  | `Vous êtes invité sur Void.pro`              |
+| **Body**     | contenu de `invite-user.html`                |
+
+Variables : `{{ .ConfirmationURL }}`
+
+---
+
+## Page update-password (déjà intégrée dans l'app)
+
+La route `/update-password` existe dans l'app (`src/pages/UpdatePasswordPage.tsx`).
+Elle affiche un formulaire avec jauge de force + confirmation, et redirige vers `/` après succès.
+
+---
+
+## Redirect URLs (important)
+
+**Authentication → URL Configuration** :
+
+- **Site URL** : `https://void.pro` (ou domaine Vercel)
 - **Redirect URLs** (ajouter) :
-  - `https://ton-domaine.vercel.app/**`
-  - `http://localhost:5173/**` (dev local)
-
-Le reset password redirige vers `/update-password` (déjà configuré dans `ProfilePage`).
+  - `https://void.pro/**`
+  - `https://*.vercel.app/**`
+  - `http://localhost:5173/**`
 
 ---
 
-## SMTP custom (optionnel mais recommandé)
+## SMTP custom (recommandé en prod)
 
-Par défaut Supabase utilise son propre SMTP (limité à ~3 emails/heure en free tier).
-Pour la prod, configurer un SMTP custom dans **Project Settings → Auth → SMTP Settings** :
-
-- **Resend** (recommandé) : gratuit jusqu'à 3 000 mails/mois
-- **SendGrid** ou **Postmark** : alternatives
-
-Avec Resend, la clé API se configure directement dans Supabase sans aucun code supplémentaire.
+Le free tier Supabase est limité à ~3 emails/heure.
+**Project Settings → Auth → SMTP Settings** → brancher **Resend** (gratuit jusqu'à 3 000 mails/mois).
