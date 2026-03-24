@@ -13,7 +13,7 @@ Deux templates HTML à coller dans le dashboard Supabase.
 | Champ         | Valeur                                        |
 |---------------|-----------------------------------------------|
 | **Template**  | `Confirm signup`                              |
-| **Subject**   | `Confirmez votre compte — LoL Draft Pro`      |
+| **Subject**   | `Confirmez votre compte — Void.pro`           |
 | **Body**      | contenu de `confirm-signup.html`              |
 
 **Variable utilisée :** `{{ .ConfirmationURL }}` — générée automatiquement par Supabase.
@@ -25,7 +25,7 @@ Deux templates HTML à coller dans le dashboard Supabase.
 | Champ         | Valeur                                              |
 |---------------|-----------------------------------------------------|
 | **Template**  | `Reset password`                                    |
-| **Subject**   | `Réinitialisation de votre mot de passe — LoL Draft Pro` |
+| **Subject**   | `Réinitialisation de votre mot de passe — Void.pro`      |
 | **Body**      | contenu de `reset-password.html`                    |
 
 **Variable utilisée :** `{{ .ConfirmationURL }}` — générée automatiquement par Supabase.
