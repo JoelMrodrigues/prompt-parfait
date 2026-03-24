@@ -23,6 +23,9 @@ import {
   Zap,
   CalendarClock,
   RefreshCw,
+  Mail,
+  Send,
+  Link,
 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { usePlayerSync } from '../hooks/usePlayerSync'
@@ -146,10 +149,26 @@ export const TeamOverviewPage = () => {
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteTab, setInviteTab] = useState<'link' | 'email'>('link')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteEmailSending, setInviteEmailSending] = useState(false)
+  const [inviteEmailSent, setInviteEmailSent] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const inviteRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (inviteRef.current && !inviteRef.current.contains(e.target as Node)) {
+        setInviteOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
   const [suggestedColor, setSuggestedColor] = useState<string | null>(null)
   const [colorApplying, setColorApplying] = useState(false)
 
@@ -425,8 +444,9 @@ export const TeamOverviewPage = () => {
   }
 
   const handleInviteClick = async () => {
+    setInviteOpen((v) => !v)
+    if (inviteLink) return
     setInviteLoading(true)
-    setInviteLink(null)
     try {
       const link = await getInviteLink()
       setInviteLink(link)
@@ -434,6 +454,35 @@ export const TeamOverviewPage = () => {
       toastError('Impossible de générer le lien')
     } finally {
       setInviteLoading(false)
+    }
+  }
+
+  const handleSendInviteEmail = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inviteEmail.trim() || !inviteLink || !team) return
+    setInviteEmailSending(true)
+    setInviteEmailSent(false)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/team/invite-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          teamName: team.team_name,
+          inviteLink,
+          senderName: undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error)
+      setInviteEmailSent(true)
+      setInviteEmail('')
+      toastSuccess(`Invitation envoyée à ${inviteEmail.trim()}`)
+      setTimeout(() => setInviteEmailSent(false), 3000)
+    } catch (err: any) {
+      toastError(err.message || "Erreur lors de l'envoi")
+    } finally {
+      setInviteEmailSending(false)
     }
   }
 
@@ -555,41 +604,114 @@ export const TeamOverviewPage = () => {
 
           {/* Invite button */}
           {isTeamOwner && (
-            <div className="flex flex-col items-end gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleInviteClick}
-              disabled={inviteLoading}
+            <div className="relative shrink-0" ref={inviteRef}>
+              <button
+                type="button"
+                onClick={handleInviteClick}
+                disabled={inviteLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-accent-blue hover:text-accent-blue transition-colors disabled:opacity-50 text-sm"
-            >
-                <UserPlus size={16} />
+              >
+                {inviteLoading ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
                 {inviteLoading ? 'Génération…' : 'Inviter'}
-            </button>
-            {inviteLink && (
-                <div className="flex items-center gap-2 max-w-xs">
-                <input
-                  type="text"
-                  readOnly
-                  value={inviteLink}
-                    className="flex-1 min-w-0 px-3 py-1.5 bg-dark-card border border-dark-border rounded-lg text-xs text-gray-300"
-                />
-                <button
-                  type="button"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(inviteLink)
-                      setInviteCopied(true)
-                      toastSuccess('Lien copié !')
-                      setTimeout(() => setInviteCopied(false), 2000)
-                    }}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-accent-blue/20 border border-accent-blue rounded-lg text-accent-blue text-xs shrink-0"
-                  >
-                    {inviteCopied ? <Check size={14} /> : <Copy size={14} />}
-                  {inviteCopied ? 'Copié !' : 'Copier'}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+              </button>
+
+              {/* Popover invite */}
+              {inviteOpen && inviteLink && (
+                <div className="absolute right-0 top-full mt-2 z-50 w-80 bg-dark-card border border-dark-border rounded-xl shadow-2xl overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-dark-border">
+                    <span className="text-sm font-semibold text-white">Inviter dans l'équipe</span>
+                    <button onClick={() => setInviteOpen(false)} className="text-gray-500 hover:text-white transition-colors">
+                      <X size={15} />
+                    </button>
+                  </div>
+
+                  {/* Onglets */}
+                  <div className="flex border-b border-dark-border">
+                    {([
+                      { id: 'link' as const, label: 'Lien', icon: Link },
+                      { id: 'email' as const, label: 'Email', icon: Mail },
+                    ]).map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => setInviteTab(id)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                          inviteTab === id
+                            ? 'border-accent-blue text-white'
+                            : 'border-transparent text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        <Icon size={12} />{label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="p-4">
+                    {/* Onglet Lien */}
+                    {inviteTab === 'link' && (
+                      <div className="space-y-3">
+                        <p className="text-xs text-gray-500">Partagez ce lien — valable indéfiniment tant que vous ne le régénérez pas.</p>
+                        <div className="flex gap-2">
+                          <input
+                            readOnly
+                            value={inviteLink}
+                            className="flex-1 min-w-0 px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-xs text-gray-300 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(inviteLink)
+                              setInviteCopied(true)
+                              toastSuccess('Lien copié !')
+                              setTimeout(() => setInviteCopied(false), 2000)
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium shrink-0 transition-colors ${
+                              inviteCopied
+                                ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+                                : 'bg-accent-blue/20 border border-accent-blue/50 text-accent-blue hover:bg-accent-blue/30'
+                            }`}
+                          >
+                            {inviteCopied ? <Check size={13} /> : <Copy size={13} />}
+                            {inviteCopied ? 'Copié !' : 'Copier'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Onglet Email */}
+                    {inviteTab === 'email' && (
+                      <form onSubmit={handleSendInviteEmail} className="space-y-3">
+                        <p className="text-xs text-gray-500">Le destinataire recevra un email avec le lien pour rejoindre l'équipe.</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            placeholder="email@exemple.com"
+                            required
+                            disabled={inviteEmailSending}
+                            className="flex-1 min-w-0 px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-xs text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/60 disabled:opacity-50"
+                          />
+                          <button
+                            type="submit"
+                            disabled={inviteEmailSending || !inviteEmail.trim()}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 rounded-lg text-xs font-medium text-white shrink-0 disabled:opacity-50 transition-colors"
+                          >
+                            {inviteEmailSending
+                              ? <Loader2 size={12} className="animate-spin" />
+                              : inviteEmailSent
+                              ? <Check size={12} />
+                              : <Send size={12} />}
+                            {inviteEmailSending ? 'Envoi…' : 'Envoyer'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
       </div>
 
         {/* ── Stats strip (1 ligne) ── */}
