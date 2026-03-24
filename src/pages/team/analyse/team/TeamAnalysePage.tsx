@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft, PanelLeftOpen, PanelLeftClose,
-  Loader2, Search, AlertCircle, Trophy, Swords, Coins,
+  Loader2, Search, AlertCircle, Coins,
   TrendingUp, FileText, Brain, ClipboardList, Shield, Target,
   Copy, Download, Check,
 } from 'lucide-react'
@@ -55,11 +55,6 @@ function fMin(sec: number | null) {
   return `${Math.floor(sec / 60)}m${Math.round(sec % 60).toString().padStart(2, '0')}s`
 }
 
-function winRateColor(wr: number) {
-  if (wr >= 0.55) return 'text-emerald-400'
-  if (wr >= 0.45) return 'text-yellow-400'
-  return 'text-red-400'
-}
 function kdaColor(kda: number) {
   if (kda >= 4)  return 'text-accent-blue'
   if (kda >= 3)  return 'text-emerald-400'
@@ -79,41 +74,57 @@ function normalizeRole(role: string | null): string {
 
 const POSITION_ORDER = ['TOP', 'JUNGLE', 'MID', 'BOT', 'SUPPORT', 'ADC', 'BOTTOM', 'SUP']
 
-// ─── Markdown renderer ────────────────────────────────────────────────────────
+// ─── Markdown renderer redesigned ─────────────────────────────────────────────
 
 function MarkdownBlock({ text }: { text: string }) {
+  const SECTION_COLORS = ['#a78bfa', '#60a5fa', '#34d399', '#f59e0b', '#fb923c']
+  let colorIdx = -1
+
   const lines = text.split('\n')
   return (
-    <div className="space-y-1.5 text-sm leading-relaxed">
+    <div className="space-y-0.5 text-sm leading-relaxed">
       {lines.map((line, i) => {
         if (line.startsWith('## ')) {
-          return <h3 key={i} className="font-display font-bold text-white text-base mt-5 mb-2 first:mt-0">{line.slice(3)}</h3>
+          colorIdx++
+          const c = SECTION_COLORS[colorIdx % SECTION_COLORS.length]
+          return (
+            <div key={i} className="flex items-center gap-3 pt-6 pb-2 first:pt-0">
+              <div className="w-0.5 h-5 rounded-full shrink-0" style={{ background: c, boxShadow: `0 0 8px ${c}` }} />
+              <h3 className="font-display font-black text-white text-sm uppercase tracking-[0.12em]"
+                  style={{ textShadow: `0 0 20px ${c}50` }}>
+                {line.slice(3)}
+              </h3>
+            </div>
+          )
         }
         if (line.startsWith('**') && line.endsWith('**')) {
-          return <p key={i} className="font-semibold text-gray-300">{line.slice(2, -2)}</p>
+          return <p key={i} className="font-bold text-white/90 mt-2 mb-1">{line.slice(2, -2)}</p>
         }
         if (line.includes('**')) {
+          const c = SECTION_COLORS[Math.max(colorIdx, 0) % SECTION_COLORS.length]
           const parts = line.split(/(\*\*[^*]+\*\*)/)
           return (
             <p key={i} className="text-gray-400">
               {parts.map((part, j) =>
                 part.startsWith('**') && part.endsWith('**')
-                  ? <strong key={j} className="text-gray-200 font-semibold">{part.slice(2, -2)}</strong>
+                  ? <strong key={j} className="font-semibold" style={{ color: c }}>{part.slice(2, -2)}</strong>
                   : part
               )}
             </p>
           )
         }
         if (line.startsWith('- ') || line.startsWith('• ')) {
+          const c = SECTION_COLORS[Math.max(colorIdx, 0) % SECTION_COLORS.length]
           return (
-            <p key={i} className="text-gray-400 pl-3 flex gap-2">
-              <span className="text-accent-blue/60 shrink-0">·</span>
+            <div key={i} className="flex items-start gap-2.5 text-gray-400 py-0.5 pl-1">
+              <span className="w-1.5 h-1.5 rounded-full mt-[5px] shrink-0 flex-none"
+                    style={{ background: c + 'aa', boxShadow: `0 0 5px ${c}` }} />
               <span>{line.slice(2)}</span>
-            </p>
+            </div>
           )
         }
         if (line.trim() === '') return <div key={i} className="h-1" />
-        return <p key={i} className="text-gray-400">{line}</p>
+        return <p key={i} className="text-gray-500 text-xs">{line}</p>
       })}
     </div>
   )
@@ -121,17 +132,142 @@ function MarkdownBlock({ text }: { text: string }) {
 
 // ─── Metric card ──────────────────────────────────────────────────────────────
 
-function MetricCard({ icon: Icon, label, value, valueClass = 'text-white', sub }: {
-  icon: React.ElementType; label: string; value: string; valueClass?: string; sub?: string
+function MetricCard({ icon: Icon, label, value, valueClass = 'text-white', sub, accent }: {
+  icon: React.ElementType; label: string; value: string; valueClass?: string; sub?: string; accent?: string
 }) {
   return (
-    <div className="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col gap-1">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="relative rounded-xl p-4 flex flex-col gap-1 overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.025)',
+        border: `1px solid ${accent ? accent + '28' : 'rgba(255,255,255,0.07)'}`,
+      }}>
+      {accent && (
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 0% 0%, ${accent}0f 0%, transparent 65%)` }} />
+      )}
+      <div className="flex items-center gap-2 mb-1 relative">
         <Icon size={13} className="text-gray-600 shrink-0" />
         <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600">{label}</p>
       </div>
-      <p className={`text-2xl font-bold font-display ${valueClass}`}>{value}</p>
-      {sub && <p className="text-[11px] text-gray-600">{sub}</p>}
+      <p className={`text-2xl font-bold font-display relative ${valueClass}`}
+         style={accent ? { textShadow: `0 0 20px ${accent}55` } : undefined}>
+        {value}
+      </p>
+      {sub && <p className="text-[11px] text-gray-600 relative">{sub}</p>}
+      {accent && (
+        <div className="absolute bottom-0 left-0 right-0 h-px"
+             style={{ background: `linear-gradient(to right, transparent, ${accent}55, transparent)` }} />
+      )}
+    </div>
+  )
+}
+
+// ─── Radial gauge SVG ─────────────────────────────────────────────────────────
+
+function RadialGauge({ pct, wins, losses, color = '#a78bfa', size = 112 }: {
+  pct: number; wins: number; losses: number; color?: string; size?: number
+}) {
+  const r = 38
+  const circ = 2 * Math.PI * r
+  const dash = Math.min(Math.max(pct, 0), 1) * circ
+
+  return (
+    <div className="flex flex-col items-center gap-2 shrink-0">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
+          <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="7" />
+          <circle
+            cx="50" cy="50" r={r}
+            fill="none"
+            stroke={color}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circ}`}
+            transform="rotate(-90 50 50)"
+            style={{ filter: `drop-shadow(0 0 5px ${color})` }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-display font-black text-white leading-none"
+                style={{ fontSize: size * 0.21, textShadow: `0 0 18px ${color}60` }}>
+            {Math.round(pct * 100)}%
+          </span>
+          <span className="text-gray-600 uppercase tracking-widest leading-none mt-0.5"
+                style={{ fontSize: size * 0.087 }}>
+            WR
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 text-xs font-bold">
+        <span className="text-emerald-400">{wins}V</span>
+        <span className="text-gray-700">/</span>
+        <span className="text-red-400">{losses}D</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Compare bar (V vs D) ─────────────────────────────────────────────────────
+
+function CompareBar({ label, winVal, lossVal, format }: {
+  label: string; winVal: number | null; lossVal: number | null; format: (n: number) => string
+}) {
+  if (winVal == null && lossVal == null) return null
+  const wn = winVal ?? 0
+  const ln = lossVal ?? 0
+  const maxVal = Math.max(wn, ln, 0.001)
+  const wPct = (wn / maxVal) * 100
+  const lPct = (ln / maxVal) * 100
+
+  return (
+    <div className="py-1">
+      <div className="flex items-center gap-2">
+        <span className="w-20 text-[9px] uppercase tracking-widest text-gray-600 shrink-0 text-right">{label}</span>
+        <span className="w-9 text-right text-[11px] font-semibold text-emerald-400 shrink-0">
+          {winVal != null ? format(winVal) : '—'}
+        </span>
+        <div className="flex-1 flex items-center gap-0.5">
+          <div className="flex-1 h-1.5 flex justify-end" style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '999px 0 0 999px' }}>
+            <div className="h-full rounded-l-full transition-all duration-500"
+                 style={{ width: `${wPct}%`, background: 'rgba(34,197,94,0.55)', boxShadow: '0 0 6px rgba(34,197,94,0.3)' }} />
+          </div>
+          <div className="w-px h-3 bg-white/10 shrink-0" />
+          <div className="flex-1 h-1.5" style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '0 999px 999px 0' }}>
+            <div className="h-full rounded-r-full transition-all duration-500"
+                 style={{ width: `${lPct}%`, background: 'rgba(239,68,68,0.55)', boxShadow: '0 0 6px rgba(239,68,68,0.3)' }} />
+          </div>
+        </div>
+        <span className="w-9 text-[11px] font-semibold text-red-400 shrink-0">
+          {lossVal != null ? format(lossVal) : '—'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Team champion card ───────────────────────────────────────────────────────
+
+function TeamChampCard({ c }: { c: TeamChampionStat }) {
+  const wr = Math.round(c.winRate * 100)
+  const col = wr >= 55 ? '#22c55e' : wr >= 45 ? '#f59e0b' : '#ef4444'
+  return (
+    <div className="relative rounded-xl p-3 flex flex-col items-center gap-2 overflow-hidden cursor-default"
+         style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="absolute inset-0 pointer-events-none"
+           style={{ background: `radial-gradient(ellipse at 50% 0%, ${col}0c 0%, transparent 70%)` }} />
+      <div className="relative">
+        <img src={getChampionImage(c.name)} alt={c.name}
+             className="w-10 h-10 rounded-lg object-cover"
+             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-black px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap"
+             style={{ background: col, color: col === '#f59e0b' ? '#000' : '#fff', boxShadow: `0 0 6px ${col}80` }}>
+          {wr}%
+        </div>
+      </div>
+      <p className="text-[10px] text-white font-semibold truncate w-full text-center mt-1">
+        {getChampionDisplayName(c.name)}
+      </p>
+      <p className="text-[9px] text-gray-600">{c.games}P · {ROLE_LABEL[c.role] ?? c.role}</p>
     </div>
   )
 }
@@ -140,144 +276,158 @@ function MetricCard({ icon: Icon, label, value, valueClass = 'text-white', sub }
 
 function TabResume({ result }: { result: TeamAnalysisResult }) {
   const dateLabel = `${new Date(result.dateFrom).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} → ${new Date(result.dateTo).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}`
+  const losses = result.totalGames - result.wins
+  const wrColor = result.winRate >= 0.55 ? '#22c55e' : result.winRate >= 0.45 ? '#f59e0b' : '#ef4444'
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-display text-xl font-bold text-white">Équipe</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{dateLabel}</p>
+    <div className="p-6 space-y-7">
+
+      {/* ── Hero section ── */}
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex-1 min-w-0">
+          <h2 className="font-display text-2xl font-black text-white"
+              style={{ textShadow: '0 0 30px rgba(167,139,250,0.25)' }}>
+            Équipe
+          </h2>
+          <p className="text-xs text-gray-600 mt-0.5">{dateLabel} · {result.totalGames} parties</p>
+
+          {/* KDA hero numbers */}
+          <div className="mt-4 flex items-baseline gap-1.5">
+            <span className="font-display font-black text-3xl leading-none" style={{ color: '#60a5fa', textShadow: '0 0 20px rgba(96,165,250,0.4)' }}>
+              {f(result.avgKills)}
+            </span>
+            <span className="text-gray-700 text-xl">/</span>
+            <span className="font-display font-black text-3xl leading-none text-red-400" style={{ textShadow: '0 0 20px rgba(239,68,68,0.3)' }}>
+              {f(result.avgDeaths)}
+            </span>
+            <span className="text-gray-700 text-xl">/</span>
+            <span className="font-display font-black text-3xl leading-none text-emerald-400" style={{ textShadow: '0 0 20px rgba(34,197,94,0.3)' }}>
+              {f(result.avgAssists)}
+            </span>
+            <div className="ml-3 flex flex-col justify-center">
+              <span className={`font-display font-black text-xl leading-none ${kdaColor(result.avgKda)}`}
+                    style={{ textShadow: '0 0 12px currentColor' }}>
+                {f(result.avgKda)}
+              </span>
+              <span className="text-[8px] uppercase tracking-widest text-gray-600 mt-0.5">KDA</span>
+            </div>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold font-display text-white">{result.totalGames}</p>
-          <p className="text-xs text-gray-600">parties analysées</p>
-        </div>
+
+        {/* WR radial gauge */}
+        <RadialGauge pct={result.winRate} wins={result.wins} losses={losses} color={wrColor} />
       </div>
 
-      {/* KPIs */}
+      {/* ── Metric cards ── */}
       <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-        <MetricCard icon={Trophy}    label="Winrate"    value={pct(result.winRate)}   valueClass={winRateColor(result.winRate)}  sub={`${result.wins}V / ${result.totalGames - result.wins}D`} />
-        <MetricCard icon={Swords}    label="KDA global" value={f(result.avgKda)}       valueClass={kdaColor(result.avgKda)}        sub={`${f(result.avgKills)} / ${f(result.avgDeaths)} / ${f(result.avgAssists)}`} />
         {result.avgGameDuration != null && (
-          <MetricCard icon={TrendingUp} label="Durée moy." value={fMin(result.avgGameDuration)} sub={`V: ${fMin(result.winsStats.avgGameDuration)} · D: ${fMin(result.lossesStats.avgGameDuration)}`} />
+          <MetricCard icon={TrendingUp} label="Durée moy." value={fMin(result.avgGameDuration)} accent="#a78bfa"
+            sub={`V: ${fMin(result.winsStats.avgGameDuration)} · D: ${fMin(result.lossesStats.avgGameDuration)}`} />
         )}
         {result.avgDragonKills != null && (
-          <MetricCard icon={Shield}  label="Dragons/partie" value={f(result.avgDragonKills)} sub={`V: ${f(result.winsStats.avgDragonKills)} · D: ${f(result.lossesStats.avgDragonKills)}`} />
+          <MetricCard icon={Shield} label="Dragons/partie" value={f(result.avgDragonKills)} accent="#f59e0b"
+            sub={`V: ${f(result.winsStats.avgDragonKills)} · D: ${f(result.lossesStats.avgDragonKills)}`} />
         )}
         {result.avgBaronKills != null && (
-          <MetricCard icon={Target}  label="Barons/partie"  value={f(result.avgBaronKills)}  sub={`V: ${f(result.winsStats.avgBaronKills)} · D: ${f(result.lossesStats.avgBaronKills)}`} />
+          <MetricCard icon={Target} label="Barons/partie" value={f(result.avgBaronKills)} accent="#34d399"
+            sub={`V: ${f(result.winsStats.avgBaronKills)} · D: ${f(result.lossesStats.avgBaronKills)}`} />
         )}
         {result.firstBloodRate != null && (
-          <MetricCard icon={Coins}   label="1er sang"       value={pct(result.firstBloodRate)} sub={`V: ${pct(result.winsStats.firstBloodRate ?? 0)} · D: ${pct(result.lossesStats.firstBloodRate ?? 0)}`} />
+          <MetricCard icon={Coins} label="1er sang" value={pct(result.firstBloodRate)} accent="#fb923c"
+            sub={`V: ${pct(result.winsStats.firstBloodRate ?? 0)} · D: ${pct(result.lossesStats.firstBloodRate ?? 0)}`} />
         )}
       </div>
 
-      {/* Objectifs V vs D */}
+      {/* ── Objectives V vs D ── */}
       {result.hasObjectives && (
         <div>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 mb-3">Objectifs — Victoires vs Défaites</p>
-          <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-dark-border/60">
-                  <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600"></th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-emerald-700">Victoires</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-red-800">Défaites</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { label: 'KDA', vW: f(result.winsStats.avgKda), vL: f(result.lossesStats.avgKda) },
-                  ...(result.winsStats.avgDragonKills != null ? [{ label: 'Dragons', vW: f(result.winsStats.avgDragonKills), vL: f(result.lossesStats.avgDragonKills) }] : []),
-                  ...(result.winsStats.avgBaronKills != null ? [{ label: 'Barons', vW: f(result.winsStats.avgBaronKills), vL: f(result.lossesStats.avgBaronKills) }] : []),
-                  ...(result.winsStats.avgTowerKills != null ? [{ label: 'Tours', vW: f(result.winsStats.avgTowerKills), vL: f(result.lossesStats.avgTowerKills) }] : []),
-                  ...(result.winsStats.firstBloodRate != null ? [{ label: '1er sang', vW: pct(result.winsStats.firstBloodRate), vL: pct(result.lossesStats.firstBloodRate ?? 0) }] : []),
-                  ...(result.winsStats.firstDragonRate != null ? [{ label: '1er dragon', vW: pct(result.winsStats.firstDragonRate), vL: pct(result.lossesStats.firstDragonRate ?? 0) }] : []),
-                  ...(result.winsStats.firstTowerRate != null ? [{ label: '1ère tour', vW: pct(result.winsStats.firstTowerRate), vL: pct(result.lossesStats.firstTowerRate ?? 0) }] : []),
-                  ...(result.winsStats.avgGameDuration != null ? [{ label: 'Durée moy.', vW: fMin(result.winsStats.avgGameDuration), vL: fMin(result.lossesStats.avgGameDuration) }] : []),
-                ].map((row, i) => (
-                  <tr key={row.label} className={`border-b border-dark-border/30 last:border-0 ${i % 2 === 0 ? '' : 'bg-dark-bg/30'}`}>
-                    <td className="px-4 py-2.5 text-gray-500 text-xs">{row.label}</td>
-                    <td className="text-center px-3 py-2.5 text-emerald-400 font-semibold">{row.vW}</td>
-                    <td className="text-center px-3 py-2.5 text-red-400 font-semibold">{row.vL}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center gap-3 mb-3">
+            <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 shrink-0">Objectifs — Victoires vs Défaites</p>
+            <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.06), transparent)' }} />
+            <div className="flex items-center gap-2 text-[10px] font-bold shrink-0">
+              <span className="text-emerald-500">{result.wins}V</span>
+              <span className="text-gray-700">/</span>
+              <span className="text-red-500">{losses}D</span>
+            </div>
+          </div>
+          <div className="rounded-xl px-4 py-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <CompareBar label="KDA" winVal={result.winsStats.avgKda} lossVal={result.lossesStats.avgKda} format={n => n.toFixed(2)} />
+            {result.winsStats.avgDragonKills != null && (
+              <CompareBar label="Dragons" winVal={result.winsStats.avgDragonKills} lossVal={result.lossesStats.avgDragonKills} format={n => n.toFixed(1)} />
+            )}
+            {result.winsStats.avgBaronKills != null && (
+              <CompareBar label="Barons" winVal={result.winsStats.avgBaronKills} lossVal={result.lossesStats.avgBaronKills} format={n => n.toFixed(1)} />
+            )}
+            {result.winsStats.avgTowerKills != null && (
+              <CompareBar label="Tours" winVal={result.winsStats.avgTowerKills} lossVal={result.lossesStats.avgTowerKills} format={n => n.toFixed(1)} />
+            )}
+            {result.winsStats.firstBloodRate != null && (
+              <CompareBar label="1er sang" winVal={result.winsStats.firstBloodRate} lossVal={result.lossesStats.firstBloodRate} format={n => `${Math.round(n * 100)}%`} />
+            )}
+            {result.winsStats.firstDragonRate != null && (
+              <CompareBar label="1er dragon" winVal={result.winsStats.firstDragonRate} lossVal={result.lossesStats.firstDragonRate} format={n => `${Math.round(n * 100)}%`} />
+            )}
+            {result.winsStats.firstTowerRate != null && (
+              <CompareBar label="1ère tour" winVal={result.winsStats.firstTowerRate} lossVal={result.lossesStats.firstTowerRate} format={n => `${Math.round(n * 100)}%`} />
+            )}
           </div>
         </div>
       )}
 
-      {/* Stats par rôle */}
+      {/* ── Role cards ── */}
       {result.roleStats.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 mb-3">Performance par rôle</p>
-          <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-dark-border/60">
-                  <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">Rôle</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">KDA</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">K/D/A</th>
-                  {result.roleStats[0]?.avgDamage != null && <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">Dégâts</th>}
-                  <th className="text-left px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">Champions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.roleStats.map((r, i) => (
-                  <tr key={r.role} className={`border-b border-dark-border/30 last:border-0 ${i % 2 === 0 ? '' : 'bg-dark-bg/30'}`}>
-                    <td className="px-4 py-2.5 text-white font-semibold text-xs">{ROLE_LABEL[r.role] ?? r.role}</td>
-                    <td className={`text-center px-3 py-2.5 font-semibold ${kdaColor(r.avgKda)}`}>{r.avgKda.toFixed(1)}</td>
-                    <td className="text-center px-3 py-2.5 text-gray-500 text-xs">{r.avgKills.toFixed(1)}/{r.avgDeaths.toFixed(1)}/{r.avgAssists.toFixed(1)}</td>
-                    {result.roleStats[0]?.avgDamage != null && <td className="text-center px-3 py-2.5 text-gray-400">{r.avgDamage != null ? fmtK(r.avgDamage) : '—'}</td>}
-                    <td className="px-3 py-2.5">
-                      <div className="flex gap-1.5 items-center">
-                        {r.topChampions.slice(0, 3).map(c => (
-                          <img key={c} src={getChampionImage(c)} alt={c} title={getChampionDisplayName(c)}
-                            className="w-6 h-6 rounded object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                        ))}
+          <div className="flex items-center gap-3 mb-3">
+            <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 shrink-0">Performance par rôle</p>
+            <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.06), transparent)' }} />
+          </div>
+          <div className="space-y-2">
+            {result.roleStats.map((r) => {
+              const kdaCol = r.avgKda >= 4 ? '#60a5fa' : r.avgKda >= 3 ? '#22c55e' : r.avgKda >= 2 ? '#f59e0b' : '#ef4444'
+              return (
+                <div key={r.role} className="flex items-center gap-4 rounded-xl px-4 py-3"
+                     style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${kdaCol}20` }}>
+                  <div className="w-16 shrink-0">
+                    <p className="text-xs font-black text-white uppercase tracking-wide">{ROLE_LABEL[r.role] ?? r.role}</p>
+                    <p className="text-[9px] text-gray-600 mt-0.5">{r.avgKills.toFixed(1)}/{r.avgDeaths.toFixed(1)}/{r.avgAssists.toFixed(1)}</p>
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <span className="font-display font-black text-xl leading-none" style={{ color: kdaCol, textShadow: `0 0 12px ${kdaCol}60` }}>
+                      {r.avgKda.toFixed(1)}
+                    </span>
+                    <span className="text-[8px] uppercase tracking-widest text-gray-600">KDA</span>
+                  </div>
+                  {r.avgDamage != null && (
+                    <div className="flex flex-col justify-center ml-2">
+                      <span className="text-sm font-bold text-gray-400">{fmtK(r.avgDamage)}</span>
+                      <span className="text-[8px] uppercase tracking-widest text-gray-600">Dégâts</span>
+                    </div>
+                  )}
+                  <div className="ml-auto flex gap-1.5 items-center">
+                    {r.topChampions.slice(0, 3).map(c => (
+                      <div key={c} className="relative">
+                        <img src={getChampionImage(c)} alt={c} title={getChampionDisplayName(c)}
+                          className="w-7 h-7 rounded-lg object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Top champions */}
+      {/* ── Top champions ── */}
       {result.topChampions.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 mb-3">Champions les + joués</p>
-          <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-dark-border/60">
-                  <th className="text-left px-4 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">Champion</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">Rôle</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">P</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">WR</th>
-                  <th className="text-center px-3 py-2.5 text-[10px] font-bold tracking-widest uppercase text-gray-600">KDA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.topChampions.slice(0, 10).map((c, i) => (
-                  <tr key={`${c.name}-${c.role}`} className={`border-b border-dark-border/30 last:border-0 ${i % 2 === 0 ? '' : 'bg-dark-bg/30'}`}>
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <img src={getChampionImage(c.name)} alt={c.name} className="w-7 h-7 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                        <span className="text-white font-medium text-sm">{getChampionDisplayName(c.name)}</span>
-                      </div>
-                    </td>
-                    <td className="text-center px-3 py-2.5 text-gray-500 text-xs">{ROLE_LABEL[c.role] ?? c.role}</td>
-                    <td className="text-center px-3 py-2.5 text-gray-400">{c.games}</td>
-                    <td className={`text-center px-3 py-2.5 font-semibold ${winRateColor(c.winRate)}`}>{pct(c.winRate)}</td>
-                    <td className={`text-center px-3 py-2.5 font-semibold ${kdaColor(c.kda)}`}>{c.kda.toFixed(1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center gap-3 mb-3">
+            <p className="text-[10px] font-bold tracking-widest uppercase text-gray-600 shrink-0">Champions les + joués</p>
+            <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, rgba(255,255,255,0.06), transparent)' }} />
+          </div>
+          <div className="grid grid-cols-3 xl:grid-cols-4 gap-2">
+            {result.topChampions.slice(0, 8).map((c) => <TeamChampCard key={`${c.name}-${c.role}`} c={c} />)}
           </div>
         </div>
       )}
@@ -798,24 +948,44 @@ export const TeamAnalysePage = () => {
       </div>
 
       {/* ── Zone résultat ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-dark-bg">
+      <div className="flex-1 flex flex-col overflow-hidden"
+           style={{
+             background: '#0b0b14',
+             backgroundImage: 'radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)',
+             backgroundSize: '28px 28px',
+           }}>
 
         {analysisStatus === 'done' && analysisResult && (
-          <div className="shrink-0 border-b border-dark-border bg-dark-card px-6 flex items-center gap-1 pt-3">
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl border-b-2 transition-colors ${
-                  activeTab === id
-                    ? 'text-accent-blue border-accent-blue bg-accent-blue/5'
-                    : 'text-gray-500 border-transparent hover:text-gray-300'
-                }`}
-              >
-                <Icon size={14} />
-                {label}
-              </button>
-            ))}
+          <div className="shrink-0 border-b border-white/5 px-6 flex items-end gap-0.5 pt-4"
+               style={{ background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(8px)' }}>
+            {TABS.map(({ id, label, icon: Icon }) => {
+              const active = activeTab === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className="relative flex items-center gap-2 px-4 py-2.5 transition-colors"
+                  style={{
+                    color: active ? '#a78bfa' : '#6b7280',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <Icon size={12} />
+                  {label}
+                  {active && (
+                    <motion.div
+                      layoutId="ta-tab-indicator"
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full"
+                      style={{ background: '#a78bfa', boxShadow: '0 0 8px #a78bfa, 0 0 20px rgba(167,139,250,0.3)' }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                    />
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
 
