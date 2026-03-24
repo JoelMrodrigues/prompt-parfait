@@ -20,7 +20,6 @@ import {
   Swords,
   Settings,
   Upload,
-  FlaskConical,
   LineChart,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -45,7 +44,6 @@ const SIDEBAR_GROUPS = [
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
       { id: 'analyse', label: 'Analyse', icon: LineChart, path: '/team/analyse' },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
-      { id: 'test', label: 'Test', icon: FlaskConical, path: '/team/test' },
     ],
   },
   {
