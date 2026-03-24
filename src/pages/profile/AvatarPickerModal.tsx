@@ -41,31 +41,13 @@ const RANKS = [
   { label: 'Challenger',  src: '/resources/rang/Challenger.webp' },
 ]
 
-const KEYSTONES = [
-  { name: 'Press the Attack',      src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/press_the_attack.png' },
-  { name: 'Lethal Tempo',          src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/lethal_tempo.png' },
-  { name: 'Fleet Footwork',        src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Fleet_Footwork_rune.png' },
-  { name: 'Conqueror',             src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Conqueror_rune.png' },
-  { name: 'Electrocute',           src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Electrocute_rune.png' },
-  { name: 'Dark Harvest',          src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Dark_Harvest_rune.png' },
-  { name: 'Hail of Blades',        src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Hail_of_Blades_rune.png' },
-  { name: 'Arcane Comet',          src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Arcane_Comet_rune.png' },
-  { name: 'Phase Rush',            src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Phase_Rush_rune.png' },
-  { name: 'Glacial Augment',       src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Glacial_Augment_rune.png' },
-  { name: 'Unsealed Spellbook',    src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/unsealed_spellbook.png' },
-  { name: 'Grasp of the Undying',  src: 'https://ddragon.leagueoflegends.com/cdn/img/icons/runes/Grasp_of_the_Undying_rune.png' },
-  { name: 'Axiom Arcanist',        src: 'https://ddragon.leagueoflegends.com/cdn/15.15.1/img/perk-images/Styles/Sorcery/NullifyingOrb/Axiom_Arcanist.png' },
-  { name: 'Unflinching',           src: 'https://ddragon.leagueoflegends.com/cdn/15.15.1/img/perk-images/Styles/Sorcery/Unflinching/Unflinching.png' },
-]
-
 // ─── Onglets ──────────────────────────────────────────────────────────────────
 
-type Tab = 'champions' | 'rangs' | 'runes' | 'upload'
+type Tab = 'champions' | 'rangs' | 'upload'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'champions', label: 'Champions' },
   { id: 'rangs',     label: 'Rangs' },
-  { id: 'runes',     label: 'Runes' },
   { id: 'upload',    label: 'Mon image' },
 ]
 
@@ -227,39 +209,6 @@ export function AvatarPickerModal({ onClose, onSelect, onUpload, uploading, uplo
                       )}
                     </div>
                     <span className="text-xs text-gray-400 font-medium">{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* ── Runes ── */}
-          {tab === 'runes' && (
-            <div className="grid grid-cols-5 gap-4">
-              {KEYSTONES.map(({ name, src }) => {
-                const isApplying = applying === src
-                return (
-                  <button
-                    key={src}
-                    onClick={() => handlePreset(src)}
-                    disabled={!!applying || uploading}
-                    title={name}
-                    className="group flex flex-col items-center gap-2 p-3 rounded-2xl border border-dark-border hover:border-purple-500/50 bg-dark-bg/40 hover:bg-purple-500/5 transition-all disabled:opacity-60"
-                  >
-                    <div className="relative w-14 h-14">
-                      <img
-                        src={src}
-                        alt={name}
-                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-200"
-                        loading="lazy"
-                      />
-                      {isApplying && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                          <Loader2 size={16} className="text-white animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-gray-400 font-medium text-center leading-tight">{name}</span>
                   </button>
                 )
               })}
