@@ -23,6 +23,11 @@ function isValidChamp(name: string | null | undefined): boolean {
   return !EXCLUDED_CHAMP_WORDS.some((w) => lower === w.toLowerCase() || lower.includes(w.toLowerCase()))
 }
 
+function formatRankDisplay(rank: string | null | undefined): string {
+  if (!rank) return ''
+  return rank.replace(/grandmaster/i, 'GM').replace(/challenger/i, 'Chal')
+}
+
 /** Couleur du winrate % : Violet fluo 90–100%, Vert 60–80%, Orange 40–50%, Rouge sanguin 0–30% */
 function getWinrateColor(wr: number): string {
   if (wr >= 90) return 'text-violet-300' // violet légèrement fluo
@@ -72,7 +77,7 @@ export const PlayerCard = memo(({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={handleCardClick}
-      className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-blue/50 transition-all cursor-pointer flex flex-col h-[280px]"
+      className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden hover:border-accent-blue/50 transition-all cursor-pointer flex flex-col h-[240px]"
     >
       {/* Header — hauteur fixe pour que toutes les cards soient identiques */}
       <div className="bg-off-white dark:bg-black relative overflow-hidden h-[112px] shrink-0">
@@ -119,7 +124,7 @@ export const PlayerCard = memo(({
             )}
             {player.rank && (
               <span className="px-2 py-0.5 rounded text-xs font-medium text-white bg-black/10 dark:bg-off-white/10 truncate max-w-[110px]">
-                {player.rank}
+                {formatRankDisplay(player.rank)}
               </span>
             )}
           </div>
