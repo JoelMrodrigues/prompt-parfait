@@ -2,6 +2,7 @@
  * Page Planning — Calendrier des scrims + Disponibilités joueurs
  */
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,8 +14,14 @@ import {
   Minus,
   CalendarDays,
   Users,
+  Swords,
+  TrendingUp,
+  Clock,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTeam } from '../hooks/useTeam'
+import { useTeamMatches } from '../hooks/useTeamMatches'
+import { MatchRow } from '../matchs/components/MatchRow'
 import {
   fetchSessions,
   addSession,
@@ -37,30 +44,27 @@ const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const SLOTS = ['matin', 'apres-midi', 'soiree'] as const
 const SLOT_LABELS: Record<string, string> = { matin: 'Matin', 'apres-midi': 'Après-midi', soiree: 'Soirée' }
 
-const RESULT_STYLES: Record<string, { label: string; color: string; bg: string }> = {
-  win: { label: 'V', color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30' },
-  loss: { label: 'D', color: 'text-rose-400', bg: 'bg-rose-500/15 border-rose-500/30' },
-  draw: { label: 'N', color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' },
+const RESULT_STYLES: Record<string, { label: string; color: string; bg: string; dot: string; ring: string }> = {
+  win:  { label: 'Victoire', color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30', dot: 'bg-emerald-400', ring: 'ring-emerald-500/30' },
+  loss: { label: 'Défaite',  color: 'text-rose-400',    bg: 'bg-rose-500/15 border-rose-500/30',       dot: 'bg-rose-400',    ring: 'ring-rose-500/30' },
+  draw: { label: 'Nul',      color: 'text-amber-400',   bg: 'bg-amber-500/15 border-amber-500/30',     dot: 'bg-amber-400',   ring: 'ring-amber-500/30' },
 }
 
 const TABS = [
-  { id: 'calendar', label: 'Calendrier', icon: CalendarDays },
+  { id: 'calendar',     label: 'Calendrier',     icon: CalendarDays },
   { id: 'availability', label: 'Disponibilités', icon: Users },
 ] as const
 
 type Tab = (typeof TABS)[number]['id']
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function toDateStr(y: number, m: number, d: number) {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
-
 function fmtTime(t: string | null) {
   return t ? t.slice(0, 5) : ''
 }
 
-// ─── Add Session Modal ────────────────────────────────────────────────────────
+// ─── Add Session Modal ─────────────────────────────────────────────────────────
 
 function AddSessionModal({
   initialDate,
@@ -76,85 +80,71 @@ function AddSessionModal({
   const [time, setTime] = useState('')
   const [notes, setNotes] = useState('')
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div
-        className="bg-dark-card border border-dark-border rounded-2xl shadow-xl w-full max-w-sm p-6"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+        transition={{ duration: 0.15 }}
+        className="bg-dark-card border border-dark-border rounded-2xl shadow-2xl w-full max-w-md flex flex-col"
+        style={{ maxHeight: 'calc(100vh - 2rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-display font-semibold text-white text-lg">Nouvelle session</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-dark-bg transition-colors"
-          >
-            <X size={18} />
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-dark-border">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-accent-blue/20 flex items-center justify-center">
+              <Swords size={15} className="text-accent-blue" />
+            </div>
+            <h3 className="font-display font-bold text-white text-lg">Nouvelle session</h3>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-dark-bg transition-colors">
+            <X size={16} />
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5 space-y-4">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Date</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-blue/50"
-            />
+            <label className="text-xs text-gray-500 mb-1.5 block font-semibold uppercase tracking-wide">Date</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-blue/60 transition-colors" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Équipe adverse</label>
-            <input
-              type="text"
-              value={opponent}
-              onChange={(e) => setOpponent(e.target.value)}
-              placeholder="Ex: Team Alpha"
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
-            />
+            <label className="text-xs text-gray-500 mb-1.5 block font-semibold uppercase tracking-wide">Équipe adverse</label>
+            <input type="text" value={opponent} onChange={(e) => setOpponent(e.target.value)} placeholder="Ex : Team Alpha"
+              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/60 transition-colors" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Heure (optionnel)</label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-blue/50"
-            />
+            <label className="text-xs text-gray-500 mb-1.5 block font-semibold uppercase tracking-wide">
+              Heure <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
+            </label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-blue/60 transition-colors" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Notes (optionnel)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Notes pré-match..."
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50 resize-none"
-            />
+            <label className="text-xs text-gray-500 mb-1.5 block font-semibold uppercase tracking-wide">
+              Notes <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
+            </label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Stratégie, notes pré-match..."
+              className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue/60 resize-none transition-colors" />
           </div>
         </div>
-        <div className="flex gap-2 mt-5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 px-4 py-2 rounded-xl border border-dark-border text-gray-400 text-sm hover:text-white transition-colors"
-          >
+        <div className="shrink-0 flex gap-3 px-6 py-4 border-t border-dark-border">
+          <button type="button" onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-dark-border text-gray-400 text-sm hover:text-white hover:border-gray-500 transition-colors">
             Annuler
           </button>
-          <button
-            type="button"
-            onClick={() => onConfirm(date, opponent, time, notes)}
-            disabled={!date}
-            className="flex-1 px-4 py-2 rounded-xl bg-accent-blue/20 border border-accent-blue/40 text-accent-blue text-sm font-medium hover:bg-accent-blue/30 transition-colors disabled:opacity-50"
-          >
-            Créer
+          <button type="button" onClick={() => onConfirm(date, opponent, time, notes)} disabled={!date}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-accent-blue text-white text-sm font-semibold hover:bg-accent-blue/90 transition-colors disabled:opacity-40">
+            Créer la session
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
+  return createPortal(modal, document.body)
 }
 
 // ─── Session Card ─────────────────────────────────────────────────────────────
@@ -175,121 +165,110 @@ function SessionCard({
   const rs = session.result ? RESULT_STYLES[session.result] : null
 
   return (
-    <div className="bg-dark-card border border-dark-border rounded-xl p-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`bg-dark-bg border rounded-2xl p-4 group transition-all ${
+        rs ? `border-dark-border ring-1 ${rs.ring}` : 'border-dark-border'
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-white text-sm">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-bold text-white text-base leading-tight">
               {session.opponent_team || 'Adversaire inconnu'}
             </span>
-            {session.time && (
-              <span className="text-xs text-gray-500">{fmtTime(session.time)}</span>
-            )}
             {rs && (
-              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${rs.bg} ${rs.color}`}>
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${rs.bg} ${rs.color}`}>
                 {rs.label}
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-600 mt-0.5">{session.date}</p>
-
+          {session.time && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+              <Clock size={11} />
+              {fmtTime(session.time)}
+            </div>
+          )}
           {editNotes ? (
             <div className="mt-2">
-              <textarea
-                value={noteDraft}
-                onChange={(e) => setNoteDraft(e.target.value)}
-                rows={2}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-accent-blue/50 resize-none"
-              />
-              <div className="flex gap-1 mt-1">
-                <button
-                  type="button"
-                  onClick={() => { onNotesChange(session.id, noteDraft); setEditNotes(false) }}
-                  className="text-xs text-emerald-400 hover:text-emerald-300"
-                >
-                  Sauvegarder
-                </button>
-                <span className="text-gray-600">·</span>
-                <button
-                  type="button"
-                  onClick={() => { setNoteDraft(session.notes || ''); setEditNotes(false) }}
-                  className="text-xs text-gray-500 hover:text-gray-300"
-                >
-                  Annuler
-                </button>
+              <textarea value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} rows={2} autoFocus
+                className="w-full bg-dark-card border border-dark-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-accent-blue/50 resize-none" />
+              <div className="flex gap-3 mt-1.5">
+                <button type="button" onClick={() => { onNotesChange(session.id, noteDraft); setEditNotes(false) }}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold">Sauvegarder</button>
+                <button type="button" onClick={() => { setNoteDraft(session.notes || ''); setEditNotes(false) }}
+                  className="text-xs text-gray-500 hover:text-gray-300">Annuler</button>
               </div>
             </div>
+          ) : session.notes ? (
+            <p className="text-xs text-gray-500 hover:text-gray-300 cursor-pointer transition-colors line-clamp-2 mt-1"
+              onClick={() => setEditNotes(true)}>{session.notes}</p>
           ) : (
-            <>
-              {session.notes && (
-                <p
-                  className="text-xs text-gray-400 mt-1 cursor-pointer hover:text-gray-200 transition-colors"
-                  onClick={() => setEditNotes(true)}
-                >
-                  {session.notes}
-                </p>
-              )}
-              {!session.notes && (
-                <button
-                  type="button"
-                  onClick={() => setEditNotes(true)}
-                  className="text-xs text-gray-600 hover:text-gray-400 mt-1 transition-colors"
-                >
-                  + Ajouter des notes
-                </button>
-              )}
-            </>
+            <button type="button" onClick={() => setEditNotes(true)}
+              className="text-xs text-gray-700 hover:text-gray-400 transition-colors mt-1">
+              + Ajouter des notes
+            </button>
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          {(['win', 'loss', 'draw'] as SessionResult[]).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => onResultChange(session.id, session.result === r ? null : r)}
-              title={r === 'win' ? 'Victoire' : r === 'loss' ? 'Défaite' : 'Nul'}
-              className={`p-1.5 rounded-lg transition-colors ${
-                session.result === r
-                  ? RESULT_STYLES[r].color
-                  : 'text-gray-600 hover:text-gray-400'
-              }`}
-            >
-              {r === 'win' ? <CheckCircle size={14} /> : r === 'loss' ? <XCircle size={14} /> : <Minus size={14} />}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => onDelete(session.id)}
-            className="p-1.5 rounded-lg text-gray-600 hover:text-rose-400 transition-colors"
-          >
-            <Trash2 size={14} />
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex items-center gap-0.5">
+            {(['win', 'loss', 'draw'] as SessionResult[]).map((r) => (
+              <button key={r} type="button"
+                onClick={() => onResultChange(session.id, session.result === r ? null : r)}
+                title={r === 'win' ? 'Victoire' : r === 'loss' ? 'Défaite' : 'Nul'}
+                className={`p-1.5 rounded-xl transition-all ${
+                  session.result === r ? RESULT_STYLES[r].color : 'text-gray-700 hover:text-gray-400'
+                }`}
+              >
+                {r === 'win' ? <CheckCircle size={16} /> : r === 'loss' ? <XCircle size={16} /> : <Minus size={16} />}
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => onDelete(session.id)}
+            className="p-1.5 rounded-xl text-gray-700 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100">
+            <Trash2 size={13} />
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 // ─── Calendar Tab ─────────────────────────────────────────────────────────────
 
-function CalendarTab({ teamId }: { teamId: string }) {
+function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[] }) {
   const today = new Date()
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1)
+  const [year, setYear]         = useState(today.getFullYear())
+  const [month, setMonth]       = useState(today.getMonth() + 1)
   const [sessions, setSessions] = useState<ScrimSession[]>([])
-  const [selectedDay, setSelectedDay] = useState<number | null>(null)
+  const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate())
   const [showAddModal, setShowAddModal] = useState(false)
-  const [addDate, setAddDate] = useState('')
+  const [addDate, setAddDate]   = useState('')
 
   const load = useCallback(async () => {
     const { data } = await fetchSessions(teamId, year, month)
     if (data) setSessions(data)
   }, [teamId, year, month])
 
+  // Matchs joués ce mois-ci, groupés par jour
+  const matchesByDay = useMemo(() => {
+    const m = new Map<number, any[]>()
+    for (const match of allMatches) {
+      if (!match.game_creation) continue
+      const d = new Date(match.game_creation)
+      if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue
+      const day = d.getDate()
+      if (!m.has(day)) m.set(day, [])
+      m.get(day)!.push(match)
+    }
+    return m
+  }, [allMatches, year, month])
+
   useEffect(() => {
     setSessions([])
-    setSelectedDay(null)
     load()
   }, [load])
 
@@ -314,40 +293,48 @@ function CalendarTab({ teamId }: { teamId: string }) {
     return m
   }, [sessions])
 
+  const stats = useMemo(() => ({
+    total:    sessions.length,
+    wins:     sessions.filter((s) => s.result === 'win').length,
+    losses:   sessions.filter((s) => s.result === 'loss').length,
+    draws:    sessions.filter((s) => s.result === 'draw').length,
+    upcoming: sessions.filter((s) => !s.result).length,
+  }), [sessions])
+
   const selectedSessions = selectedDay ? (sessionsByDay.get(selectedDay) ?? []) : []
 
+  const upcomingSessions = useMemo(() => {
+    const todayStr = toDateStr(today.getFullYear(), today.getMonth() + 1, today.getDate())
+    return sessions.filter((s) => s.date >= todayStr && !s.result).slice(0, 8)
+  }, [sessions])
+
   const prevMonth = () => {
-    if (month === 1) { setYear((y) => y - 1); setMonth(12) }
-    else setMonth((m) => m - 1)
+    setSelectedDay(null)
+    if (month === 1) { setYear((y) => y - 1); setMonth(12) } else setMonth((m) => m - 1)
   }
   const nextMonth = () => {
-    if (month === 12) { setYear((y) => y + 1); setMonth(1) }
-    else setMonth((m) => m + 1)
+    setSelectedDay(null)
+    if (month === 12) { setYear((y) => y + 1); setMonth(1) } else setMonth((m) => m + 1)
   }
 
   const handleAdd = async (date: string, opponent: string, time: string, notes: string) => {
     const { data } = await addSession(teamId, date, opponent, time, notes)
     if (data) {
       setSessions((prev) =>
-        [...prev, data].sort(
-          (a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '')
-        )
+        [...prev, data].sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? ''))
       )
       setSelectedDay(parseInt(date.slice(8, 10)))
     }
     setShowAddModal(false)
   }
-
   const handleDelete = async (id: string) => {
     await deleteSession(id)
     setSessions((prev) => prev.filter((s) => s.id !== id))
   }
-
   const handleResult = async (id: string, result: SessionResult) => {
     const { data } = await updateSessionResult(id, result)
     if (data) setSessions((prev) => prev.map((s) => (s.id === id ? data : s)))
   }
-
   const handleNotes = async (id: string, notes: string) => {
     const { data } = await updateSessionNotes(id, notes)
     if (data) setSessions((prev) => prev.map((s) => (s.id === id ? data : s)))
@@ -356,161 +343,258 @@ function CalendarTab({ teamId }: { teamId: string }) {
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() + 1 && year === today.getFullYear()
 
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={prevMonth}
-          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-card transition-colors"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <h3 className="font-display text-lg font-semibold text-white flex-1 text-center">
-          {MONTH_NAMES[month - 1]} {year}
-        </h3>
-        <button
-          type="button"
-          onClick={nextMonth}
-          className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-card transition-colors"
-        >
-          <ChevronRight size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setAddDate(toDateStr(year, month, today.getDate()))
-            setShowAddModal(true)
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white rounded-lg text-sm transition-colors ml-2"
-        >
-          <Plus size={14} />
-          Session
-        </button>
-      </div>
+  const openAdd = (day?: number) => {
+    setAddDate(toDateStr(year, month, day ?? today.getDate()))
+    setShowAddModal(true)
+  }
 
-      <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-dark-border">
-          {DAY_LABELS.map((d) => (
-            <div key={d} className="py-2 text-center text-xs font-semibold text-gray-500">
-              {d}
+  const winRate = stats.total > 0 && (stats.wins + stats.losses + stats.draws) > 0
+    ? Math.round((stats.wins / (stats.wins + stats.losses + stats.draws)) * 100)
+    : null
+
+  return (
+    <div className="flex gap-6 items-start h-full">
+      {/* ── Colonne gauche : calendrier ── */}
+      <div className="flex-1 min-w-0 flex flex-col gap-5">
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: 'Sessions',    value: stats.total,    sub: 'ce mois',                                   color: 'text-white',       bg: '',                   icon: <Swords size={14} /> },
+            { label: 'Victoires',   value: stats.wins,     sub: winRate != null ? `${winRate}% winrate` : '', color: 'text-emerald-400', bg: 'bg-emerald-500/8',   icon: <CheckCircle size={14} /> },
+            { label: 'Défaites',    value: stats.losses,   sub: '',                                           color: 'text-rose-400',    bg: 'bg-rose-500/8',      icon: <XCircle size={14} /> },
+            { label: 'À planifier', value: stats.upcoming, sub: 'sans résultat',                              color: 'text-accent-blue', bg: 'bg-accent-blue/8',   icon: <Clock size={14} /> },
+          ].map((s) => (
+            <div key={s.label} className={`${s.bg} bg-dark-card border border-dark-border rounded-xl px-4 py-3 flex items-center gap-3`}>
+              <span className={`${s.color} opacity-60`}>{s.icon}</span>
+              <div>
+                <div className={`text-2xl font-bold font-display leading-none ${s.color}`}>{s.value}</div>
+                <div className="text-[11px] text-gray-600 mt-0.5 leading-tight">
+                  <span className="text-gray-500 font-medium">{s.label}</span>
+                  {s.sub && <span className="ml-1">{s.sub}</span>}
+                </div>
+              </div>
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
-          {calendarDays.map((day, idx) => {
-            const daySessions = day ? (sessionsByDay.get(day) ?? []) : []
-            const isSelected = day === selectedDay
-            const todayDay = day ? isToday(day) : false
-            return (
-              <div
-                key={idx}
-                onClick={() => day && setSelectedDay(day === selectedDay ? null : day)}
-                className={`min-h-[60px] p-1.5 border-b border-r border-dark-border/50 transition-colors ${
-                  day ? 'cursor-pointer hover:bg-dark-bg/50' : 'bg-dark-bg/20'
-                } ${isSelected ? 'bg-accent-blue/10' : ''}`}
-              >
-                {day && (
-                  <>
-                    <span
-                      className={`text-xs font-medium inline-flex w-5 h-5 items-center justify-center rounded-full ${
-                        todayDay
-                          ? 'bg-accent-blue text-white'
-                          : isSelected
-                          ? 'text-accent-blue'
-                          : 'text-gray-400'
-                      }`}
-                    >
-                      {day}
-                    </span>
-                    <div className="mt-1 space-y-0.5">
-                      {daySessions.slice(0, 2).map((s) => (
-                        <div
-                          key={s.id}
-                          className={`text-[10px] px-1 rounded truncate ${
-                            s.result === 'win'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : s.result === 'loss'
-                              ? 'bg-rose-500/20 text-rose-400'
-                              : 'bg-accent-blue/15 text-accent-blue'
-                          }`}
-                        >
-                          {s.opponent_team || 'Scrim'}
-                        </div>
-                      ))}
-                      {daySessions.length > 2 && (
-                        <span className="text-[10px] text-gray-600">+{daySessions.length - 2}</span>
-                      )}
-                    </div>
-                  </>
-                )}
+
+        {/* Calendrier */}
+        <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden flex-1">
+          {/* Header navigation */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-dark-border">
+            <button type="button" onClick={prevMonth}
+              className="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-dark-bg border border-transparent hover:border-dark-border transition-all">
+              <ChevronLeft size={16} />
+            </button>
+            <h3 className="font-display text-xl font-bold text-white">
+              {MONTH_NAMES[month - 1]}{' '}
+              <span className="text-gray-600 font-normal text-lg">{year}</span>
+            </h3>
+            <button type="button" onClick={nextMonth}
+              className="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-dark-bg border border-transparent hover:border-dark-border transition-all">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {/* Jours */}
+          <div className="grid grid-cols-7 border-b border-dark-border">
+            {DAY_LABELS.map((d) => (
+              <div key={d} className="py-2 text-center text-[11px] font-bold text-gray-600 uppercase tracking-widest">
+                {d}
               </div>
-            )
-          })}
+            ))}
+          </div>
+
+          {/* Cellules */}
+          <div className="grid grid-cols-7">
+            {calendarDays.map((day, idx) => {
+              const daySessions = day ? (sessionsByDay.get(day) ?? []) : []
+              const dayMatches  = day ? (matchesByDay.get(day) ?? []) : []
+              const isSelected  = day === selectedDay
+              const todayDay    = day ? isToday(day) : false
+              const hasActivity = daySessions.length > 0 || dayMatches.length > 0
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => day && setSelectedDay(day === selectedDay ? null : day)}
+                  onDoubleClick={() => day && openAdd(day)}
+                  className={`
+                    min-h-[88px] p-2 border-b border-r border-dark-border/40 transition-all select-none relative
+                    ${day ? 'cursor-pointer' : 'bg-dark-bg/20 pointer-events-none'}
+                    ${isSelected ? 'bg-accent-blue/10' : day ? 'hover:bg-dark-bg/50' : ''}
+                  `}
+                >
+                  {day && (
+                    <>
+                      {/* Numéro du jour */}
+                      <span className={`
+                        text-xs font-bold inline-flex w-6 h-6 items-center justify-center rounded-full transition-all
+                        ${todayDay ? 'bg-accent-blue !text-white shadow-lg shadow-accent-blue/30' : isSelected ? 'text-accent-blue' : 'text-gray-400'}
+                      `}>
+                        {day}
+                      </span>
+
+                      {/* Dots matchs joués — un rond par game */}
+                      {dayMatches.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {dayMatches.map((m) => (
+                            <span
+                              key={m.id}
+                              className={`w-2 h-2 rounded-full ${m.our_win ? 'bg-emerald-400' : 'bg-rose-400'}`}
+                              title={m.our_win ? 'Victoire' : 'Défaite'}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Dots sessions planifiées (sans résultat) */}
+                      {daySessions.filter((s) => !s.result).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {daySessions.filter((s) => !s.result).map((s) => (
+                            <span key={s.id} className="w-2 h-2 rounded-full bg-accent-blue/60"
+                              title={s.opponent_team || 'Session planifiée'} />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Nom adversaire scrim planifié */}
+                      {!hasActivity && null}
+                      {daySessions.filter((s) => !s.result).length > 0 && (
+                        <div className="mt-1">
+                          <div className="text-[10px] px-1.5 py-0.5 rounded-md truncate font-medium bg-accent-blue/10 text-accent-blue">
+                            {daySessions.find((s) => !s.result)?.opponent_team || 'Scrim'}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Légende */}
+        <div className="flex items-center gap-4 px-1">
+          <span className="text-[11px] text-gray-600 font-semibold">Matchs joués</span>
+          {[
+            { dot: 'bg-emerald-400', label: 'Victoire' },
+            { dot: 'bg-rose-400',    label: 'Défaite' },
+          ].map((l) => (
+            <div key={l.label} className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${l.dot}`} />
+              <span className="text-[11px] text-gray-600">{l.label}</span>
+            </div>
+          ))}
+          <span className="mx-1 text-gray-700">·</span>
+          <span className="text-[11px] text-gray-600 font-semibold">Planifié</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-accent-blue/60" />
+            <span className="text-[11px] text-gray-600">Session à venir</span>
+          </div>
+          <span className="text-[11px] text-gray-700 ml-auto">Double-clic → ajouter une session</span>
         </div>
       </div>
 
-      {selectedDay && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-white">
-              Sessions du {selectedDay} {MONTH_NAMES[month - 1]}
-            </h4>
-            <button
-              type="button"
-              onClick={() => {
-                setAddDate(toDateStr(year, month, selectedDay))
-                setShowAddModal(true)
-              }}
-              className="flex items-center gap-1 text-xs text-accent-blue hover:text-accent-blue/80 transition-colors"
-            >
-              <Plus size={12} />
-              Ajouter
-            </button>
-          </div>
-          {selectedSessions.length === 0 ? (
-            <p className="text-sm text-gray-600">Aucune session ce jour.</p>
-          ) : (
-            <div className="space-y-3">
-              {selectedSessions.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  onDelete={handleDelete}
-                  onResultChange={handleResult}
-                  onNotesChange={handleNotes}
-                />
+      {/* ── Colonne droite : panel ── */}
+      <div className="w-[380px] shrink-0 flex flex-col gap-4 sticky top-6 max-h-[calc(100vh-160px)] overflow-y-auto">
+
+        {/* Matchs joués ce jour */}
+        {selectedDay && matchesByDay.get(selectedDay)?.length ? (
+          <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
+              <div>
+                <h4 className="font-display font-bold text-white text-base leading-tight">
+                  {selectedDay} {MONTH_NAMES[month - 1]}
+                </h4>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  {matchesByDay.get(selectedDay)!.length} match{matchesByDay.get(selectedDay)!.length > 1 ? 's' : ''} joué{matchesByDay.get(selectedDay)!.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-emerald-400">
+                  {matchesByDay.get(selectedDay)!.filter((m) => m.our_win).length}W
+                </span>
+                <span className="text-gray-700">–</span>
+                <span className="text-xs font-semibold text-rose-400">
+                  {matchesByDay.get(selectedDay)!.filter((m) => !m.our_win).length}L
+                </span>
+              </div>
+            </div>
+            <div className="p-3 space-y-2">
+              {matchesByDay.get(selectedDay)!.map((m) => (
+                <MatchRow key={m.id} match={m} compact />
               ))}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : null}
 
-      {!selectedDay && sessions.length > 0 && (
-        <div>
-          <h4 className="text-sm font-semibold text-white mb-3">
-            Sessions du mois ({sessions.length})
-          </h4>
-          <div className="space-y-3">
-            {sessions.map((s) => (
-              <SessionCard
-                key={s.id}
-                session={s}
-                onDelete={handleDelete}
-                onResultChange={handleResult}
-                onNotesChange={handleNotes}
-              />
-            ))}
+        {/* Sessions planifiées */}
+        <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
+            <div>
+              <h4 className="font-display font-bold text-white text-base leading-tight">
+                {selectedDay ? 'Sessions planifiées' : 'À venir'}
+              </h4>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {selectedDay
+                  ? selectedSessions.length === 0
+                    ? 'Aucune session ce jour'
+                    : `${selectedSessions.length} session${selectedSessions.length > 1 ? 's' : ''}`
+                  : `${upcomingSessions.length} session${upcomingSessions.length > 1 ? 's' : ''} à venir`}
+              </p>
+            </div>
+            <button type="button" onClick={() => openAdd(selectedDay ?? undefined)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white rounded-xl text-xs font-semibold transition-colors">
+              <Plus size={13} />
+              Session
+            </button>
+          </div>
+
+          <div className="p-3 space-y-2">
+            <AnimatePresence mode="wait">
+              {selectedDay ? (
+                selectedSessions.length === 0 ? (
+                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="py-8 text-center">
+                    <p className="text-gray-600 text-sm mb-2">Aucune session planifiée.</p>
+                    <button type="button" onClick={() => openAdd(selectedDay)}
+                      className="text-xs text-accent-blue hover:text-accent-blue/80 font-medium transition-colors">
+                      + Planifier une session
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div key="day-sessions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                    {selectedSessions.map((s) => (
+                      <SessionCard key={s.id} session={s} onDelete={handleDelete} onResultChange={handleResult} onNotesChange={handleNotes} />
+                    ))}
+                  </motion.div>
+                )
+              ) : upcomingSessions.length === 0 ? (
+                <motion.div key="no-upcoming" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="py-8 text-center">
+                  <TrendingUp size={28} className="text-gray-700 mx-auto mb-2" />
+                  <p className="text-gray-600 text-sm mb-2">Aucune session à venir.</p>
+                  <button type="button" onClick={() => openAdd()}
+                    className="text-xs text-accent-blue hover:text-accent-blue/80 font-medium transition-colors">
+                    + Planifier une session
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div key="upcoming" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                  {upcomingSessions.map((s) => (
+                    <SessionCard key={s.id} session={s} onDelete={handleDelete} onResultChange={handleResult} onNotesChange={handleNotes} />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      )}
+      </div>
 
       {showAddModal && (
-        <AddSessionModal
-          initialDate={addDate}
-          onConfirm={handleAdd}
-          onClose={() => setShowAddModal(false)}
-        />
+        <AddSessionModal initialDate={addDate} onConfirm={handleAdd} onClose={() => setShowAddModal(false)} />
       )}
     </div>
   )
@@ -525,9 +609,7 @@ function AvailabilityTab({ teamId, players }: { teamId: string; players: any[] }
     fetchAvailability(teamId).then(({ data }) => {
       if (!data) return
       const m = new Map<string, boolean>()
-      for (const row of data) {
-        m.set(`${row.player_id}-${row.day_of_week}-${row.slot}`, row.available)
-      }
+      for (const row of data) m.set(`${row.player_id}-${row.day_of_week}-${row.slot}`, row.available)
       setAvail(m)
     })
   }, [teamId])
@@ -537,73 +619,117 @@ function AvailabilityTab({ teamId, players }: { teamId: string; players: any[] }
 
   const toggle = async (playerId: string, day: number, slot: string) => {
     const next = !getAvail(playerId, day, slot)
-    setAvail((prev) => {
-      const m = new Map(prev)
-      m.set(`${playerId}-${day}-${slot}`, next)
-      return m
-    })
+    setAvail((prev) => { const m = new Map(prev); m.set(`${playerId}-${day}-${slot}`, next); return m })
     await upsertAvailability(teamId, playerId, day, slot, next)
   }
 
   if (!players.length) {
-    return <div className="text-center py-8 text-gray-600 text-sm">Aucun joueur dans l'équipe.</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <Users size={40} className="text-gray-700 mb-3" />
+        <p className="text-gray-600">Aucun joueur dans l'équipe.</p>
+      </div>
+    )
   }
 
+  // Calcul dispo globale par créneau (pour le récap en haut)
+  const availSummary = useMemo(() => {
+    return [0, 1, 2, 3, 4, 5, 6].map((day) =>
+      SLOTS.map((slot) => players.filter((p) => getAvail(p.id, day, slot)).length)
+    )
+  }, [avail, players])
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr>
-            <th className="text-left px-3 py-2 text-gray-500 text-xs font-semibold w-40">Joueur</th>
-            <th className="text-left px-3 py-2 text-gray-500 text-xs font-semibold w-28">Créneau</th>
-            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-              <th key={d} className="text-center px-2 py-2 text-gray-500 text-xs font-semibold">
-                {DAY_LABELS[d]}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {players.map((player) =>
-            SLOTS.map((slot, si) => (
-              <tr
-                key={`${player.id}-${slot}`}
-                className={`${si === 0 ? 'border-t border-dark-border/50' : ''}`}
-              >
-                <td className="px-3 py-1.5">
-                  {si === 0 && (
-                    <span className="text-sm font-medium text-white">
-                      {player.player_name || player.pseudo}
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-1.5 text-xs text-gray-500">{SLOT_LABELS[slot]}</td>
-                {[0, 1, 2, 3, 4, 5, 6].map((day) => {
-                  const on = getAvail(player.id, day, slot)
-                  return (
-                    <td key={day} className="text-center px-2 py-1.5">
-                      <button
-                        type="button"
-                        onClick={() => toggle(player.id, day, slot)}
-                        className={`w-7 h-7 rounded-lg border text-xs font-bold transition-all ${
-                          on
-                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                            : 'bg-dark-bg border-dark-border text-transparent hover:border-gray-500'
-                        }`}
-                      >
-                        ✓
-                      </button>
-                    </td>
-                  )
-                })}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Cliquez sur un créneau pour activer / désactiver la disponibilité.{' '}
+          <span className="text-gray-600">Sauvegarde automatique.</span>
+        </p>
+      </div>
+
+      <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              {/* Ligne récap disponibilités */}
+              <tr className="border-b border-dark-border/50">
+                <th className="px-6 py-3 text-left" colSpan={2}>
+                  <span className="text-xs text-gray-600 font-normal">Joueurs dispo ↓</span>
+                </th>
+                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                  <th key={d} className="text-center px-3 py-3" colSpan={1}>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{DAY_LABELS[d]}</span>
+                      <div className="flex gap-0.5">
+                        {SLOTS.map((_, si) => {
+                          const count = availSummary[d]?.[si] ?? 0
+                          const pct   = players.length > 0 ? count / players.length : 0
+                          return (
+                            <div key={si}
+                              className={`w-1.5 h-4 rounded-sm transition-all ${
+                                pct === 0 ? 'bg-dark-bg' :
+                                pct < 0.5 ? 'bg-amber-500/40' :
+                                pct < 1   ? 'bg-emerald-500/40' :
+                                'bg-emerald-500/70'
+                              }`}
+                              title={`${SLOT_LABELS[Object.keys(SLOT_LABELS)[si]]}: ${count}/${players.length}`}
+                            />
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </th>
+                ))}
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-      <p className="text-xs text-gray-600 mt-4">
-        Cliquez pour activer/désactiver. Sauvegarde automatique.
-      </p>
+              {/* Ligne header joueur / créneau */}
+              <tr className="border-b border-dark-border">
+                <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-widest">Joueur</th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-widest">Créneau</th>
+                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                  <th key={d} className="text-center px-3 py-3 w-16" />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player, pi) =>
+                SLOTS.map((slot, si) => (
+                  <tr key={`${player.id}-${slot}`} className={`
+                    transition-colors hover:bg-dark-bg/30
+                    ${si === 0 && pi > 0 ? 'border-t-2 border-dark-border/60' : ''}
+                    ${si > 0 ? 'border-t border-dark-border/20' : ''}
+                  `}>
+                    <td className="px-6 py-3 w-44">
+                      {si === 0 && (
+                        <span className="text-sm font-bold text-white">
+                          {player.player_name || player.pseudo}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 w-32">
+                      <span className="text-xs text-gray-500 font-semibold">{SLOT_LABELS[slot]}</span>
+                    </td>
+                    {[0, 1, 2, 3, 4, 5, 6].map((day) => {
+                      const on = getAvail(player.id, day, slot)
+                      return (
+                        <td key={day} className="text-center px-3 py-3">
+                          <button type="button" onClick={() => toggle(player.id, day, slot)}
+                            className={`w-9 h-9 rounded-xl border text-sm font-bold transition-all ${
+                              on
+                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/10 scale-105'
+                                : 'bg-dark-bg border-dark-border text-transparent hover:border-gray-500 hover:scale-105'
+                            }`}
+                          >✓</button>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
@@ -612,27 +738,27 @@ function AvailabilityTab({ teamId, players }: { teamId: string; players: any[] }
 
 export const PlanningPage = () => {
   const { team, players = [] } = useTeam()
+  const { matches } = useTeamMatches(team?.id)
   const [tab, setTab] = useState<Tab>('calendar')
 
   return (
-    <div className="max-w-5xl">
-      <div className="mb-6">
-        <h2 className="font-display text-3xl font-bold mb-2">Planning</h2>
-        <p className="text-gray-400">
-          Organisez vos scrims et consultez les disponibilités de l'équipe.
-        </p>
+    <div className="w-full h-full flex flex-col">
+      {/* Header */}
+      <div className="mb-5 flex items-end justify-between">
+        <div>
+          <h2 className="font-display text-3xl font-bold mb-1">Planning</h2>
+          <p className="text-gray-500 text-sm">Organisez vos scrims et consultez les disponibilités de l'équipe.</p>
+        </div>
       </div>
 
-      <div className="flex gap-0 mb-6 border-b border-dark-border">
+      {/* Tabs */}
+      <div className="flex gap-0 mb-5 border-b border-dark-border">
         {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+          <button key={id} type="button" onClick={() => setTab(id)}
+            className={`flex items-center gap-2 px-6 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
               tab === id
                 ? 'border-accent-blue text-white'
-                : 'border-transparent text-gray-400 hover:text-white hover:border-dark-border'
+                : 'border-transparent text-gray-500 hover:text-white hover:border-dark-border'
             }`}
           >
             <Icon size={15} />
@@ -644,7 +770,7 @@ export const PlanningPage = () => {
       {!team?.id ? (
         <div className="text-gray-600 text-sm">Chargement...</div>
       ) : tab === 'calendar' ? (
-        <CalendarTab teamId={team.id} />
+        <CalendarTab teamId={team.id} allMatches={matches} />
       ) : (
         <AvailabilityTab teamId={team.id} players={players} />
       )}

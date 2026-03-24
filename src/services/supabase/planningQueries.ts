@@ -95,6 +95,34 @@ export async function deleteSession(id: string) {
   return { error }
 }
 
+// ─── SoloQ matches par mois (pour affichage calendrier) ───────────────────────
+
+export interface DayMatchDot {
+  day: number   // 1-31
+  win: boolean
+}
+
+export async function fetchTeamSoloqDotsByMonth(
+  playerIds: string[],
+  year: number,
+  month: number
+): Promise<DayMatchDot[]> {
+  if (!playerIds.length) return []
+  const from = new Date(year, month - 1, 1).getTime()
+  const to   = new Date(year, month, 1).getTime() // début du mois suivant (exclu)
+  const { data } = await supabase
+    .from('player_soloq_matches')
+    .select('game_creation, win')
+    .in('player_id', playerIds)
+    .gte('game_creation', from)
+    .lt('game_creation', to)
+  if (!data) return []
+  return data.map((r: any) => ({
+    day: new Date(r.game_creation).getDate(),
+    win: !!r.win,
+  }))
+}
+
 // ─── Player Availability ───────────────────────────────────────────────────────
 
 export async function fetchAvailability(teamId: string) {
