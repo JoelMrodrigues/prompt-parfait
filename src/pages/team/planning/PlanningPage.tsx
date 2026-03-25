@@ -28,8 +28,9 @@ import {
   updateSessionResult,
   updateSessionNotes,
   deleteSession,
-  fetchAvailability,
-  upsertAvailability,
+  fetchAvailabilityByRange,
+  upsertAvailabilityByDate,
+  fetchBlockOpponents,
   type ScrimSession,
   type SessionResult,
 } from '../../../services/supabase/planningQueries'
@@ -252,10 +253,24 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
   const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate())
   const [showAddModal, setShowAddModal] = useState(false)
   const [addDate, setAddDate]   = useState('')
+  const [blockOpponents, setBlockOpponents] = useState<Map<string, string>>(new Map())
+  const [availByDate, setAvailByDate] = useState<Map<string, boolean>>(new Map())
 
   const load = useCallback(async () => {
     const { data } = await fetchSessions(teamId, year, month)
     if (data) setSessions(data)
+  }, [teamId, year, month])
+
+  // Charge les dispos du mois affiché
+  useEffect(() => {
+    const from = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDay = new Date(year, month, 0).getDate()
+    const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    fetchAvailabilityByRange(teamId, from, to).then(({ data }) => {
+      const m = new Map<string, boolean>()
+      for (const row of data ?? []) m.set(`${row.player_id}-${row.date}-${row.slot}`, row.available)
+      setAvailByDate(m)
+    })
   }, [teamId, year, month])
 
   // Matchs joués ce mois-ci, groupés par jour
@@ -276,6 +291,12 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
     setSessions([])
     load()
   }, [load])
+
+  // Fetch opponent names depuis les blocs
+  useEffect(() => {
+    const blockIds = [...new Set(allMatches.map((m: any) => m.block_id).filter(Boolean))]
+    fetchBlockOpponents(blockIds).then(setBlockOpponents)
+  }, [allMatches])
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month - 1, 1)
@@ -298,13 +319,20 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
     return m
   }, [sessions])
 
-  const stats = useMemo(() => ({
-    total:    sessions.length,
-    wins:     sessions.filter((s) => s.result === 'win').length,
-    losses:   sessions.filter((s) => s.result === 'loss').length,
-    draws:    sessions.filter((s) => s.result === 'draw').length,
-    upcoming: sessions.filter((s) => !s.result).length,
-  }), [sessions])
+  const stats = useMemo(() => {
+    // Matches du mois en cours
+    const monthMatches = allMatches.filter((m: any) => {
+      if (!m.game_creation) return false
+      const d = new Date(m.game_creation)
+      return d.getFullYear() === year && d.getMonth() + 1 === month
+    })
+    return {
+      total:    matchesByDay.size,                              // jours avec au moins 1 game
+      wins:     monthMatches.filter((m: any) => m.our_win).length,
+      losses:   monthMatches.filter((m: any) => !m.our_win).length,
+      upcoming: sessions.filter((s) => !s.result).length,      // uniquement sessions planifiées sans résultat
+    }
+  }, [allMatches, matchesByDay, year, month, sessions])
 
   const selectedSessions = selectedDay ? (sessionsByDay.get(selectedDay) ?? []) : []
 
@@ -353,8 +381,8 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
     setShowAddModal(true)
   }
 
-  const winRate = stats.total > 0 && (stats.wins + stats.losses + stats.draws) > 0
-    ? Math.round((stats.wins / (stats.wins + stats.losses + stats.draws)) * 100)
+  const winRate = (stats.wins + stats.losses) > 0
+    ? Math.round((stats.wins / (stats.wins + stats.losses)) * 100)
     : null
 
   return (
@@ -365,10 +393,10 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
         {/* Stats bar */}
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: 'Sessions',    value: stats.total,    sub: 'ce mois',                                   color: 'text-white',       bg: '',                   icon: <Swords size={14} /> },
-            { label: 'Victoires',   value: stats.wins,     sub: winRate != null ? `${winRate}% winrate` : '', color: 'text-emerald-400', bg: 'bg-emerald-500/8',   icon: <CheckCircle size={14} /> },
-            { label: 'Défaites',    value: stats.losses,   sub: '',                                           color: 'text-rose-400',    bg: 'bg-rose-500/8',      icon: <XCircle size={14} /> },
-            { label: 'À planifier', value: stats.upcoming, sub: 'sans résultat',                              color: 'text-accent-blue', bg: 'bg-accent-blue/8',   icon: <Clock size={14} /> },
+            { label: 'Sessions',    value: stats.total,    sub: 'ce mois',                                    color: 'text-white',       bg: '',                 icon: <Swords size={14} /> },
+            { label: 'Victoires',   value: stats.wins,     sub: winRate != null ? `${winRate}% winrate` : '', color: 'text-emerald-400', bg: 'bg-emerald-500/8', icon: <CheckCircle size={14} /> },
+            { label: 'Défaites',    value: stats.losses,   sub: '',                                           color: 'text-rose-400',    bg: 'bg-rose-500/8',    icon: <XCircle size={14} /> },
+            { label: 'À planifier', value: stats.upcoming, sub: 'sans résultat',                              color: 'text-accent-blue', bg: 'bg-accent-blue/8', icon: <Clock size={14} /> },
           ].map((s) => (
             <div key={s.label} className={`${s.bg} bg-dark-card border border-dark-border rounded-xl px-4 py-3 flex items-center gap-3`}>
               <span className={`${s.color} opacity-60`}>{s.icon}</span>
@@ -419,10 +447,10 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
               const todayDay    = day ? isToday(day) : false
               const hasActivity = daySessions.length > 0 || dayMatches.length > 0
 
-              // Jour dispo scrim = tous les joueurs dispo sur le même créneau ce jour de semaine
-              const dow = day ? (new Date(year, month - 1, day).getDay() + 6) % 7 : -1 // 0=Lun
+              // Dispo scrim = tous les joueurs dispo sur le même créneau CE jour précis
+              const isoDay = day ? toDateStr(year, month, day) : ''
               const isScrimDay = day && players.length > 0 && SLOTS.some((slot) =>
-                players.every((p) => avail.get(`${p.id}-${dow}-${slot}`))
+                players.every((p) => availByDate.get(`${p.id}-${isoDay}-${slot}`))
               )
 
               return (
@@ -447,43 +475,63 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
                         `}>
                           {day}
                         </span>
-                        {isScrimDay && (
+                        {isScrimDay && !dayMatches.length && (
                           <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 rounded px-1 leading-4">
                             dispo
                           </span>
                         )}
                       </div>
 
-                      {/* Dots matchs joués — un rond par game */}
-                      {dayMatches.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {dayMatches.map((m) => (
-                            <span
-                              key={m.id}
-                              className={`w-2 h-2 rounded-full ${m.our_win ? 'bg-emerald-400' : 'bg-rose-400'}`}
-                              title={m.our_win ? 'Victoire' : 'Défaite'}
-                            />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Dots sessions planifiées (sans résultat) */}
-                      {daySessions.filter((s) => !s.result).length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {daySessions.filter((s) => !s.result).map((s) => (
-                            <span key={s.id} className="w-2 h-2 rounded-full bg-accent-blue/60"
-                              title={s.opponent_team || 'Session planifiée'} />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Nom adversaire scrim planifié */}
-                      {!hasActivity && null}
-                      {daySessions.filter((s) => !s.result).length > 0 && (
-                        <div className="mt-1">
-                          <div className="text-[10px] px-1.5 py-0.5 rounded-md truncate font-medium bg-accent-blue/10 text-accent-blue">
-                            {daySessions.find((s) => !s.result)?.opponent_team || 'Scrim'}
+                      {/* Matchs joués — dots + pill VS adversaire */}
+                      {dayMatches.length > 0 && (() => {
+                        const opp = dayMatches
+                          .map((m: any) => m.block_id && blockOpponents.get(m.block_id))
+                          .find(Boolean)
+                        const oppLabel = opp
+                          ? (opp.length > 9 ? opp.slice(0, 8) + '…' : opp)
+                          : null
+                        return (
+                          <div className="flex flex-col gap-0.5 mt-1.5">
+                            <div className="flex flex-wrap gap-1">
+                              {dayMatches.map((m: any) => (
+                                <span
+                                  key={m.id}
+                                  className={`w-2 h-2 rounded-full ${m.our_win ? 'bg-emerald-400' : 'bg-rose-400'}`}
+                                  title={m.our_win ? 'Victoire' : 'Défaite'}
+                                />
+                              ))}
+                            </div>
+                            {oppLabel && (
+                              <div className="text-[10px] px-1.5 py-0.5 rounded-md font-medium bg-gray-500/10 text-gray-400 leading-tight">
+                                VS {oppLabel}
+                              </div>
+                            )}
                           </div>
+                        )
+                      })()}
+
+                      {/* Sessions scrim — pill "VS [adversaire]" */}
+                      {daySessions.length > 0 && (
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          {daySessions.map((s) => {
+                            const rs = s.result ? RESULT_STYLES[s.result] : null
+                            const name = s.opponent_team
+                              ? (s.opponent_team.length > 9 ? s.opponent_team.slice(0, 8) + '…' : s.opponent_team)
+                              : 'Scrim'
+                            return (
+                              <div
+                                key={s.id}
+                                className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium leading-tight ${
+                                  rs
+                                    ? `${rs.bg} ${rs.color}`
+                                    : 'bg-accent-blue/10 text-accent-blue'
+                                }`}
+                                title={s.opponent_team || 'Scrim'}
+                              >
+                                VS {name}
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                     </>
@@ -586,7 +634,25 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
           <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
               <div>
-                <h4 className="font-display font-bold text-white text-base leading-tight">Matchs joués</h4>
+                <h4 className="font-display font-bold text-white text-base leading-tight flex items-center gap-2">
+                  Matchs joués
+                  {(() => {
+                    // Cherche d'abord dans les blocs, puis dans les sessions
+                  const dayMatchList = matchesByDay.get(selectedDay) ?? []
+                  const oppFromBlock = dayMatchList
+                    .map((m: any) => m.block_id && blockOpponents.get(m.block_id))
+                    .find(Boolean)
+                  const oppFromSession = sessionsByDay.get(selectedDay)?.find(s => s.opponent_team)?.opponent_team
+                  const opp = oppFromBlock || oppFromSession
+                    if (!opp) return null
+                    const label = opp.length > 14 ? opp.slice(0, 13) + '…' : opp
+                    return (
+                      <span className="text-xs font-medium text-gray-400 bg-dark-bg border border-dark-border px-2 py-0.5 rounded-full">
+                        VS {label}
+                      </span>
+                    )
+                  })()}
+                </h4>
                 <p className="text-xs text-gray-600 mt-0.5">
                   {matchesByDay.get(selectedDay)!.length} match{matchesByDay.get(selectedDay)!.length > 1 ? 's' : ''} ce jour
                 </p>
@@ -621,23 +687,60 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
 
 function AvailabilityTab({
   players,
-  avail,
-  setAvail,
   teamId,
 }: {
   teamId: string
   players: any[]
-  avail: Map<string, boolean>
-  setAvail: React.Dispatch<React.SetStateAction<Map<string, boolean>>>
 }) {
+  const [weekOffset, setWeekOffset] = useState(0)
+  const [avail, setAvail] = useState<Map<string, boolean>>(new Map())
 
-  const getAvail = (playerId: string, day: number, slot: string) =>
-    avail.get(`${playerId}-${day}-${slot}`) ?? false
+  // Lundi de la semaine affichée
+  const monday = useMemo(() => {
+    const today = new Date()
+    const todayDow = (today.getDay() + 6) % 7
+    const mon = new Date(today)
+    mon.setDate(today.getDate() - todayDow + weekOffset * 7)
+    mon.setHours(0, 0, 0, 0)
+    return mon
+  }, [weekOffset])
 
-  const toggle = async (playerId: string, day: number, slot: string) => {
-    const next = !getAvail(playerId, day, slot)
-    setAvail((prev) => { const m = new Map(prev); m.set(`${playerId}-${day}-${slot}`, next); return m })
-    await upsertAvailability(teamId, playerId, day, slot, next)
+  // Dates ISO (YYYY-MM-DD) pour chaque jour — clés de la map + sauvegarde
+  const weekISODates = useMemo(() =>
+    Array.from({ length: 7 }, (_, d) => {
+      const date = new Date(monday)
+      date.setDate(monday.getDate() + d)
+      return date.toISOString().slice(0, 10)
+    })
+  , [monday])
+
+  // Dates affichées (DD/MM)
+  const weekDates = useMemo(() =>
+    weekISODates.map(iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`)
+  , [weekISODates])
+
+  // Label "24/03 → 30/03"
+  const weekLabel = `${weekDates[0]} → ${weekDates[6]}`
+
+  // Charge les dispos à chaque changement de semaine
+  useEffect(() => {
+    setAvail(new Map()) // reset pendant le chargement
+    fetchAvailabilityByRange(teamId, weekISODates[0], weekISODates[6]).then(({ data }) => {
+      const m = new Map<string, boolean>()
+      for (const row of data ?? []) {
+        m.set(`${row.player_id}-${row.date}-${row.slot}`, row.available)
+      }
+      setAvail(m)
+    })
+  }, [teamId, weekISODates[0]])  // weekISODates[0] = lundi = identifiant unique de la semaine
+
+  const getAvail = (playerId: string, isoDate: string, slot: string) =>
+    avail.get(`${playerId}-${isoDate}-${slot}`) ?? false
+
+  const toggle = async (playerId: string, isoDate: string, slot: string) => {
+    const next = !getAvail(playerId, isoDate, slot)
+    setAvail((prev) => { const m = new Map(prev); m.set(`${playerId}-${isoDate}-${slot}`, next); return m })
+    await upsertAvailabilityByDate(teamId, playerId, isoDate, slot, next)
   }
 
   if (!players.length) {
@@ -651,10 +754,30 @@ function AvailabilityTab({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-600">
-        Cliquez sur un créneau pour activer / désactiver.{' '}
-        <span className="text-gray-700">Sauvegarde automatique.</span>
-      </p>
+      {/* Navigation semaine */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-600">
+          Cliquez sur un créneau pour activer / désactiver.{' '}
+          <span className="text-gray-700">Sauvegarde automatique.</span>
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWeekOffset(w => w - 1)}
+            className="p-1.5 rounded-lg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span className="text-xs font-medium text-gray-400 tabular-nums min-w-[110px] text-center">
+            {weekOffset === 0 ? 'Cette semaine' : weekLabel}
+          </span>
+          <button
+            onClick={() => setWeekOffset(w => w + 1)}
+            className="p-1.5 rounded-lg border border-dark-border text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
 
       <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -665,29 +788,20 @@ function AvailabilityTab({
                 <th className="text-left px-4 py-2 text-xs font-bold text-gray-600 uppercase tracking-widest w-36">Joueur</th>
                 <th className="text-left px-3 py-2 text-xs font-bold text-gray-600 uppercase tracking-widest w-24">Créneau</th>
                 {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+                  const isoDate = weekISODates[d]
                   // Scrim potentiel = au moins un créneau où TOUS les joueurs sont dispo simultanément
                   const sharedSlot = players.length > 0 && SLOTS.some((slot) =>
-                    players.every((p) => avail.get(`${p.id}-${d}-${slot}`))
-                  )
-                  // Barre par joueur = dispo sur au moins un créneau ce jour
-                  const playerDispo = players.map((p) =>
-                    SLOTS.some((slot) => avail.get(`${p.id}-${d}-${slot}`))
+                    players.every((p) => getAvail(p.id, isoDate, slot))
                   )
                   return (
                     <th key={d} className="text-center px-2 py-2">
-                      <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex flex-col items-center gap-1">
                         <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
                           {DAY_LABELS[d]}
                         </span>
-                        <div className="flex gap-0.5">
-                          {playerDispo.map((dispo, pi) => (
-                            <div
-                              key={pi}
-                              className={`w-1 h-3 rounded-sm transition-all ${dispo ? 'bg-emerald-400' : 'bg-dark-bg border border-dark-border/50'}`}
-                              title={`${players[pi]?.player_name || players[pi]?.pseudo}: ${dispo ? 'dispo' : 'indispo'}`}
-                            />
-                          ))}
-                        </div>
+                        <span className="text-[10px] text-gray-600 tabular-nums">
+                          {weekDates[d]}
+                        </span>
                         <span
                           className={`text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded transition-all ${
                             sharedSlot
@@ -722,10 +836,11 @@ function AvailabilityTab({
                       <span className="text-xs text-white">{SLOT_LABELS[slot]}</span>
                     </td>
                     {[0, 1, 2, 3, 4, 5, 6].map((day) => {
-                      const on = getAvail(player.id, day, slot)
+                      const isoDate = weekISODates[day]
+                      const on = getAvail(player.id, isoDate, slot)
                       return (
                         <td key={day} className="text-center px-2 py-1.5">
-                          <button type="button" onClick={() => toggle(player.id, day, slot)}
+                          <button type="button" onClick={() => toggle(player.id, isoDate, slot)}
                             className={`w-7 h-7 rounded-lg border text-xs font-bold transition-all ${
                               on
                                 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
@@ -752,17 +867,6 @@ export const PlanningPage = () => {
   const { team, players = [] } = useTeam()
   const { matches } = useTeamMatches(team?.id)
   const [tab, setTab] = useState<Tab>('calendar')
-  const [avail, setAvail] = useState<Map<string, boolean>>(new Map())
-
-  useEffect(() => {
-    if (!team?.id) return
-    fetchAvailability(team.id).then(({ data }) => {
-      if (!data) return
-      const m = new Map<string, boolean>()
-      for (const row of data) m.set(`${row.player_id}-${row.day_of_week}-${row.slot}`, row.available)
-      setAvail(m)
-    })
-  }, [team?.id])
 
   return (
     <div className="w-full flex flex-col">
@@ -793,9 +897,9 @@ export const PlanningPage = () => {
       {!team?.id ? (
         <div className="text-gray-600 text-sm">Chargement...</div>
       ) : tab === 'calendar' ? (
-        <CalendarTab teamId={team.id} allMatches={matches} avail={avail} players={players} />
+        <CalendarTab teamId={team.id} allMatches={matches} avail={new Map()} players={players} />
       ) : (
-        <AvailabilityTab teamId={team.id} players={players} avail={avail} setAvail={setAvail} />
+        <AvailabilityTab teamId={team.id} players={players} />
       )}
     </div>
   )

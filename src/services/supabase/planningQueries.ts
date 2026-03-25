@@ -125,26 +125,42 @@ export async function fetchTeamSoloqDotsByMonth(
 
 // ─── Player Availability ───────────────────────────────────────────────────────
 
-export async function fetchAvailability(teamId: string) {
+export async function fetchBlockOpponents(blockIds: string[]): Promise<Map<string, string>> {
+  if (!blockIds.length) return new Map()
+  const { data } = await supabase
+    .from('team_match_blocks')
+    .select('id, opponent_name')
+    .in('id', blockIds)
+  const map = new Map<string, string>()
+  for (const row of data ?? []) {
+    if (row.opponent_name) map.set(row.id, row.opponent_name)
+  }
+  return map
+}
+
+/** Fetch les dispos d'une équipe pour une plage de dates (YYYY-MM-DD) */
+export async function fetchAvailabilityByRange(teamId: string, from: string, to: string) {
   const { data, error } = await supabase
     .from('player_availability')
     .select('*')
     .eq('team_id', teamId)
+    .gte('date', from)
+    .lte('date', to)
   return { data, error }
 }
 
-export async function upsertAvailability(
+export async function upsertAvailabilityByDate(
   teamId: string,
   playerId: string,
-  dayOfWeek: number,
+  date: string,   // YYYY-MM-DD
   slot: string,
   available: boolean
 ) {
   const { data, error } = await supabase
     .from('player_availability')
     .upsert(
-      { team_id: teamId, player_id: playerId, day_of_week: dayOfWeek, slot, available },
-      { onConflict: 'player_id,day_of_week,slot' }
+      { team_id: teamId, player_id: playerId, date, slot, available },
+      { onConflict: 'player_id,date,slot' }
     )
     .select()
     .single()
