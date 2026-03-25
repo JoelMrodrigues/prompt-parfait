@@ -705,12 +705,12 @@ function AvailabilityTab({
     return mon
   }, [weekOffset])
 
-  // Dates ISO (YYYY-MM-DD) pour chaque jour — clés de la map + sauvegarde
+  // Dates ISO locales (YYYY-MM-DD) — on évite toISOString() qui retourne UTC
   const weekISODates = useMemo(() =>
     Array.from({ length: 7 }, (_, d) => {
       const date = new Date(monday)
       date.setDate(monday.getDate() + d)
-      return date.toISOString().slice(0, 10)
+      return toDateStr(date.getFullYear(), date.getMonth() + 1, date.getDate())
     })
   , [monday])
 
