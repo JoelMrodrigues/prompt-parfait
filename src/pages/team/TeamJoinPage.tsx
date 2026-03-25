@@ -34,9 +34,10 @@ const POSITION_EMOJI: Record<string, string> = {
 }
 
 const STAFF_ROLES = [
-  { id: 'coach',   label: 'Coach',    abbr: 'COACH',   emoji: '📋', description: 'Stratégie & développement',   color: 'from-violet-500/20 to-transparent border-violet-500/30 hover:border-violet-400/60' },
-  { id: 'analyst', label: 'Analyste', abbr: 'ANALYST', emoji: '📊', description: 'Analyse matchs & VOD review',  color: 'from-indigo-500/20 to-transparent border-indigo-500/30 hover:border-indigo-400/60' },
-  { id: 'manager', label: 'Manager',  abbr: 'MNG',     emoji: '🏆', description: 'Gestion, planning & recrutement', color: 'from-orange-500/20 to-transparent border-orange-500/30 hover:border-orange-400/60' },
+  { id: 'coach',      label: 'Coach',      abbr: 'COACH',   emoji: '📋', description: 'Stratégie & développement',        color: 'from-violet-500/20 to-transparent border-violet-500/30 hover:border-violet-400/60' },
+  { id: 'analyst',    label: 'Analyste',   abbr: 'ANALYST', emoji: '📊', description: 'Analyse matchs & VOD review',       color: 'from-indigo-500/20 to-transparent border-indigo-500/30 hover:border-indigo-400/60' },
+  { id: 'manager',    label: 'Manager',    abbr: 'MNG',     emoji: '🏆', description: 'Gestion, planning & recrutement',   color: 'from-orange-500/20 to-transparent border-orange-500/30 hover:border-orange-400/60' },
+  { id: 'spectateur', label: 'Spectateur', abbr: 'SPEC',    emoji: '👁️', description: 'Lecture seule — stats & matchs uniquement', color: 'from-gray-500/20 to-transparent border-gray-500/30 hover:border-gray-400/60' },
 ]
 
 type Step = 'loading-preview' | 'confirm' | 'role' | 'joining' | 'success' | 'error'
@@ -65,7 +66,7 @@ export const TeamJoinPage = () => {
     })
   }, [token, user])
 
-  const handleJoinAsPlayer = async (player: { id: string; player_name: string; position: string; top_champion?: string | null }) => {
+  const handleJoinAsPlayer = async (player: { id: string; player_name: string; position: string; top_champion?: string | null; taken: boolean }) => {
     if (!user || !token || !preview) return
     setSelectedLabel(player.player_name)
     setStep('joining')
@@ -242,6 +243,7 @@ export const TeamJoinPage = () => {
                     playerName={player.player_name}
                     position={player.position}
                     topChampion={player.top_champion}
+                    taken={player.taken ?? false}
                     onSelect={() => handleJoinAsPlayer(player)}
                   />
                 ))}
@@ -279,11 +281,13 @@ function PlayerCard({
   playerName,
   position,
   topChampion,
+  taken = false,
   onSelect,
 }: {
   playerName: string
   position: string
   topChampion?: string | null
+  taken?: boolean
   onSelect: () => void
 }) {
   const pos   = normPos(position)
@@ -292,13 +296,26 @@ function PlayerCard({
   const abbr  = POSITION_ABBR[pos] ?? position?.toUpperCase() ?? '?'
   const champImg = topChampion ? getChampionImage(topChampion) : null
 
+  const handleClick = () => {
+    if (taken) {
+      const confirmed = window.confirm('⚠️ Attention ! Ce rôle est déjà pris. Vérifiez avant de continuer, sous risque de conflit.')
+      if (!confirmed) return
+    }
+    onSelect()
+  }
+
   return (
     <motion.button
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.97 }}
-      onClick={onSelect}
-      className={`flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-b ${color} border transition-all duration-200 cursor-pointer text-center`}
+      onClick={handleClick}
+      className={`relative flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-b ${color} border transition-all duration-200 cursor-pointer text-center`}
     >
+      {taken && (
+        <span className="absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/80 text-white leading-none">
+          Pris ⚠️
+        </span>
+      )}
       {champImg ? (
         <img
           src={champImg}

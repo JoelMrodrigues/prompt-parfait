@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2, UserX, RefreshCw, ShieldAlert, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTeam } from '../hooks/useTeam'
-import { getTeamMembersWithEmail, removeTeamMember, type TeamMemberWithEmail } from '../../../services/supabase/teamQueries'
+import { getTeamMembersWithEmail, removeTeamMember, setCoOwner, type TeamMemberWithEmail } from '../../../services/supabase/teamQueries'
 import { useToast } from '../../../contexts/ToastContext'
 
 // ─── Config des slots ──────────────────────────────────────────────────────────
@@ -41,13 +41,14 @@ const STAFF_SLOTS = [
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export const TeamMembersPage = () => {
-  const { team, players, isTeamOwner } = useTeam()
+  const { team, players, isTeamOwner, canManageTeam } = useTeam()
   const navigate = useNavigate()
   const { addToast } = useToast()
 
   const [members, setMembers] = useState<TeamMemberWithEmail[]>([])
   const [loading, setLoading] = useState(true)
   const [kicking, setKicking] = useState<string | null>(null) // user_id en cours
+  const [settingCoOwner, setSettingCoOwner] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!team?.id) return
@@ -73,6 +74,19 @@ export const TeamMembersPage = () => {
       setMembers((prev) => prev.filter((m) => m.user_id !== member.user_id))
     } else {
       addToast('Erreur lors de la suppression.', 'error')
+    }
+  }
+
+  const handleSetCoOwner = async (member: TeamMemberWithEmail, makeCoOwner: boolean) => {
+    if (!team?.id) return
+    setSettingCoOwner(member.user_id)
+    const { error } = await setCoOwner(team.id, member.user_id, makeCoOwner)
+    setSettingCoOwner(null)
+    if (!error) {
+      addToast(makeCoOwner ? 'Co-owner désigné.' : 'Co-owner révoqué.', 'success')
+      setMembers(prev => prev.map(m => m.user_id === member.user_id ? { ...m, role: makeCoOwner ? 'co_owner' : 'player' } : m))
+    } else {
+      addToast('Erreur.', 'error')
     }
   }
 
@@ -138,6 +152,10 @@ export const TeamMembersPage = () => {
                     member={member}
                     kicking={kicking === member?.user_id}
                     onKick={() => member && handleKick(member, displayName ?? slot.abbr)}
+                    canManageTeam={canManageTeam}
+                    memberRole={member?.role}
+                    onSetCoOwner={(makeCoOwner) => member && handleSetCoOwner(member, makeCoOwner)}
+                    settingCoOwner={settingCoOwner === member?.user_id}
                   />
                 )
               })}
@@ -159,6 +177,10 @@ export const TeamMembersPage = () => {
                     member={member}
                     kicking={kicking === member?.user_id}
                     onKick={() => member && handleKick(member, slot.label)}
+                    canManageTeam={canManageTeam}
+                    memberRole={member?.role}
+                    onSetCoOwner={(makeCoOwner) => member && handleSetCoOwner(member, makeCoOwner)}
+                    settingCoOwner={settingCoOwner === member?.user_id}
                   />
                 )
               })}
@@ -195,6 +217,10 @@ export const TeamMembersPage = () => {
                       member={m}
                       kicking={kicking === m.user_id}
                       onKick={() => handleKick(m, m.email)}
+                      canManageTeam={canManageTeam}
+                      memberRole={m.role}
+                      onSetCoOwner={(makeCoOwner) => handleSetCoOwner(m, makeCoOwner)}
+                      settingCoOwner={settingCoOwner === m.user_id}
                     />
                   ))}
                 </div>
@@ -231,6 +257,10 @@ function MemberRow({
   member,
   kicking,
   onKick,
+  canManageTeam,
+  memberRole,
+  onSetCoOwner,
+  settingCoOwner,
 }: {
   emoji: string
   abbr: string
@@ -238,6 +268,10 @@ function MemberRow({
   member: TeamMemberWithEmail | null
   kicking: boolean
   onKick: () => void
+  canManageTeam?: boolean
+  memberRole?: string
+  onSetCoOwner?: (makeCoOwner: boolean) => void
+  settingCoOwner?: boolean
 }) {
   const hasEmail = !!member?.email
 
@@ -276,6 +310,27 @@ function MemberRow({
           <span className="text-xs text-gray-600 italic">Pas encore rejoint</span>
         )}
       </div>
+
+      {/* Bouton co-owner */}
+      <AnimatePresence>
+        {hasEmail && canManageTeam && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => onSetCoOwner?.(memberRole !== 'co_owner')}
+            disabled={settingCoOwner}
+            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-50 ${
+              memberRole === 'co_owner'
+                ? 'text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10'
+                : 'text-gray-400 border-gray-600/40 hover:bg-gray-500/10 hover:text-yellow-300'
+            }`}
+            title={memberRole === 'co_owner' ? 'Révoquer co-owner' : 'Désigner co-owner'}
+          >
+            {settingCoOwner ? <Loader2 size={13} className="animate-spin" /> : '👑'}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Bouton virer */}
       <AnimatePresence>

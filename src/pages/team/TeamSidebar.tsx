@@ -36,30 +36,30 @@ const SIDEBAR_GROUPS = [
       { id: 'overview', label: "Vue d'ensemble", icon: Home, path: '/team/overview' },
       { id: 'joueurs', label: 'Joueurs', icon: UserCircle, path: '/team/joueurs' },
       { id: 'champion-pool', label: 'Pool de Champions', icon: Users, path: '/team/champion-pool' },
-      { id: 'members', label: 'Membres', icon: ShieldCheck, path: '/team/members', ownerOnly: true },
+      { id: 'members', label: 'Membres', icon: ShieldCheck, path: '/team/members', managerOnly: true },
     ],
   },
   {
     label: 'Analyse',
     items: [
-      { id: 'import', label: 'Import', icon: Upload, path: '/team/import' },
+      { id: 'import', label: 'Import', icon: Upload, path: '/team/import', hideForSpectateur: true },
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
-      { id: 'analyse', label: 'Analyse', icon: LineChart, path: '/team/analyse' },
+      { id: 'analyse', label: 'Analyse', icon: LineChart, path: '/team/analyse', hideForSpectateur: true },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
     ],
   },
   {
     label: 'Outils',
     items: [
-      { id: 'drafts', label: 'Drafts', icon: FileText, path: '/team/drafts' },
-      { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching' },
-      { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning' },
+      { id: 'drafts', label: 'Drafts', icon: FileText, path: '/team/drafts', hideForSpectateur: true },
+      { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching', hideForSpectateur: true },
+      { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning', hideForSpectateur: true },
     ],
   },
 ]
 
 export const TeamSidebar = () => {
-  const { team, allTeams, switchTeam, createNewTeam, isTeamOwner } = useTeam()
+  const { team, allTeams, switchTeam, createNewTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
   const { sidebarOpen, setSidebarOpen } = useLayout()
   const { isSyncing, currentPlayer } = useSyncStatus()
   const [switcherOpen, setSwitcherOpen] = useState(false)
@@ -68,6 +68,12 @@ export const TeamSidebar = () => {
   const [creating, setCreating] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const switcherRef = useRef<HTMLDivElement>(null)
+
+  const filterItem = (item: any) => {
+    if (item.managerOnly && !canManageTeam) return false
+    if (item.hideForSpectateur && myRole === 'spectateur') return false
+    return true
+  }
 
   // Fermer au clic extérieur
   useEffect(() => {
@@ -119,7 +125,7 @@ export const TeamSidebar = () => {
             <PanelLeftOpen size={15} />
           </button>
           <div className="w-5 h-px bg-dark-border/60 mb-1" />
-          {SIDEBAR_GROUPS.flatMap((g) => g.items).filter((item) => !('ownerOnly' in item) || !item.ownerOnly || isTeamOwner).map((item) => {
+          {SIDEBAR_GROUPS.flatMap((g) => g.items).filter(filterItem).map((item) => {
             const Icon = item.icon
             return (
               <NavLink
@@ -275,7 +281,7 @@ export const TeamSidebar = () => {
               {group.label}
             </p>
             <ul className="space-y-0.5">
-              {group.items.filter((item) => !('ownerOnly' in item) || !item.ownerOnly || isTeamOwner).map((item) => {
+              {group.items.filter(filterItem).map((item) => {
                 const Icon = item.icon
                 return (
                   <li key={item.id}>

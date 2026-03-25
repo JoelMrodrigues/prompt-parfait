@@ -45,6 +45,8 @@ export interface Team {
   member_count?: number
 }
 
+export type TeamRole = 'owner' | 'co_owner' | 'player' | 'coach' | 'analyst' | 'manager' | 'spectateur'
+
 export interface Player {
   id: string
   team_id: string
@@ -65,6 +67,7 @@ export interface Player {
   opgg_link?: string | null
   lolpro_link?: string | null
   region?: string | null
+  coaching_public?: boolean | null
 }
 
 export interface TeamContextValue {
@@ -87,6 +90,10 @@ export interface TeamContextValue {
   getInviteLink: () => Promise<string | null>
   joinTeamByToken: (token: string, role?: string, position?: string | null, playerId?: string | null) => Promise<{ success: boolean; error?: string; teamName?: string }>
   isTeamOwner: boolean
+  myRole: TeamRole | null
+  myPlayerId: string | null
+  isCoOwner: boolean
+  canManageTeam: boolean  // owner or co_owner
 }
 
 const TeamContext = createContext<TeamContextValue>({} as TeamContextValue)
@@ -99,6 +106,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
+  const [myRole, setMyRole] = useState<TeamRole | null>(null)
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(null)
   const initializedRef = useRef(false)
   const fetchingRef   = useRef(false)
   const lastParamsRef = useRef<string>('')
@@ -114,6 +123,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
         setTeam(null)
         setAllTeams([])
         setPlayers([])
+        setMyRole(null)
+        setMyPlayerId(null)
       }
     }
   }, [user?.id, profile?.active_team_id])
@@ -161,6 +172,28 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setTeam(activeTeam)
+
+      // Determine current user's role
+      if (activeTeam) {
+        const isOwner = activeTeam.user_id === user?.id
+        if (isOwner) {
+          setMyRole('owner')
+          setMyPlayerId(null)
+        } else if (supabase) {
+          const { data: memberRow } = await supabase
+            .from('team_members')
+            .select('role, player_id')
+            .eq('team_id', activeTeam.id)
+            .eq('user_id', user.id)
+            .maybeSingle()
+          setMyRole((memberRow?.role as TeamRole) ?? null)
+          setMyPlayerId(memberRow?.player_id ?? null)
+        }
+      } else {
+        setMyRole(null)
+        setMyPlayerId(null)
+      }
+
       if (activeTeam) {
         // Si l'équipe active correspond au prefetch, réutiliser — sinon re-fetch
         const players = (prefetchedPlayers && activeTeam.id === knownTeamId)
@@ -315,6 +348,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const isTeamOwner = !!(team && user && team.user_id === user.id)
+  const isCoOwner = myRole === 'co_owner'
+  const canManageTeam = isTeamOwner || isCoOwner
 
   const value = useMemo(() => ({
     team, allTeams, players, loading,
@@ -324,7 +359,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     refetch: fetchTeam,
     getInviteLink, joinTeamByToken,
     isTeamOwner,
-  }), [team, allTeams, players, loading, isTeamOwner])
+    myRole, myPlayerId, isCoOwner, canManageTeam,
+  }), [team, allTeams, players, loading, isTeamOwner, myRole, myPlayerId, isCoOwner, canManageTeam])
 
   return (
     <TeamContext.Provider value={value}>

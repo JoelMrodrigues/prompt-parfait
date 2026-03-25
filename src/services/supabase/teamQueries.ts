@@ -86,7 +86,8 @@ export interface TeamPreview {
   id: string
   team_name: string
   logo_url?: string | null
-  players: { id: string; player_name: string; position: string; top_champion?: string | null }[]
+  players: { id: string; player_name: string; position: string; top_champion?: string | null; taken: boolean }[]
+  staff_counts: { coach: number; analyst: number; manager: number; spectateur: number }
 }
 
 export async function getTeamPreviewByToken(token: string): Promise<TeamPreview | null> {
@@ -115,6 +116,25 @@ export async function removeTeamMember(teamId: string, userId: string): Promise<
   const { data, error } = await supabase.rpc('remove_team_member', { p_team_id: teamId, p_user_id: userId })
   if (error) return false
   return !!data
+}
+
+export async function setCoOwner(teamId: string, userId: string, isCoOwner: boolean) {
+  const { error } = await supabase
+    .from('team_members')
+    .update({ role: isCoOwner ? 'co_owner' : 'player' })
+    .eq('team_id', teamId)
+    .eq('user_id', userId)
+  return { error }
+}
+
+// TODO: requires SQL function `transfer_team_ownership(p_team_id, p_new_owner_id)`
+export async function transferOwnership(teamId: string, newOwnerUserId: string) {
+  // Update teams.user_id to new owner, move old owner to co_owner in team_members
+  const { error } = await supabase.rpc('transfer_team_ownership', {
+    p_team_id: teamId,
+    p_new_owner_id: newOwnerUserId,
+  })
+  return { error }
 }
 
 export async function updateTeamMemberRole(
