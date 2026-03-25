@@ -1,82 +1,122 @@
 /**
- * Page Coaching — Notes, Objectifs, VODs par joueur et équipe
+ * Page Coaching — redesign 2 colonnes
+ * Sidebar joueurs + fiche complète scrollable (Notes + Objectifs + VODs + Train Champ)
  */
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Plus,
-  Trash2,
-  FileText,
-  Target,
-  Video,
-  Users,
-  User,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ExternalLink,
-  Send,
-  Search,
-  X,
-  Shield,
+  Plus, Trash2, FileText, Target, Video, Users, User,
+  CheckCircle, XCircle, Clock, ExternalLink, Send, Search,
+  X, Shield, ChevronDown, ChevronUp,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTeam } from '../hooks/useTeam'
+import { useTeamMatches } from '../hooks/useTeamMatches'
 import {
   fetchNotes, addNote, deleteNote,
   fetchObjectives, addObjective, updateObjectiveStatus, deleteObjective,
   fetchVods, addVod, deleteVod,
+  fetchActivityFeed,
   type ObjectiveStatus,
 } from '../../../services/supabase/coachingQueries'
 import {
-  fetchTrainingPool,
-  addToTrainingPool,
-  removeFromTrainingPool,
+  fetchTrainingPool, addToTrainingPool, removeFromTrainingPool,
 } from '../../../services/supabase/championQueries'
 import { loadChampions } from '../../../lib/championLoader'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { FILTER_TO_CHAMPION_ROLE } from '../champion-pool/utils/roleToChampionRole'
 
-const ROLE_FILTERS = ['ALL', 'TOP', 'JNG', 'MID', 'ADC', 'SUP'] as const
-type RoleFilter = (typeof ROLE_FILTERS)[number]
-
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const TEAM_ID = '__team__'
+const ROLE_FILTERS = ['ALL', 'TOP', 'JNG', 'MID', 'ADC', 'SUP'] as const
+type RoleFilter = (typeof ROLE_FILTERS)[number]
 
-const SUBS = [
-  { id: 'notes', label: 'Notes', icon: FileText },
-  { id: 'objectives', label: 'Objectifs', icon: Target },
-  { id: 'vods', label: 'Liens VOD', icon: Video },
-] as const
-
-const PLAYER_SUBS = [
-  ...SUBS,
-  { id: 'training', label: 'Train Champ', icon: Shield },
-] as const
-
-type SubTab = 'notes' | 'objectives' | 'vods' | 'training'
-
-const STATUS_LABELS: Record<ObjectiveStatus, { label: string; color: string; Icon: React.ElementType }> = {
-  ongoing: { label: 'En cours', color: 'text-amber-400', Icon: Clock },
-  achieved: { label: 'Atteint', color: 'text-emerald-400', Icon: CheckCircle },
-  abandoned: { label: 'Abandonné', color: 'text-gray-500', Icon: XCircle },
+const STATUS_CFG: Record<ObjectiveStatus, { label: string; color: string; bg: string; border: string; Icon: React.ElementType }> = {
+  ongoing:   { label: 'En cours',   color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   Icon: Clock },
+  achieved:  { label: 'Atteint',    color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', Icon: CheckCircle },
+  abandoned: { label: 'Abandonné',  color: 'text-gray-500',    bg: 'bg-gray-500/10',    border: 'border-gray-500/20',    Icon: XCircle },
 }
 
-// ─── Formatage date ───────────────────────────────────────────────────────────
+const POSITION_COLORS: Record<string, string> = {
+  TOP: 'text-orange-400', JNG: 'text-green-400', MID: 'text-blue-400',
+  ADC: 'text-red-400',    SUP: 'text-purple-400',
+}
 
 function fmtDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-// ─── Sous-onglet Notes ────────────────────────────────────────────────────────
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1)  return 'À l\'instant'
+  if (m < 60) return `Il y a ${m} min`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `Il y a ${h}h`
+  const d = Math.floor(h / 24)
+  if (d === 1) return 'Hier'
+  if (d < 7)  return `Il y a ${d} jours`
+  return fmtDate(iso)
+}
 
-function NotesTab({
-  teamId,
-  playerId,
+// ─── Section wrapper collapsible ─────────────────────────────────────────────
+
+function Section({
+  icon: Icon, title, count, action, children, defaultOpen = true,
 }: {
-  teamId: string
-  playerId: string | null
+  icon: React.ElementType
+  title: string
+  count?: number
+  action?: React.ReactNode
+  children: React.ReactNode
+  defaultOpen?: boolean
 }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-dark-bg/30 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-accent-blue/10 flex items-center justify-center">
+            <Icon size={15} className="text-accent-blue" />
+          </div>
+          <span className="font-semibold text-white text-sm">{title}</span>
+          {count != null && (
+            <span className="text-xs text-gray-500 bg-dark-bg border border-dark-border px-2 py-0.5 rounded-full">
+              {count}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+          {action}
+          {open ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5 pt-1 border-t border-dark-border/50">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Notes ────────────────────────────────────────────────────────────────────
+
+function NotesSection({ teamId, playerId, onAction }: { teamId: string; playerId: string | null; onAction?: () => void }) {
   const [notes, setNotes] = useState<any[]>([])
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
@@ -86,86 +126,68 @@ function NotesTab({
     if (data) setNotes(data)
   }, [teamId, playerId])
 
-  useEffect(() => {
-    setNotes([])
-    setDraft('')
-    load()
-  }, [load])
+  useEffect(() => { setNotes([]); setDraft(''); load() }, [load])
 
   const handleAdd = async () => {
     if (!draft.trim()) return
     setSaving(true)
     const { data } = await addNote(teamId, playerId, draft.trim())
-    if (data) setNotes((prev) => [data, ...prev])
+    if (data) { setNotes(prev => [data, ...prev]); onAction?.() }
     setDraft('')
     setSaving(false)
   }
 
-  const handleDelete = async (id: string) => {
-    await deleteNote(id)
-    setNotes((prev) => prev.filter((n) => n.id !== id))
-  }
-
   return (
-    <div className="space-y-4">
-      {/* New note */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4">
+    <Section icon={FileText} title="Notes" count={notes.length}>
+      {/* Textarea */}
+      <div className="flex gap-2 mt-2 mb-4">
         <textarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={e => setDraft(e.target.value)}
           placeholder="Ajouter une note de coaching..."
-          rows={3}
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50 resize-none"
+          rows={2}
+          onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) handleAdd() }}
+          className="flex-1 bg-dark-bg border border-dark-border rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50 resize-none"
         />
-        <div className="flex justify-end mt-2">
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={saving || !draft.trim()}
-            className="flex items-center gap-2 px-3 py-1.5 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
-          >
-            <Send size={14} />
-            Ajouter
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={saving || !draft.trim()}
+          className="self-end flex items-center gap-1.5 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-40 text-white text-xs font-medium rounded-xl transition-colors whitespace-nowrap"
+        >
+          <Send size={12} />
+          Envoyer
+        </button>
       </div>
 
-      {/* Notes list */}
       {notes.length === 0 ? (
-        <div className="text-center py-8 text-gray-600 text-sm">Aucune note pour l'instant.</div>
+        <p className="text-sm text-gray-600 text-center py-4">Aucune note pour l'instant.</p>
       ) : (
-        notes.map((note) => (
-          <div
-            key={note.id}
-            className="bg-dark-card border border-dark-border rounded-xl p-4 group"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm text-gray-200 whitespace-pre-wrap flex-1">{note.content}</p>
+        <div className="space-y-2">
+          {notes.map(note => (
+            <div key={note.id} className="group flex items-start gap-3 p-3 bg-dark-bg rounded-xl border border-dark-border/50">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+                <p className="text-xs text-gray-600 mt-1.5">{fmtDate(note.created_at)}</p>
+              </div>
               <button
                 type="button"
-                onClick={() => handleDelete(note.id)}
-                className="text-gray-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                onClick={() => { deleteNote(note.id); setNotes(p => p.filter(n => n.id !== note.id)) }}
+                className="text-gray-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
               >
-                <Trash2 size={14} />
+                <Trash2 size={13} />
               </button>
             </div>
-            <p className="text-xs text-gray-600 mt-2">{fmtDate(note.created_at)}</p>
-          </div>
-        ))
+          ))}
+        </div>
       )}
-    </div>
+    </Section>
   )
 }
 
-// ─── Sous-onglet Objectifs ────────────────────────────────────────────────────
+// ─── Objectifs ────────────────────────────────────────────────────────────────
 
-function ObjectivesTab({
-  teamId,
-  playerId,
-}: {
-  teamId: string
-  playerId: string | null
-}) {
+function ObjectivesSection({ teamId, playerId, onAction }: { teamId: string; playerId: string | null; onAction?: () => void }) {
   const [objectives, setObjectives] = useState<any[]>([])
   const [draft, setDraft] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -176,140 +198,120 @@ function ObjectivesTab({
     if (data) setObjectives(data)
   }, [teamId, playerId])
 
-  useEffect(() => {
-    setObjectives([])
-    setDraft('')
-    setDueDate('')
-    load()
-  }, [load])
+  useEffect(() => { setObjectives([]); setDraft(''); setDueDate(''); load() }, [load])
 
   const handleAdd = async () => {
     if (!draft.trim()) return
     setSaving(true)
     const { data } = await addObjective(teamId, playerId, draft.trim(), dueDate || null)
-    if (data) setObjectives((prev) => [data, ...prev])
-    setDraft('')
-    setDueDate('')
-    setSaving(false)
+    if (data) { setObjectives(prev => [data, ...prev]); onAction?.() }
+    setDraft(''); setDueDate(''); setSaving(false)
   }
 
   const handleStatus = async (id: string, status: ObjectiveStatus) => {
     const { data } = await updateObjectiveStatus(id, status)
-    if (data) setObjectives((prev) => prev.map((o) => (o.id === id ? data : o)))
+    if (data) { setObjectives(prev => prev.map(o => o.id === id ? data : o)); onAction?.() }
   }
 
-  const handleDelete = async (id: string) => {
-    await deleteObjective(id)
-    setObjectives((prev) => prev.filter((o) => o.id !== id))
-  }
+  const ongoing   = objectives.filter(o => o.status === 'ongoing')
+  const achieved  = objectives.filter(o => o.status === 'achieved')
+  const abandoned = objectives.filter(o => o.status === 'abandoned')
 
   return (
-    <div className="space-y-4">
-      {/* New objective */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4 flex flex-col sm:flex-row gap-3">
+    <Section icon={Target} title="Objectifs" count={objectives.length}>
+      {/* Add form */}
+      <div className="flex gap-2 mt-2 mb-4 flex-wrap">
         <input
           type="text"
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={e => setDraft(e.target.value)}
           placeholder="Nouvel objectif..."
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          className="flex-1 min-w-48 bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
         />
         <input
           type="date"
           value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-400 focus:outline-none focus:border-accent-blue/50"
+          onChange={e => setDueDate(e.target.value)}
+          className="bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-sm text-gray-400 focus:outline-none focus:border-accent-blue/50"
         />
         <button
           type="button"
           onClick={handleAdd}
           disabled={saving || !draft.trim()}
-          className="flex items-center gap-2 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-50 text-white text-sm rounded-lg transition-colors whitespace-nowrap"
+          className="flex items-center gap-1.5 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-40 text-white text-xs font-medium rounded-xl transition-colors whitespace-nowrap"
         >
-          <Plus size={14} />
+          <Plus size={12} />
           Ajouter
         </button>
       </div>
 
-      {/* Objectives list */}
       {objectives.length === 0 ? (
-        <div className="text-center py-8 text-gray-600 text-sm">Aucun objectif pour l'instant.</div>
+        <p className="text-sm text-gray-600 text-center py-4">Aucun objectif pour l'instant.</p>
       ) : (
-        objectives.map((obj) => {
-          const s = STATUS_LABELS[obj.status as ObjectiveStatus] ?? STATUS_LABELS.ongoing
-          const Icon = s.Icon
-          return (
-            <div
-              key={obj.id}
-              className={`bg-dark-card border rounded-xl p-4 group flex items-center gap-3 ${
-                obj.status === 'achieved'
-                  ? 'border-emerald-500/20'
-                  : obj.status === 'abandoned'
-                  ? 'border-dark-border opacity-60'
-                  : 'border-dark-border'
-              }`}
-            >
-              <Icon size={18} className={`${s.color} shrink-0`} />
-              <div className="flex-1 min-w-0">
-                <p
-                  className={`text-sm font-medium ${
-                    obj.status === 'abandoned' ? 'line-through text-gray-500' : 'text-white'
-                  }`}
-                >
-                  {obj.title}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-xs ${s.color}`}>{s.label}</span>
-                  {obj.due_date && (
-                    <span className="text-xs text-gray-600">· Échéance : {obj.due_date}</span>
-                  )}
+        <div className="space-y-4">
+          {[
+            { status: 'ongoing' as ObjectiveStatus,   list: ongoing,   label: 'En cours' },
+            { status: 'achieved' as ObjectiveStatus,  list: achieved,  label: 'Atteints' },
+            { status: 'abandoned' as ObjectiveStatus, list: abandoned, label: 'Abandonnés' },
+          ].filter(g => g.list.length > 0).map(group => {
+            const cfg = STATUS_CFG[group.status]
+            const GroupIcon = cfg.Icon
+            return (
+              <div key={group.status}>
+                <div className={`flex items-center gap-2 mb-2`}>
+                  <GroupIcon size={12} className={cfg.color} />
+                  <span className={`text-xs font-semibold uppercase tracking-wider ${cfg.color}`}>{group.label}</span>
+                  <span className="text-xs text-gray-600">{group.list.length}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {group.list.map(obj => (
+                    <div
+                      key={obj.id}
+                      className={`group flex items-center gap-3 p-3 rounded-xl border ${cfg.border} ${cfg.bg} ${obj.status === 'abandoned' ? 'opacity-50' : ''}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${obj.status === 'abandoned' ? 'line-through text-gray-500' : 'text-white'}`}>
+                          {obj.title}
+                        </p>
+                        {obj.due_date && (
+                          <p className="text-xs text-gray-500 mt-0.5">Échéance : {obj.due_date}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        {(['ongoing', 'achieved', 'abandoned'] as ObjectiveStatus[])
+                          .filter(st => st !== obj.status)
+                          .map(st => {
+                            const c = STATUS_CFG[st]; const CI = c.Icon
+                            return (
+                              <button key={st} type="button" onClick={() => handleStatus(obj.id, st)}
+                                title={c.label}
+                                className={`p-1.5 rounded-lg hover:bg-dark-bg/60 transition-colors ${c.color}`}>
+                                <CI size={13} />
+                              </button>
+                            )
+                          })}
+                        <button type="button"
+                          onClick={() => { deleteObjective(obj.id); setObjectives(p => p.filter(o => o.id !== obj.id)) }}
+                          className="p-1.5 rounded-lg text-gray-600 hover:text-rose-400 hover:bg-dark-bg/60 transition-colors">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              {/* Status buttons */}
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {((['ongoing', 'achieved', 'abandoned'] as ObjectiveStatus[]).filter(
-                  (st) => st !== obj.status
-                )).map((st) => {
-                  const lbl = STATUS_LABELS[st]
-                  const LblIcon = lbl.Icon
-                  return (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => handleStatus(obj.id, st)}
-                      title={lbl.label}
-                      className={`p-1.5 rounded-lg hover:bg-dark-bg transition-colors ${lbl.color}`}
-                    >
-                      <LblIcon size={14} />
-                    </button>
-                  )
-                })}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(obj.id)}
-                  className="p-1.5 rounded-lg text-gray-600 hover:text-rose-400 hover:bg-dark-bg transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          )
-        })
+            )
+          })}
+        </div>
       )}
-    </div>
+    </Section>
   )
 }
 
-// ─── Sous-onglet VODs ─────────────────────────────────────────────────────────
+// ─── VODs ─────────────────────────────────────────────────────────────────────
 
-function VodsTab({
-  teamId,
-  playerId,
-}: {
-  teamId: string
-  playerId: string | null
-}) {
+function VodsSection({ teamId, playerId, onAction }: { teamId: string; playerId: string | null; onAction?: () => void }) {
   const [vods, setVods] = useState<any[]>([])
   const [url, setUrl] = useState('')
   const [desc, setDesc] = useState('')
@@ -320,103 +322,88 @@ function VodsTab({
     if (data) setVods(data)
   }, [teamId, playerId])
 
-  useEffect(() => {
-    setVods([])
-    setUrl('')
-    setDesc('')
-    load()
-  }, [load])
+  useEffect(() => { setVods([]); setUrl(''); setDesc(''); load() }, [load])
 
   const handleAdd = async () => {
     if (!url.trim()) return
     setSaving(true)
     const { data } = await addVod(teamId, playerId, url.trim(), desc.trim())
-    if (data) setVods((prev) => [data, ...prev])
-    setUrl('')
-    setDesc('')
-    setSaving(false)
-  }
-
-  const handleDelete = async (id: string) => {
-    await deleteVod(id)
-    setVods((prev) => prev.filter((v) => v.id !== id))
+    if (data) { setVods(prev => [data, ...prev]); onAction?.() }
+    setUrl(''); setDesc(''); setSaving(false)
   }
 
   return (
-    <div className="space-y-4">
-      {/* New VOD */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4 space-y-2">
+    <Section icon={Video} title="VODs" count={vods.length} defaultOpen={false}>
+      <div className="flex flex-col gap-2 mt-2 mb-4">
         <input
           type="url"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={e => setUrl(e.target.value)}
           placeholder="https://youtube.com/watch?v=..."
-          className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
+          className="w-full bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
         />
         <div className="flex gap-2">
           <input
             type="text"
             value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder="Description (optionnel)..."
-            className="flex-1 bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
+            onChange={e => setDesc(e.target.value)}
+            placeholder="Titre / description..."
+            className="flex-1 bg-dark-bg border border-dark-border rounded-xl px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
           />
           <button
             type="button"
             onClick={handleAdd}
             disabled={saving || !url.trim()}
-            className="flex items-center gap-2 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-50 text-white text-sm rounded-lg transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-2 bg-accent-blue hover:bg-accent-blue/90 disabled:opacity-40 text-white text-xs font-medium rounded-xl transition-colors whitespace-nowrap"
           >
-            <Plus size={14} />
+            <Plus size={12} />
             Ajouter
           </button>
         </div>
       </div>
 
-      {/* VOD list */}
       {vods.length === 0 ? (
-        <div className="text-center py-8 text-gray-600 text-sm">Aucun lien VOD pour l'instant.</div>
+        <p className="text-sm text-gray-600 text-center py-4">Aucune VOD pour l'instant.</p>
       ) : (
-        vods.map((vod) => (
-          <div
-            key={vod.id}
-            className="bg-dark-card border border-dark-border rounded-xl p-4 group flex items-center gap-3"
-          >
-            <div className="w-9 h-9 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center shrink-0">
-              <Video size={16} className="text-accent-blue" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <a
-                href={vod.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-accent-blue hover:underline truncate block"
+        <div className="space-y-2">
+          {vods.map(vod => (
+            <div key={vod.id} className="group flex items-center gap-3 p-3 bg-dark-bg rounded-xl border border-dark-border/50 hover:border-dark-border transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center shrink-0">
+                <Video size={14} className="text-accent-blue" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {vod.description && (
+                  <p className="text-sm font-medium text-white truncate">{vod.description}</p>
+                )}
+                <a
+                  href={vod.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-accent-blue/80 hover:text-accent-blue truncate block"
+                >
+                  {vod.url}
+                  <ExternalLink size={10} className="inline ml-1 opacity-70" />
+                </a>
+                <p className="text-xs text-gray-600 mt-0.5">{fmtDate(vod.created_at)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { deleteVod(vod.id); setVods(p => p.filter(v => v.id !== vod.id)) }}
+                className="text-gray-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
               >
-                {vod.url}
-                <ExternalLink size={11} className="inline ml-1 opacity-70" />
-              </a>
-              {vod.description && (
-                <p className="text-xs text-gray-500 mt-0.5 truncate">{vod.description}</p>
-              )}
-              <p className="text-xs text-gray-600 mt-0.5">{fmtDate(vod.created_at)}</p>
+                <Trash2 size={13} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(vod.id)}
-              className="text-gray-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))
+          ))}
+        </div>
       )}
-    </div>
+    </Section>
   )
 }
 
-// ─── Onglet Train Champ ───────────────────────────────────────────────────────
+// ─── Train Champ ──────────────────────────────────────────────────────────────
 
-function TrainChampTab({ playerId }: { playerId: string }) {
+function TrainChampSection({ playerId }: { playerId: string }) {
   const [trainingChamps, setTrainingChamps] = useState<{ id: string; champion_id: string }[]>([])
   const [allChampions, setAllChampions] = useState<any[]>([])
   const [query, setQuery] = useState('')
@@ -431,133 +418,218 @@ function TrainChampTab({ playerId }: { playerId: string }) {
 
   useEffect(() => { load() }, [load])
 
-  const trainingIds = useMemo(() => new Set(trainingChamps.map((c) => c.champion_id)), [trainingChamps])
+  const trainingIds = useMemo(() => new Set(trainingChamps.map(c => c.champion_id)), [trainingChamps])
 
   const filtered = useMemo(() => {
     let list = allChampions
     if (roleFilter !== 'ALL') {
       const cr = FILTER_TO_CHAMPION_ROLE[roleFilter]
-      list = list.filter((c) => c.roles?.includes(cr))
+      list = list.filter(c => c.roles?.includes(cr))
     }
     const q = query.trim().toLowerCase()
-    if (q) list = list.filter((c) => c.id?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q))
+    if (q) list = list.filter(c => c.id?.toLowerCase().includes(q) || c.name?.toLowerCase().includes(q))
     return list
   }, [allChampions, query, roleFilter])
 
-  const handleAdd = async (champId: string) => {
-    await addToTrainingPool(playerId, champId)
-    load()
-  }
-
-  const handleRemove = async (champId: string) => {
-    await removeFromTrainingPool(playerId, champId)
-    setTrainingChamps((prev) => prev.filter((c) => c.champion_id !== champId))
-  }
-
   return (
-    <div className="space-y-5">
-      {/* Champions en training */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">
-          Champions assignés ({trainingChamps.length})
-        </p>
-        {trainingChamps.length === 0 ? (
-          <p className="text-sm text-gray-600">Aucun champion assigné. Sélectionnez-en ci-dessous.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {trainingChamps.map((c) => (
-              <div
-                key={c.champion_id}
-                className="group flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 bg-dark-bg border border-dark-border hover:border-rose-500/40 rounded-xl transition-colors"
-              >
-                <img
-                  src={getChampionImage(c.champion_id)}
-                  alt={c.champion_id}
-                  className="w-9 h-9 rounded-lg object-cover border border-dark-border"
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm text-white font-medium leading-tight">
-                    {getChampionDisplayName(c.champion_id) || c.champion_id}
-                  </span>
-                  <span className="text-[10px] text-accent-blue">Training</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemove(c.champion_id)}
-                  className="ml-1 text-gray-600 hover:text-rose-400 transition-colors"
-                  title="Retirer"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <Section icon={Shield} title="Champions à travailler" count={trainingChamps.length} defaultOpen={false}>
+      {/* Assigned */}
+      {trainingChamps.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4 mt-2 p-3 bg-dark-bg rounded-xl border border-dark-border/50">
+          {trainingChamps.map(c => (
+            <div key={c.champion_id}
+              className="group flex items-center gap-2 pl-1 pr-2 py-1 bg-dark-card border border-dark-border hover:border-rose-500/30 rounded-xl transition-colors"
+            >
+              <img src={getChampionImage(c.champion_id)} alt={c.champion_id}
+                className="w-8 h-8 rounded-lg object-cover border border-dark-border" />
+              <span className="text-xs font-medium text-white">
+                {getChampionDisplayName(c.champion_id) || c.champion_id}
+              </span>
+              <button type="button" onClick={() => { removeFromTrainingPool(playerId, c.champion_id); setTrainingChamps(p => p.filter(x => x.champion_id !== c.champion_id)) }}
+                className="text-gray-600 hover:text-rose-400 transition-colors ml-0.5">
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Picker */}
-      <div className="bg-dark-card border border-dark-border rounded-xl p-4">
-        <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Ajouter un champion</p>
-        <div className="flex flex-col sm:flex-row gap-2 mb-3">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Rechercher un champion..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-9 pr-3 py-2 w-full bg-dark-bg border border-dark-border rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
-            />
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            {ROLE_FILTERS.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRoleFilter(r)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  roleFilter === r
-                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
-                    : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+      <div className="flex flex-col sm:flex-row gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Rechercher..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="pl-8 pr-3 py-2 w-full bg-dark-bg border border-dark-border rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent-blue/50"
+          />
         </div>
-        <div className="grid grid-cols-8 sm:grid-cols-10 lg:grid-cols-12 gap-1.5 max-h-72 overflow-y-auto pr-1">
-          {filtered.map((c) => {
-            const used = trainingIds.has(c.id)
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => !used && handleAdd(c.id)}
-                disabled={used}
-                title={getChampionDisplayName(c.name) || c.name}
-                className={`relative rounded-lg overflow-hidden border transition-colors ${
-                  used
-                    ? 'opacity-25 cursor-not-allowed border-transparent'
-                    : 'border-dark-border hover:border-accent-blue/60 cursor-pointer hover:scale-105'
-                }`}
-              >
-                <img
-                  src={getChampionImage(c.id)}
-                  alt={c.name}
-                  className="w-full aspect-square object-cover"
-                />
-                {used && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                    <Shield size={12} className="text-accent-blue" />
-                  </div>
-                )}
-              </button>
-            )
-          })}
+        <div className="flex gap-1">
+          {ROLE_FILTERS.map(r => (
+            <button key={r} type="button" onClick={() => setRoleFilter(r)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                roleFilter === r
+                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                  : 'bg-dark-bg border border-dark-border text-gray-400 hover:text-white'
+              }`}
+            >{r}</button>
+          ))}
         </div>
       </div>
+      <div className="grid grid-cols-8 sm:grid-cols-10 lg:grid-cols-14 gap-1.5 max-h-56 overflow-y-auto pr-1">
+        {filtered.map(c => {
+          const used = trainingIds.has(c.id)
+          return (
+            <button key={c.id} type="button" onClick={() => !used && addToTrainingPool(playerId, c.id).then(() => load())}
+              disabled={used} title={getChampionDisplayName(c.name) || c.name}
+              className={`relative rounded-lg overflow-hidden border transition-all ${
+                used ? 'opacity-20 cursor-not-allowed border-transparent' : 'border-dark-border hover:border-accent-blue/60 cursor-pointer'
+              }`}
+            >
+              <img src={getChampionImage(c.id)} alt={c.name} className="w-full aspect-square object-cover" />
+            </button>
+          )
+        })}
+      </div>
+    </Section>
+  )
+}
+
+// ─── Activity Feed ────────────────────────────────────────────────────────────
+
+const FEED_CFG = {
+  note:                { label: 'Note ajoutée',        dot: 'bg-violet-500',   text: 'text-violet-400',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20' },
+  objective_added:     { label: 'Objectif ajouté',     dot: 'bg-accent-blue',  text: 'text-accent-blue', bg: 'bg-accent-blue/10', border: 'border-accent-blue/20' },
+  objective_achieved:  { label: 'Objectif atteint',    dot: 'bg-emerald-500',  text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  objective_abandoned: { label: 'Objectif abandonné',  dot: 'bg-gray-500',     text: 'text-gray-500',    bg: 'bg-gray-500/10',    border: 'border-gray-500/20' },
+  vod:                 { label: 'VOD ajoutée',          dot: 'bg-amber-500',    text: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+} as const
+type FeedType = keyof typeof FEED_CFG
+
+function ActivityFeed({ teamId, players, playerId, refreshKey }: {
+  teamId: string
+  players: any[]
+  playerId: string | null
+  refreshKey: number
+}) {
+  const [items, setItems] = useState<any[]>([])
+
+  useEffect(() => {
+    fetchActivityFeed(teamId).then(({ notes, objectives, vods }) => {
+      const playerName = (pid: string | null) =>
+        pid ? (players.find(p => p.id === pid)?.player_name || players.find(p => p.id === pid)?.pseudo || 'Joueur') : 'Équipe'
+
+      // Filtre selon la sélection : null = équipe (tout le monde), string = joueur spécifique
+      const matchPlayer = (pid: string | null) =>
+        playerId === null ? true : pid === playerId
+
+      const events: { id: string; type: FeedType; who: string; text: string; at: string }[] = [
+        ...notes.filter((n: any) => matchPlayer(n.player_id)).map((n: any) => ({
+          id: 'n-' + n.id, type: 'note' as FeedType,
+          who: playerName(n.player_id),
+          text: n.content.length > 60 ? n.content.slice(0, 58) + '…' : n.content,
+          at: n.created_at,
+        })),
+        ...objectives.filter((o: any) => matchPlayer(o.player_id)).map((o: any) => ({
+          id: 'o-' + o.id,
+          type: (o.status === 'achieved' ? 'objective_achieved' : o.status === 'abandoned' ? 'objective_abandoned' : 'objective_added') as FeedType,
+          who: playerName(o.player_id),
+          text: o.title,
+          at: o.created_at,
+        })),
+        ...vods.filter((v: any) => matchPlayer(v.player_id)).map((v: any) => ({
+          id: 'v-' + v.id, type: 'vod' as FeedType,
+          who: playerName(v.player_id),
+          text: v.description || v.url,
+          at: v.created_at,
+        })),
+      ]
+      events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      setItems(events.slice(0, 25))
+    })
+  }, [teamId, playerId, refreshKey, players])
+
+  const feedTitle = playerId
+    ? (players.find(p => p.id === playerId)?.player_name || players.find(p => p.id === playerId)?.pseudo || 'Joueur')
+    : 'Toute l\'équipe'
+
+  return (
+    <div className="w-72 shrink-0 border-l border-dark-border flex flex-col bg-dark-bg/10 overflow-hidden">
+      <div className="px-4 py-4 border-b border-dark-border shrink-0">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Activité récente</p>
+        <p className="text-xs text-gray-600 mt-0.5">{feedTitle}</p>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-center">
+            <p className="text-xs text-gray-600">Aucune activité pour l'instant.</p>
+            <p className="text-xs text-gray-700 mt-1">Les actions apparaîtront ici.</p>
+          </div>
+        ) : items.map(item => {
+          const cfg = FEED_CFG[item.type]
+          return (
+            <div key={item.id} className={`rounded-xl border ${cfg.border} ${cfg.bg} px-3 py-2.5`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+                <span className={`text-[11px] font-semibold ${cfg.text}`}>{cfg.label}</span>
+                <span className="ml-auto text-[10px] text-gray-600 shrink-0">{timeAgo(item.at)}</span>
+              </div>
+              <p className="text-xs font-medium text-white truncate">{item.who}</p>
+              <p className="text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">{item.text}</p>
+            </div>
+          )
+        })}
+      </div>
     </div>
+  )
+}
+
+// ─── Sidebar player card ──────────────────────────────────────────────────────
+
+function PlayerCard({
+  label, sublabel, position, imageUrl, isActive, onClick,
+}: {
+  label: string
+  sublabel?: string
+  position?: string
+  imageUrl?: string | null
+  isActive: boolean
+  onClick: () => void
+}) {
+  const posColor = position ? (POSITION_COLORS[position.toUpperCase()] ?? 'text-gray-400') : 'text-gray-400'
+  const isTeamCard = !!sublabel
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+        isActive
+          ? 'bg-accent-blue/15 border border-accent-blue/30 text-white'
+          : 'border border-transparent text-gray-400 hover:text-white hover:bg-dark-card hover:border-dark-border'
+      }`}
+    >
+      {/* Avatar */}
+      <div className={`w-8 h-8 rounded-lg shrink-0 overflow-hidden flex items-center justify-center ${
+        imageUrl ? '' : (isActive ? 'bg-accent-blue/20' : 'bg-dark-bg border border-dark-border')
+      }`}>
+        {imageUrl
+          ? <img src={imageUrl} alt={label} className={`w-full h-full ${isTeamCard ? 'object-contain p-0.5' : 'object-cover'}`} />
+          : isTeamCard
+            ? <Users size={13} className={isActive ? 'text-accent-blue' : 'text-gray-500'} />
+            : <User size={13} className={isActive ? 'text-accent-blue' : 'text-gray-500'} />
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium truncate leading-tight ${isActive ? 'text-white' : ''}`}>{label}</p>
+        {sublabel && <p className="text-xs text-gray-600 truncate">{sublabel}</p>}
+        {position && (
+          <p className={`text-[10px] font-semibold uppercase ${posColor}`}>{position}</p>
+        )}
+      </div>
+    </button>
   )
 }
 
@@ -565,110 +637,122 @@ function TrainChampTab({ playerId }: { playerId: string }) {
 
 export const CoachingPage = () => {
   const { team, players = [] } = useTeam()
+  const { matches } = useTeamMatches(team?.id)
   const [selectedKey, setSelectedKey] = useState<string>(TEAM_ID)
-  const [sub, setSub] = useState<SubTab>('notes')
+  const [feedKey, setFeedKey] = useState(0)
+  const bumpFeed = useCallback(() => setFeedKey(k => k + 1), [])
 
-  // Reset l'onglet training si on bascule sur équipe
-  const handleSelectKey = useCallback((key: string) => {
-    setSelectedKey(key)
-    if (key === TEAM_ID && sub === 'training') setSub('notes')
-  }, [sub])
+  // Champion le plus joué en team par joueur
+  const topChampByPlayer = useMemo(() => {
+    const counts: Record<string, Record<string, number>> = {}
+    for (const match of matches) {
+      for (const p of (match.team_match_participants ?? [])) {
+        if (!p.player_id || !p.champion_name) continue
+        if (!counts[p.player_id]) counts[p.player_id] = {}
+        counts[p.player_id][p.champion_name] = (counts[p.player_id][p.champion_name] || 0) + 1
+      }
+    }
+    const result: Record<string, string> = {}
+    for (const [pid, champCounts] of Object.entries(counts)) {
+      result[pid] = Object.entries(champCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? ''
+    }
+    return result
+  }, [matches])
 
-  const isTeam = selectedKey === TEAM_ID
+  const POSITION_ORDER = ['TOP', 'JNG', 'MID', 'ADC', 'SUP']
+  const sortedPlayers = [...players].sort((a, b) => {
+    const ai = POSITION_ORDER.indexOf((a.position ?? '').toUpperCase())
+    const bi = POSITION_ORDER.indexOf((b.position ?? '').toUpperCase())
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+  })
+
+  const isTeam   = selectedKey === TEAM_ID
   const playerId = isTeam ? null : selectedKey
-  const selectedPlayer = players.find((p) => p.id === playerId)
+  const player   = players.find(p => p.id === playerId)
 
   return (
-    <div className="flex gap-0 w-full -ml-6 -mr-6 min-h-0">
-      {/* Sidebar */}
-      <div className="w-56 shrink-0 border-r border-dark-border bg-dark-bg/30 flex flex-col">
-        <div className="p-3 border-b border-dark-border">
-          <p className="text-xs font-semibold tracking-widest text-gray-500 uppercase px-2">
-            Coaching
-          </p>
+    <div className="flex gap-0 w-full -ml-6 -mr-6 min-h-0 h-full">
+
+      {/* ── Sidebar ── */}
+      <div className="w-60 shrink-0 border-r border-dark-border flex flex-col bg-dark-bg/20">
+        <div className="px-4 py-4 border-b border-dark-border">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Coaching</p>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+
           {/* Équipe */}
-          <button
-            type="button"
-            onClick={() => handleSelectKey(TEAM_ID)}
-            className={`w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${
-              selectedKey === TEAM_ID
-                ? 'bg-accent-blue/15 text-white border border-accent-blue/30'
-                : 'text-gray-400 hover:text-white hover:bg-dark-card'
-            }`}
-          >
-            <Users size={14} className="shrink-0" />
-            <span>Équipe</span>
-          </button>
+          <PlayerCard
+            label="Équipe"
+            sublabel="Notes globales"
+            imageUrl={team?.logo_url}
+            isActive={selectedKey === TEAM_ID}
+            onClick={() => setSelectedKey(TEAM_ID)}
+          />
 
           {players.length > 0 && (
             <>
-              <p className="text-[10px] text-gray-600 uppercase tracking-widest px-3 mt-3 mb-1">
-                Joueurs
-              </p>
-              {players.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => handleSelectKey(p.id)}
-                  className={`w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${
-                    selectedKey === p.id
-                      ? 'bg-accent-blue/15 text-white border border-accent-blue/30'
-                      : 'text-gray-400 hover:text-white hover:bg-dark-card'
-                  }`}
-                >
-                  <User size={14} className="shrink-0" />
-                  <span className="truncate">{p.player_name || p.pseudo}</span>
-                </button>
-              ))}
+              <div className="px-3 pt-4 pb-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
+                  Joueurs · {players.length}
+                </p>
+              </div>
+              {sortedPlayers.map(p => {
+                const champId = topChampByPlayer[p.id]
+                return (
+                  <PlayerCard
+                    key={p.id}
+                    label={p.player_name || p.pseudo}
+                    position={p.position}
+                    imageUrl={champId ? getChampionImage(champId) : null}
+                    isActive={selectedKey === p.id}
+                    onClick={() => setSelectedKey(p.id)}
+                  />
+                )
+              })}
             </>
           )}
         </div>
       </div>
 
-      {/* Main */}
-      <div className="flex-1 min-w-0 p-6 overflow-y-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="font-display text-3xl font-bold mb-1">
-            {isTeam ? 'Équipe' : (selectedPlayer?.player_name || selectedPlayer?.pseudo || 'Joueur')}
-          </h2>
-          <p className="text-gray-400 text-sm">
-            {isTeam ? 'Notes et objectifs pour toute l\'équipe' : 'Notes et objectifs individuels'}
-          </p>
+      {/* ── Contenu ── */}
+      <div className="flex-1 min-w-0 flex overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-8 py-8 space-y-4 min-w-0">
+
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="font-display text-2xl font-bold text-white">
+                {isTeam ? 'Équipe' : (player?.player_name || player?.pseudo || 'Joueur')}
+              </h2>
+              {player?.position && (
+                <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full border ${
+                  POSITION_COLORS[player.position?.toUpperCase()] ?? 'text-gray-400'
+                } bg-dark-card border-dark-border`}>
+                  {player.position}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500">
+              {isTeam ? 'Notes, objectifs et VODs pour toute l\'équipe' : 'Fiche coaching individuelle'}
+            </p>
+          </div>
+
+          {/* Sections */}
+          {team?.id && (
+            <>
+              <NotesSection      teamId={team.id} playerId={playerId} onAction={bumpFeed} />
+              <ObjectivesSection teamId={team.id} playerId={playerId} onAction={bumpFeed} />
+              <VodsSection       teamId={team.id} playerId={playerId} onAction={bumpFeed} />
+              {!isTeam && playerId && (
+                <TrainChampSection playerId={playerId} />
+              )}
+            </>
+          )}
         </div>
 
-        {/* Sub tabs */}
-        <div className="flex gap-0 mb-6 border-b border-dark-border">
-          {(isTeam ? SUBS : PLAYER_SUBS).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setSub(id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                sub === id
-                  ? 'border-accent-blue text-white'
-                  : 'border-transparent text-gray-400 hover:text-white hover:border-dark-border'
-              }`}
-            >
-              <Icon size={14} />
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        {!team?.id ? (
-          <div className="text-gray-600 text-sm">Chargement...</div>
-        ) : sub === 'notes' ? (
-          <NotesTab teamId={team.id} playerId={playerId} />
-        ) : sub === 'objectives' ? (
-          <ObjectivesTab teamId={team.id} playerId={playerId} />
-        ) : sub === 'training' && playerId ? (
-          <TrainChampTab playerId={playerId} />
-        ) : (
-          <VodsTab teamId={team.id} playerId={playerId} />
+        {/* ── Activity feed ── */}
+        {team?.id && (
+          <ActivityFeed teamId={team.id} players={sortedPlayers} playerId={playerId} refreshKey={feedKey} />
         )}
       </div>
     </div>

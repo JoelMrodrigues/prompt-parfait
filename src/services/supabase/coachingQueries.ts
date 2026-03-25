@@ -131,3 +131,18 @@ export async function deleteVod(id: string) {
   const { error } = await supabase.from('coaching_vods').delete().eq('id', id)
   return { error }
 }
+
+// ─── Activity Feed ─────────────────────────────────────────────────────────────
+
+export async function fetchActivityFeed(teamId: string) {
+  const [notesRes, objRes, vodsRes] = await Promise.all([
+    supabase.from('coaching_notes').select('id,player_id,content,created_at').eq('team_id', teamId).order('created_at', { ascending: false }).limit(15),
+    supabase.from('coaching_objectives').select('id,player_id,title,status,created_at').eq('team_id', teamId).order('created_at', { ascending: false }).limit(15),
+    supabase.from('coaching_vods').select('id,player_id,description,url,created_at').eq('team_id', teamId).order('created_at', { ascending: false }).limit(10),
+  ])
+  return {
+    notes:      notesRes.data ?? [],
+    objectives: objRes.data ?? [],
+    vods:       vodsRes.data ?? [],
+  }
+}
