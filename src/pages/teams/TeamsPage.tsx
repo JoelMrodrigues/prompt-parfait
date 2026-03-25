@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
   Loader2, Plus, Link as LinkIcon, X, Trash2,
-  Camera, Swords, Trophy, Users, Gamepad2,
+  Camera, Swords, Trophy, Users, Gamepad2, Crown, UserCheck,
 } from 'lucide-react'
 import { useTeam } from '../team/hooks/useTeam'
 import { useAuth } from '../../contexts/AuthContext'
@@ -170,34 +170,93 @@ function TeamCard({
   onClick: () => void
   onDelete: () => void
 }) {
+  const typeInfo = TEAM_TYPES.find(t => t.id === team.team_type)
+
   return (
     <div
       onClick={disabled ? undefined : onClick}
-      className={`relative bg-dark-card border rounded-2xl p-5 transition-colors ${
-        disabled ? 'cursor-default' : 'cursor-pointer hover:border-gray-600'
-      } ${isActive ? 'border-accent-blue/50' : 'border-dark-border'} ${
-        isSwitching ? 'opacity-50' : ''
-      }`}
+      className={`relative rounded-2xl overflow-hidden h-36 border-2 transition-all duration-200 group ${
+        disabled ? 'cursor-default' : 'cursor-pointer'
+      } ${isActive
+        ? 'border-accent-blue shadow-[0_0_0_1px_rgba(99,102,241,0.5),0_0_30px_rgba(99,102,241,0.35)]'
+        : 'border-dark-border hover:-translate-y-1 hover:border-white/40 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_0_40px_rgba(255,255,255,0.12),0_12px_40px_rgba(0,0,0,0.7)]'
+      } ${isSwitching ? 'opacity-50' : ''}`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <p className="font-semibold text-white text-sm">{team.team_name}</p>
-        <div className="flex items-center gap-1.5">
-          {isSwitching && <Loader2 size={14} className="animate-spin text-accent-blue" />}
-          {canDelete && (
-            <button
-              onClick={e => { e.stopPropagation(); onDelete() }}
-              className="text-gray-600 hover:text-red-400 transition-colors p-0.5 rounded"
-              title="Supprimer l'équipe"
-            >
-              <Trash2 size={13} />
-            </button>
+      {/* Fond de base */}
+      <div className="absolute inset-0 bg-dark-card" />
+
+      {/* Logo en fond à droite */}
+      {team.logo_url && (
+        <>
+          <img
+            src={team.logo_url}
+            alt=""
+            aria-hidden
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-16 h-16 object-contain opacity-80 group-hover:opacity-95 transition-opacity"
+          />
+          {/* Gradient gauche pour lisibilité du texte */}
+          <div className="absolute inset-0 bg-gradient-to-r from-dark-card from-50% to-transparent" />
+        </>
+      )}
+
+      {/* Contenu */}
+      <div className="relative z-10 flex flex-col justify-between h-full p-4">
+
+        {/* Top — nom + delete */}
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <p className="font-bold text-white text-sm leading-tight pr-2 truncate">{team.team_name}</p>
+            {/* Badges owner / membre + membres */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {canDelete ? (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/25 px-1.5 py-0.5 rounded-full">
+                  <Crown size={9} />Owner
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 bg-gray-500/10 border border-gray-500/20 px-1.5 py-0.5 rounded-full">
+                  <UserCheck size={9} />Membre
+                </span>
+              )}
+              {team.member_count != null && (
+                <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <Users size={9} />
+                  {team.member_count}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {isSwitching && <Loader2 size={13} className="animate-spin text-accent-blue" />}
+            {canDelete && (
+              <button
+                onClick={e => { e.stopPropagation(); onDelete() }}
+                className="p-1 rounded-lg text-gray-600 hover:text-red-400 hover:bg-black/30 transition-colors"
+                title="Supprimer l'équipe"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom — type + badge active */}
+        <div className="flex items-center justify-between">
+          {typeInfo ? (
+            <span className={`flex items-center gap-1 text-[11px] font-medium ${typeInfo.color}`}>
+              <typeInfo.icon size={11} />
+              {typeInfo.label}
+            </span>
+          ) : (
+            <span className="text-[11px] text-gray-500">{team.team_type ?? '—'}</span>
+          )}
+          {isActive && (
+            <span className="text-[10px] font-bold text-accent-blue bg-accent-blue/15 border border-accent-blue/30 px-2 py-0.5 rounded-full">
+              Active
+            </span>
           )}
         </div>
+
       </div>
-      <p className="text-xs text-gray-500">{team.team_type ?? '—'}</p>
-      {isActive && (
-        <span className="inline-block mt-2 text-[10px] font-bold text-accent-blue">● Active</span>
-      )}
     </div>
   )
 }

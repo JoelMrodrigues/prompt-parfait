@@ -47,17 +47,27 @@ export async function fetchAllTeams(userId: string) {
     { data: ownTeams, error: err1 },
     { data: memberRows, error: err2 },
   ] = await Promise.all([
-    supabase.from('teams').select('*').eq('user_id', userId).order('created_at', { ascending: true }),
-    supabase.from('team_members').select('teams(*)').eq('user_id', userId),
+    supabase.from('teams').select('*, team_members(count)').eq('user_id', userId).order('created_at', { ascending: true }),
+    supabase.from('team_members').select('teams(*, team_members(count))').eq('user_id', userId),
   ])
 
-  const ownIds = new Set((ownTeams || []).map((t) => t.id))
+  const normalize = (t: any) => ({
+    ...t,
+    // team_members(count) retourne [{ count: N }] — on ajoute 1 pour le owner
+    member_count: (t?.team_members?.[0]?.count ?? 0) + 1,
+    team_members: undefined,
+  })
+
+  const ownIds = new Set((ownTeams || []).map((t: any) => t.id))
   const joinedTeams = (memberRows || [])
     .map((r: any) => r.teams)
     .filter((t: any) => t && !ownIds.has(t.id))
 
   return {
-    data: [...(ownTeams || []), ...joinedTeams],
+    data: [
+      ...(ownTeams || []).map(normalize),
+      ...joinedTeams.map(normalize),
+    ],
     error: err1 || err2,
   }
 }

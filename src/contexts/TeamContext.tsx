@@ -42,6 +42,7 @@ export interface Team {
   created_at?: string
   lp_goal?: number | null
   lp_goal_deadline?: string | null
+  member_count?: number
 }
 
 export interface Player {
