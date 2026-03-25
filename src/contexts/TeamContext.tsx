@@ -85,7 +85,7 @@ export interface TeamContextValue {
   removeChampionFromPool: (poolId: string) => Promise<void>
   refetch: () => Promise<void>
   getInviteLink: () => Promise<string | null>
-  joinTeamByToken: (token: string) => Promise<{ success: boolean; error?: string; teamName?: string }>
+  joinTeamByToken: (token: string, role?: string, position?: string | null, playerId?: string | null) => Promise<{ success: boolean; error?: string; teamName?: string }>
   isTeamOwner: boolean
 }
 
@@ -299,10 +299,10 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const joinTeamByToken = async (token: string) => {
+  const joinTeamByToken = async (token: string, role = 'member', position: string | null = null, playerId: string | null = null) => {
     if (!token || !user || !supabase) return { success: false, error: 'Token ou utilisateur invalide' }
     try {
-      const { data, error } = await joinTeamByTokenQuery(token)
+      const { data, error } = await joinTeamByTokenQuery(token, role, position, playerId)
       if (error) return { success: false, error: error.message }
       const result = data || {}
       if (!result.success) return { success: false, error: result.error || 'Lien invalide' }

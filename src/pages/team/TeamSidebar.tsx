@@ -22,6 +22,7 @@ import {
   Upload,
   LineChart,
   PanelLeftOpen,
+  ShieldCheck,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
@@ -35,6 +36,7 @@ const SIDEBAR_GROUPS = [
       { id: 'overview', label: "Vue d'ensemble", icon: Home, path: '/team/overview' },
       { id: 'joueurs', label: 'Joueurs', icon: UserCircle, path: '/team/joueurs' },
       { id: 'champion-pool', label: 'Pool de Champions', icon: Users, path: '/team/champion-pool' },
+      { id: 'members', label: 'Membres', icon: ShieldCheck, path: '/team/members', ownerOnly: true },
     ],
   },
   {
@@ -117,7 +119,7 @@ export const TeamSidebar = () => {
             <PanelLeftOpen size={15} />
           </button>
           <div className="w-5 h-px bg-dark-border/60 mb-1" />
-          {SIDEBAR_GROUPS.flatMap((g) => g.items).map((item) => {
+          {SIDEBAR_GROUPS.flatMap((g) => g.items).filter((item) => !('ownerOnly' in item) || !item.ownerOnly || isTeamOwner).map((item) => {
             const Icon = item.icon
             return (
               <NavLink
@@ -273,7 +275,7 @@ export const TeamSidebar = () => {
               {group.label}
             </p>
             <ul className="space-y-0.5">
-              {group.items.map((item) => {
+              {group.items.filter((item) => !('ownerOnly' in item) || !item.ownerOnly || isTeamOwner).map((item) => {
                 const Icon = item.icon
                 return (
                   <li key={item.id}>
