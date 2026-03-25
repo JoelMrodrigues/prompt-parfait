@@ -239,7 +239,12 @@ function SessionCard({
 
 // ─── Calendar Tab ─────────────────────────────────────────────────────────────
 
-function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[] }) {
+function CalendarTab({ teamId, allMatches, avail, players }: {
+  teamId: string
+  allMatches: any[]
+  avail: Map<string, boolean>
+  players: any[]
+}) {
   const today = new Date()
   const [year, setYear]         = useState(today.getFullYear())
   const [month, setMonth]       = useState(today.getMonth() + 1)
@@ -414,6 +419,12 @@ function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[]
               const todayDay    = day ? isToday(day) : false
               const hasActivity = daySessions.length > 0 || dayMatches.length > 0
 
+              // Jour dispo scrim = tous les joueurs dispo sur le même créneau ce jour de semaine
+              const dow = day ? (new Date(year, month - 1, day).getDay() + 6) % 7 : -1 // 0=Lun
+              const isScrimDay = day && players.length > 0 && SLOTS.some((slot) =>
+                players.every((p) => avail.get(`${p.id}-${dow}-${slot}`))
+              )
+
               return (
                 <div
                   key={idx}
@@ -423,17 +434,25 @@ function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[]
                     min-h-[88px] p-2 border-b border-r border-dark-border/40 transition-all select-none relative
                     ${day ? 'cursor-pointer' : 'bg-dark-bg/20 pointer-events-none'}
                     ${isSelected ? 'bg-accent-blue/10' : day ? 'hover:bg-dark-bg/50' : ''}
+                    ${isScrimDay && !isSelected ? 'ring-1 ring-inset ring-emerald-500/20' : ''}
                   `}
                 >
                   {day && (
                     <>
-                      {/* Numéro du jour */}
-                      <span className={`
-                        text-xs font-bold inline-flex w-6 h-6 items-center justify-center rounded-full transition-all
-                        ${todayDay ? 'bg-accent-blue !text-white shadow-lg shadow-accent-blue/30' : isSelected ? 'text-accent-blue' : 'text-gray-400'}
-                      `}>
-                        {day}
-                      </span>
+                      {/* Numéro du jour + badge scrim */}
+                      <div className="flex items-center justify-between">
+                        <span className={`
+                          text-xs font-bold inline-flex w-6 h-6 items-center justify-center rounded-full transition-all
+                          ${todayDay ? 'bg-accent-blue !text-white shadow-lg shadow-accent-blue/30' : isSelected ? 'text-accent-blue' : 'text-gray-400'}
+                        `}>
+                          {day}
+                        </span>
+                        {isScrimDay && (
+                          <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 rounded px-1 leading-4">
+                            dispo
+                          </span>
+                        )}
+                      </div>
 
                       {/* Dots matchs joués — un rond par game */}
                       {dayMatches.length > 0 && (
@@ -500,37 +519,7 @@ function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[]
       {/* ── Colonne droite : panel ── */}
       <div className="w-[380px] shrink-0 flex flex-col gap-4 sticky top-6 max-h-[calc(100vh-160px)] overflow-y-auto">
 
-        {/* Matchs joués ce jour */}
-        {selectedDay && matchesByDay.get(selectedDay)?.length ? (
-          <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
-              <div>
-                <h4 className="font-display font-bold text-white text-base leading-tight">
-                  {selectedDay} {MONTH_NAMES[month - 1]}
-                </h4>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  {matchesByDay.get(selectedDay)!.length} match{matchesByDay.get(selectedDay)!.length > 1 ? 's' : ''} joué{matchesByDay.get(selectedDay)!.length > 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold text-emerald-400">
-                  {matchesByDay.get(selectedDay)!.filter((m) => m.our_win).length}W
-                </span>
-                <span className="text-gray-700">–</span>
-                <span className="text-xs font-semibold text-rose-400">
-                  {matchesByDay.get(selectedDay)!.filter((m) => !m.our_win).length}L
-                </span>
-              </div>
-            </div>
-            <div className="p-3 space-y-2">
-              {matchesByDay.get(selectedDay)!.map((m) => (
-                <MatchRow key={m.id} match={m} compact />
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Sessions planifiées */}
+        {/* Sessions planifiées — toujours en premier */}
         <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
             <div>
@@ -591,6 +580,34 @@ function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[]
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Matchs joués ce jour — toujours en dessous */}
+        {selectedDay && matchesByDay.get(selectedDay)?.length ? (
+          <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
+              <div>
+                <h4 className="font-display font-bold text-white text-base leading-tight">Matchs joués</h4>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  {matchesByDay.get(selectedDay)!.length} match{matchesByDay.get(selectedDay)!.length > 1 ? 's' : ''} ce jour
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-emerald-400">
+                  {matchesByDay.get(selectedDay)!.filter((m) => m.our_win).length}W
+                </span>
+                <span className="text-gray-700">–</span>
+                <span className="text-xs font-semibold text-rose-400">
+                  {matchesByDay.get(selectedDay)!.filter((m) => !m.our_win).length}L
+                </span>
+              </div>
+            </div>
+            <div className="p-3 space-y-2">
+              {matchesByDay.get(selectedDay)!.map((m) => (
+                <MatchRow key={m.id} match={m} compact />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {showAddModal && (
@@ -602,17 +619,17 @@ function CalendarTab({ teamId, allMatches }: { teamId: string; allMatches: any[]
 
 // ─── Availability Tab ─────────────────────────────────────────────────────────
 
-function AvailabilityTab({ teamId, players }: { teamId: string; players: any[] }) {
-  const [avail, setAvail] = useState<Map<string, boolean>>(new Map())
-
-  useEffect(() => {
-    fetchAvailability(teamId).then(({ data }) => {
-      if (!data) return
-      const m = new Map<string, boolean>()
-      for (const row of data) m.set(`${row.player_id}-${row.day_of_week}-${row.slot}`, row.available)
-      setAvail(m)
-    })
-  }, [teamId])
+function AvailabilityTab({
+  players,
+  avail,
+  setAvail,
+  teamId,
+}: {
+  teamId: string
+  players: any[]
+  avail: Map<string, boolean>
+  setAvail: React.Dispatch<React.SetStateAction<Map<string, boolean>>>
+}) {
 
   const getAvail = (playerId: string, day: number, slot: string) =>
     avail.get(`${playerId}-${day}-${slot}`) ?? false
@@ -632,92 +649,87 @@ function AvailabilityTab({ teamId, players }: { teamId: string; players: any[] }
     )
   }
 
-  // Calcul dispo globale par créneau (pour le récap en haut)
-  const availSummary = useMemo(() => {
-    return [0, 1, 2, 3, 4, 5, 6].map((day) =>
-      SLOTS.map((slot) => players.filter((p) => getAvail(p.id, day, slot)).length)
-    )
-  }, [avail, players])
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          Cliquez sur un créneau pour activer / désactiver la disponibilité.{' '}
-          <span className="text-gray-600">Sauvegarde automatique.</span>
-        </p>
-      </div>
+    <div className="space-y-3">
+      <p className="text-xs text-gray-600">
+        Cliquez sur un créneau pour activer / désactiver.{' '}
+        <span className="text-gray-700">Sauvegarde automatique.</span>
+      </p>
 
       <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
-              {/* Ligne récap disponibilités */}
-              <tr className="border-b border-dark-border/50">
-                <th className="px-6 py-3 text-left" colSpan={2}>
-                  <span className="text-xs text-gray-600 font-normal">Joueurs dispo ↓</span>
-                </th>
-                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                  <th key={d} className="text-center px-3 py-3" colSpan={1}>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{DAY_LABELS[d]}</span>
-                      <div className="flex gap-0.5">
-                        {SLOTS.map((_, si) => {
-                          const count = availSummary[d]?.[si] ?? 0
-                          const pct   = players.length > 0 ? count / players.length : 0
-                          return (
-                            <div key={si}
-                              className={`w-1.5 h-4 rounded-sm transition-all ${
-                                pct === 0 ? 'bg-dark-bg' :
-                                pct < 0.5 ? 'bg-amber-500/40' :
-                                pct < 1   ? 'bg-emerald-500/40' :
-                                'bg-emerald-500/70'
-                              }`}
-                              title={`${SLOT_LABELS[Object.keys(SLOT_LABELS)[si]]}: ${count}/${players.length}`}
-                            />
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-              {/* Ligne header joueur / créneau */}
+              {/* Header jours + barres récap */}
               <tr className="border-b border-dark-border">
-                <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-widest">Joueur</th>
-                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-widest">Créneau</th>
-                {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                  <th key={d} className="text-center px-3 py-3 w-16" />
-                ))}
+                <th className="text-left px-4 py-2 text-xs font-bold text-gray-600 uppercase tracking-widest w-36">Joueur</th>
+                <th className="text-left px-3 py-2 text-xs font-bold text-gray-600 uppercase tracking-widest w-24">Créneau</th>
+                {[0, 1, 2, 3, 4, 5, 6].map((d) => {
+                  // Scrim potentiel = au moins un créneau où TOUS les joueurs sont dispo simultanément
+                  const sharedSlot = players.length > 0 && SLOTS.some((slot) =>
+                    players.every((p) => avail.get(`${p.id}-${d}-${slot}`))
+                  )
+                  // Barre par joueur = dispo sur au moins un créneau ce jour
+                  const playerDispo = players.map((p) =>
+                    SLOTS.some((slot) => avail.get(`${p.id}-${d}-${slot}`))
+                  )
+                  return (
+                    <th key={d} className="text-center px-2 py-2">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                          {DAY_LABELS[d]}
+                        </span>
+                        <div className="flex gap-0.5">
+                          {playerDispo.map((dispo, pi) => (
+                            <div
+                              key={pi}
+                              className={`w-1 h-3 rounded-sm transition-all ${dispo ? 'bg-emerald-400' : 'bg-dark-bg border border-dark-border/50'}`}
+                              title={`${players[pi]?.player_name || players[pi]?.pseudo}: ${dispo ? 'dispo' : 'indispo'}`}
+                            />
+                          ))}
+                        </div>
+                        <span
+                          className={`text-[9px] font-bold uppercase tracking-wide px-1 py-0.5 rounded transition-all ${
+                            sharedSlot
+                              ? 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30'
+                              : 'text-gray-700 bg-dark-bg border border-dark-border/30'
+                          }`}
+                        >
+                          scrim
+                        </span>
+                      </div>
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
               {players.map((player, pi) =>
                 SLOTS.map((slot, si) => (
                   <tr key={`${player.id}-${slot}`} className={`
-                    transition-colors hover:bg-dark-bg/30
-                    ${si === 0 && pi > 0 ? 'border-t-2 border-dark-border/60' : ''}
-                    ${si > 0 ? 'border-t border-dark-border/20' : ''}
+                    transition-colors hover:bg-dark-bg/20
+                    ${si === 0 && pi > 0 ? 'border-t border-dark-border/50' : ''}
+                    ${si > 0 ? 'border-t border-dark-border/10' : ''}
                   `}>
-                    <td className="px-6 py-3 w-44">
-                      {si === 0 && (
-                        <span className="text-sm font-bold text-white">
+                    {si === 0 && (
+                      <td rowSpan={3} className="px-4 w-36 align-middle">
+                        <span className="text-xs font-bold text-white">
                           {player.player_name || player.pseudo}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 w-32">
-                      <span className="text-xs text-gray-500 font-semibold">{SLOT_LABELS[slot]}</span>
+                      </td>
+                    )}
+                    <td className="px-3 py-1.5 w-24">
+                      <span className="text-xs text-white">{SLOT_LABELS[slot]}</span>
                     </td>
                     {[0, 1, 2, 3, 4, 5, 6].map((day) => {
                       const on = getAvail(player.id, day, slot)
                       return (
-                        <td key={day} className="text-center px-3 py-3">
+                        <td key={day} className="text-center px-2 py-1.5">
                           <button type="button" onClick={() => toggle(player.id, day, slot)}
-                            className={`w-9 h-9 rounded-xl border text-sm font-bold transition-all ${
+                            className={`w-7 h-7 rounded-lg border text-xs font-bold transition-all ${
                               on
-                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/10 scale-105'
-                                : 'bg-dark-bg border-dark-border text-transparent hover:border-gray-500 hover:scale-105'
+                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                                : 'bg-dark-bg border-dark-border text-transparent hover:border-gray-600'
                             }`}
                           >✓</button>
                         </td>
@@ -740,9 +752,20 @@ export const PlanningPage = () => {
   const { team, players = [] } = useTeam()
   const { matches } = useTeamMatches(team?.id)
   const [tab, setTab] = useState<Tab>('calendar')
+  const [avail, setAvail] = useState<Map<string, boolean>>(new Map())
+
+  useEffect(() => {
+    if (!team?.id) return
+    fetchAvailability(team.id).then(({ data }) => {
+      if (!data) return
+      const m = new Map<string, boolean>()
+      for (const row of data) m.set(`${row.player_id}-${row.day_of_week}-${row.slot}`, row.available)
+      setAvail(m)
+    })
+  }, [team?.id])
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full flex flex-col">
       {/* Header */}
       <div className="mb-5 flex items-end justify-between">
         <div>
@@ -770,9 +793,9 @@ export const PlanningPage = () => {
       {!team?.id ? (
         <div className="text-gray-600 text-sm">Chargement...</div>
       ) : tab === 'calendar' ? (
-        <CalendarTab teamId={team.id} allMatches={matches} />
+        <CalendarTab teamId={team.id} allMatches={matches} avail={avail} players={players} />
       ) : (
-        <AvailabilityTab teamId={team.id} players={players} />
+        <AvailabilityTab teamId={team.id} players={players} avail={avail} setAvail={setAvail} />
       )}
     </div>
   )
