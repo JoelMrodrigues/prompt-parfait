@@ -23,7 +23,7 @@ export const Toast = ({ message, type = 'info', onClose }) => {
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
       role={type === 'error' ? 'alert' : 'status'}
       aria-live={type === 'error' ? 'assertive' : 'polite'}
-      className={`fixed top-4 right-4 z-50 min-w-[300px] p-4 rounded-lg border-2 ${COLORS[type]} backdrop-blur-sm`}
+      className={`fixed top-4 right-4 z-[9999] min-w-[300px] p-4 rounded-lg border-2 ${COLORS[type]} backdrop-blur-sm`}
     >
       <div className="flex items-start gap-3">
         <Icon size={20} className="mt-0.5 flex-shrink-0" />
@@ -40,7 +40,7 @@ export const ToastContainer = ({ toasts, removeToast }) => {
   return (
     <AnimatePresence>
       {toasts.map((toast, index) => (
-        <div key={toast.id} style={{ top: `${4 + index * 80}px` }} className="fixed right-4">
+        <div key={toast.id} style={{ top: `${4 + index * 80}px` }} className="fixed right-4 z-[9999]">
           <Toast message={toast.message} type={toast.type} onClose={() => removeToast(toast.id)} />
         </div>
       ))}

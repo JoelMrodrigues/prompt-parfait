@@ -3,7 +3,8 @@
  * Affiche les 8 slots (5 joueurs + 3 staff) avec l'email de celui qui a rejoint
  * et permet de virer un membre.
  */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, UserX, RefreshCw, ShieldAlert, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -47,8 +48,11 @@ export const TeamMembersPage = () => {
 
   const [members, setMembers] = useState<TeamMemberWithEmail[]>([])
   const [loading, setLoading] = useState(true)
-  const [kicking, setKicking] = useState<string | null>(null) // user_id en cours
+  const [kicking, setKicking] = useState<string | null>(null)
   const [settingCoOwner, setSettingCoOwner] = useState<string | null>(null)
+  const [coOwnerModal, setCoOwnerModal] = useState<{ member: TeamMemberWithEmail; makeCoOwner: boolean; label: string } | null>(null)
+  const [coOwnerConfirm, setCoOwnerConfirm] = useState('')
+  const confirmInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     if (!team?.id) return
@@ -77,13 +81,22 @@ export const TeamMembersPage = () => {
     }
   }
 
-  const handleSetCoOwner = async (member: TeamMemberWithEmail, makeCoOwner: boolean) => {
-    if (!team?.id) return
+  const openCoOwnerModal = (member: TeamMemberWithEmail, makeCoOwner: boolean, label: string) => {
+    setCoOwnerConfirm('')
+    setCoOwnerModal({ member, makeCoOwner, label })
+    setTimeout(() => confirmInputRef.current?.focus(), 50)
+  }
+
+  const handleSetCoOwner = async () => {
+    if (!team?.id || !coOwnerModal) return
+    const { member, makeCoOwner, label } = coOwnerModal
+    setCoOwnerModal(null)
+    setCoOwnerConfirm('')
     setSettingCoOwner(member.user_id)
     const { error } = await setCoOwner(team.id, member.user_id, makeCoOwner)
     setSettingCoOwner(null)
     if (!error) {
-      addToast(makeCoOwner ? 'Co-owner désigné.' : 'Co-owner révoqué.', 'success')
+      addToast(makeCoOwner ? `${label} est maintenant co-owner.` : `Co-owner révoqué pour ${label}.`, 'success')
       setMembers(prev => prev.map(m => m.user_id === member.user_id ? { ...m, role: makeCoOwner ? 'co_owner' : 'player' } : m))
     } else {
       addToast('Erreur.', 'error')
@@ -154,7 +167,7 @@ export const TeamMembersPage = () => {
                     onKick={() => member && handleKick(member, displayName ?? slot.abbr)}
                     canManageTeam={canManageTeam}
                     memberRole={member?.role}
-                    onSetCoOwner={(makeCoOwner) => member && handleSetCoOwner(member, makeCoOwner)}
+                    onSetCoOwner={(makeCoOwner) => member && openCoOwnerModal(member, makeCoOwner, displayName ?? slot.abbr)}
                     settingCoOwner={settingCoOwner === member?.user_id}
                   />
                 )
@@ -179,7 +192,7 @@ export const TeamMembersPage = () => {
                     onKick={() => member && handleKick(member, slot.label)}
                     canManageTeam={canManageTeam}
                     memberRole={member?.role}
-                    onSetCoOwner={(makeCoOwner) => member && handleSetCoOwner(member, makeCoOwner)}
+                    onSetCoOwner={(makeCoOwner) => member && openCoOwnerModal(member, makeCoOwner, slot.label)}
                     settingCoOwner={settingCoOwner === member?.user_id}
                   />
                 )
@@ -219,7 +232,7 @@ export const TeamMembersPage = () => {
                       onKick={() => handleKick(m, m.email)}
                       canManageTeam={canManageTeam}
                       memberRole={m.role}
-                      onSetCoOwner={(makeCoOwner) => handleSetCoOwner(m, makeCoOwner)}
+                      onSetCoOwner={(makeCoOwner) => openCoOwnerModal(m, makeCoOwner, m.email)}
                       settingCoOwner={settingCoOwner === m.user_id}
                     />
                   ))}
@@ -244,6 +257,71 @@ export const TeamMembersPage = () => {
           Vous (owner) n'êtes pas affiché dans cette liste.
         </p>
       </div>
+
+      {/* Modal confirmation co-owner */}
+      {coOwnerModal && createPortal(
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md space-y-5"
+          >
+            {/* Icon + titre */}
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-14 h-14 rounded-full bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-3xl">
+                👑
+              </div>
+              <div>
+                <h2 className="font-display text-lg font-bold text-white">
+                  {coOwnerModal.makeCoOwner ? 'Désigner co-owner' : 'Révoquer co-owner'}
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  {coOwnerModal.makeCoOwner
+                    ? <>Vous êtes sur le point de donner les droits co-owner à <span className="text-white font-medium">{coOwnerModal.label}</span> ({coOwnerModal.member.email}).<br/>Cette personne pourra gérer l'équipe comme vous.</>
+                    : <>Révoquer les droits co-owner de <span className="text-white font-medium">{coOwnerModal.label}</span> ({coOwnerModal.member.email}).</>
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Champ de confirmation */}
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 text-center">
+                Tapez <span className="font-mono font-bold text-yellow-400">autoriser</span> pour confirmer
+              </p>
+              <input
+                ref={confirmInputRef}
+                type="text"
+                value={coOwnerConfirm}
+                onChange={(e) => setCoOwnerConfirm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && coOwnerConfirm === 'autoriser') handleSetCoOwner() }}
+                placeholder="autoriser"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/60 text-center font-mono"
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Boutons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setCoOwnerModal(null); setCoOwnerConfirm('') }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-dark-border text-gray-400 hover:text-white hover:border-gray-600 transition-colors text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSetCoOwner}
+                disabled={coOwnerConfirm !== 'autoriser'}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/30 transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Confirmer
+              </button>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
