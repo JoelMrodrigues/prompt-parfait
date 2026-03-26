@@ -10,7 +10,7 @@ import { Loader2, UserX, RefreshCw, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTeam } from '../hooks/useTeam'
 import { useAuth } from '../../../contexts/AuthContext'
-import { getTeamMembersWithEmail, removeTeamMember, setCoOwner, type TeamMemberWithEmail } from '../../../services/supabase/teamQueries'
+import { getTeamMembersWithEmail, removeTeamMember, setCoOwner, transferOwnership, type TeamMemberWithEmail } from '../../../services/supabase/teamQueries'
 import { useToast } from '../../../contexts/ToastContext'
 
 // ─── Config des slots ──────────────────────────────────────────────────────────
@@ -116,11 +116,16 @@ export const TeamMembersPage = () => {
 
   const handleTransferOwnership = async () => {
     if (!team?.id || !transferModal) return
-    const { label } = transferModal
+    const { member, label } = transferModal
     setTransferModal(null)
     setTransferConfirm('')
-    // TODO: appel RPC transfer_team_ownership quand disponible
-    addToast(`Couronne transmise à ${label}.`, 'info')
+    const { error } = await transferOwnership(team.id, member.user_id)
+    if (!error) {
+      addToast(`Couronne transmise à ${label}. Vous n'êtes plus owner.`, 'success')
+      navigate('/teams')
+    } else {
+      addToast('Erreur lors du transfert.', 'error')
+    }
   }
 
   // Trouver le membre associé à un joueur (par player_id ou par position+role=player)
@@ -170,21 +175,12 @@ export const TeamMembersPage = () => {
               <Mail size={13} className="text-gray-500 shrink-0" />
               <span className="text-sm text-gray-300 truncate">{user?.email ?? '—'}</span>
             </div>
-            {/* Bouton transmettre la couronne — visible uniquement si un membre est disponible */}
-            {members.length > 0 && (
-              <div className="relative group shrink-0">
-                <button
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/10 transition-colors"
-                  title="Transmettre la couronne"
-                  onClick={() => {
-                    // Ouvre un sélecteur — pour l'instant on ouvre sur le premier membre non-spectateur
-                    const eligible = members.find(m => m.role !== 'spectateur')
-                    if (eligible) openTransferModal(eligible, eligible.email)
-                  }}
-                >
-                  👑 Transmettre
-                </button>
-              </div>
+            {/* Sélecteur + bouton transmettre */}
+            {members.filter(m => m.role !== 'spectateur').length > 0 && (
+              <TransferSelector
+                members={members.filter(m => m.role !== 'spectateur')}
+                onSelect={(m) => openTransferModal(m, m.email)}
+              />
             )}
           </motion.div>
         </section>
@@ -544,5 +540,33 @@ function MemberRow({
         )}
       </AnimatePresence>
     </motion.div>
+  )
+}
+
+// ─── Sélecteur de transfert ────────────────────────────────────────────────────
+
+function TransferSelector({ members, onSelect }: { members: TeamMemberWithEmail[]; onSelect: (m: TeamMemberWithEmail) => void }) {
+  const [selectedId, setSelectedId] = useState(members[0]?.user_id ?? '')
+  const selected = members.find(m => m.user_id === selectedId) ?? members[0]
+
+  return (
+    <div className="flex items-center gap-2 shrink-0">
+      <select
+        value={selectedId}
+        onChange={e => setSelectedId(e.target.value)}
+        className="bg-dark-bg border border-dark-border rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-yellow-500/60 max-w-[140px]"
+      >
+        {members.map(m => (
+          <option key={m.user_id} value={m.user_id}>{m.email}</option>
+        ))}
+      </select>
+      <button
+        onClick={() => selected && onSelect(selected)}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/10 transition-colors whitespace-nowrap"
+        title="Transmettre la couronne"
+      >
+        👑 Transmettre
+      </button>
+    </div>
   )
 }
