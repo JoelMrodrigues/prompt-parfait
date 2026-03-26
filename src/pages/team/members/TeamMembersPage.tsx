@@ -6,9 +6,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, UserX, RefreshCw, ShieldAlert, Mail } from 'lucide-react'
+import { Loader2, UserX, RefreshCw, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTeam } from '../hooks/useTeam'
+import { useAuth } from '../../../contexts/AuthContext'
 import { getTeamMembersWithEmail, removeTeamMember, setCoOwner, type TeamMemberWithEmail } from '../../../services/supabase/teamQueries'
 import { useToast } from '../../../contexts/ToastContext'
 
@@ -43,6 +44,7 @@ const STAFF_SLOTS = [
 
 export const TeamMembersPage = () => {
   const { team, players, isTeamOwner, canManageTeam } = useTeam()
+  const { user, profile } = useAuth()
   const navigate = useNavigate()
   const { addToast } = useToast()
 
@@ -53,6 +55,9 @@ export const TeamMembersPage = () => {
   const [coOwnerModal, setCoOwnerModal] = useState<{ member: TeamMemberWithEmail; makeCoOwner: boolean; label: string } | null>(null)
   const [coOwnerConfirm, setCoOwnerConfirm] = useState('')
   const confirmInputRef = useRef<HTMLInputElement>(null)
+  const [transferModal, setTransferModal] = useState<{ member: TeamMemberWithEmail; label: string } | null>(null)
+  const [transferConfirm, setTransferConfirm] = useState('')
+  const transferInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     if (!team?.id) return
@@ -96,11 +101,26 @@ export const TeamMembersPage = () => {
     const { error } = await setCoOwner(team.id, member.user_id, makeCoOwner)
     setSettingCoOwner(null)
     if (!error) {
-      addToast(makeCoOwner ? `${label} est maintenant co-owner.` : `Co-owner révoqué pour ${label}.`, 'success')
+      addToast(makeCoOwner ? `${label} a été honoré co-owner.` : `${label} a été déshonorés.`, 'success')
       setMembers(prev => prev.map(m => m.user_id === member.user_id ? { ...m, role: makeCoOwner ? 'co_owner' : 'player' } : m))
     } else {
       addToast('Erreur.', 'error')
     }
+  }
+
+  const openTransferModal = (member: TeamMemberWithEmail, label: string) => {
+    setTransferConfirm('')
+    setTransferModal({ member, label })
+    setTimeout(() => transferInputRef.current?.focus(), 50)
+  }
+
+  const handleTransferOwnership = async () => {
+    if (!team?.id || !transferModal) return
+    const { label } = transferModal
+    setTransferModal(null)
+    setTransferConfirm('')
+    // TODO: appel RPC transfer_team_ownership quand disponible
+    addToast(`Couronne transmise à ${label}.`, 'info')
   }
 
   // Trouver le membre associé à un joueur (par player_id ou par position+role=player)
@@ -133,6 +153,42 @@ export const TeamMembersPage = () => {
           Actualiser
         </button>
       </div>
+
+      {/* Owner row */}
+      {!loading && (
+        <section>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Propriétaire</p>
+          <motion.div layout className="flex items-center gap-4 px-4 py-3 rounded-xl border bg-dark-card border-yellow-500/30">
+            <span className="text-xl w-7 text-center shrink-0">👑</span>
+            <div className="w-14 shrink-0">
+              <span className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">OWNER</span>
+            </div>
+            <div className="w-28 shrink-0">
+              <span className="text-sm font-semibold text-white">{profile?.display_name ?? '—'}</span>
+            </div>
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              <Mail size={13} className="text-gray-500 shrink-0" />
+              <span className="text-sm text-gray-300 truncate">{user?.email ?? '—'}</span>
+            </div>
+            {/* Bouton transmettre la couronne — visible uniquement si un membre est disponible */}
+            {members.length > 0 && (
+              <div className="relative group shrink-0">
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/10 transition-colors"
+                  title="Transmettre la couronne"
+                  onClick={() => {
+                    // Ouvre un sélecteur — pour l'instant on ouvre sur le premier membre non-spectateur
+                    const eligible = members.find(m => m.role !== 'spectateur')
+                    if (eligible) openTransferModal(eligible, eligible.email)
+                  }}
+                >
+                  👑 Transmettre
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </section>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -249,15 +305,6 @@ export const TeamMembersPage = () => {
         </>
       )}
 
-      {/* Info */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-dark-card border border-dark-border/60 text-sm text-gray-500">
-        <ShieldAlert size={16} className="shrink-0 mt-0.5 text-yellow-500/70" />
-        <p>
-          Seuls les comptes ayant rejoint via le lien d'invitation apparaissent ici.
-          Vous (owner) n'êtes pas affiché dans cette liste.
-        </p>
-      </div>
-
       {/* Modal confirmation co-owner */}
       {coOwnerModal && createPortal(
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -288,15 +335,22 @@ export const TeamMembersPage = () => {
             {/* Champ de confirmation */}
             <div className="space-y-2">
               <p className="text-xs text-gray-500 text-center">
-                Tapez <span className="font-mono font-bold text-yellow-400">autoriser</span> pour confirmer
+                Tapez{' '}
+                <span className="font-mono font-bold text-yellow-400">
+                  {coOwnerModal?.makeCoOwner ? 'honorer' : 'déshonorer'}
+                </span>{' '}
+                pour confirmer
               </p>
               <input
                 ref={confirmInputRef}
                 type="text"
                 value={coOwnerConfirm}
                 onChange={(e) => setCoOwnerConfirm(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && coOwnerConfirm === 'autoriser') handleSetCoOwner() }}
-                placeholder="autoriser"
+                onKeyDown={(e) => {
+                  const word = coOwnerModal?.makeCoOwner ? 'honorer' : 'déshonorer'
+                  if (e.key === 'Enter' && coOwnerConfirm === word) handleSetCoOwner()
+                }}
+                placeholder={coOwnerModal?.makeCoOwner ? 'honorer' : 'déshonorer'}
                 className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/60 text-center font-mono"
                 autoComplete="off"
               />
@@ -312,10 +366,68 @@ export const TeamMembersPage = () => {
               </button>
               <button
                 onClick={handleSetCoOwner}
-                disabled={coOwnerConfirm !== 'autoriser'}
+                disabled={coOwnerConfirm !== (coOwnerModal?.makeCoOwner ? 'honorer' : 'déshonorer')}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/30 transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Confirmer
+              </button>
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
+      {/* Modal transfer ownership */}
+      {transferModal && createPortal(
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-dark-card border border-yellow-500/40 rounded-2xl p-6 w-full max-w-md space-y-5"
+          >
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-14 h-14 rounded-full bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-3xl">
+                👑
+              </div>
+              <div>
+                <h2 className="font-display text-lg font-bold text-white">Transmettre la couronne</h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  Vous êtes sur le point de transférer le rôle d'<span className="text-yellow-400 font-medium">owner</span> à{' '}
+                  <span className="text-white font-medium">{transferModal.label}</span>.
+                  <br />Vous perdrez vos droits owner définitivement.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 text-center">
+                Tapez <span className="font-mono font-bold text-yellow-400">donner la couronne</span> pour confirmer
+              </p>
+              <input
+                ref={transferInputRef}
+                type="text"
+                value={transferConfirm}
+                onChange={(e) => setTransferConfirm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && transferConfirm === 'donner la couronne') handleTransferOwnership() }}
+                placeholder="donner la couronne"
+                className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/60 text-center font-mono"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setTransferModal(null); setTransferConfirm('') }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-dark-border text-gray-400 hover:text-white hover:border-gray-600 transition-colors text-sm"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleTransferOwnership}
+                disabled={transferConfirm !== 'donner la couronne'}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-yellow-500/20 border border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30 transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Transmettre
               </button>
             </div>
           </motion.div>
