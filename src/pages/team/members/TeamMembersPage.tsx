@@ -140,7 +140,7 @@ export const TeamMembersPage = () => {
   if (!isTeamOwner) return null
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -165,15 +165,15 @@ export const TeamMembersPage = () => {
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Propriétaire</p>
           <motion.div layout className="flex items-center gap-4 px-4 py-3 rounded-xl border bg-dark-card border-yellow-500/30">
             <span className="text-xl w-7 text-center shrink-0">👑</span>
-            <div className="w-14 shrink-0">
+            <div className="w-20 shrink-0">
               <span className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">OWNER</span>
             </div>
-            <div className="w-28 shrink-0">
+            <div className="w-36 shrink-0">
               <span className="text-sm font-semibold text-white">{profile?.display_name ?? '—'}</span>
             </div>
             <div className="flex-1 flex items-center gap-2 min-w-0">
               <Mail size={13} className="text-gray-500 shrink-0" />
-              <span className="text-sm text-gray-300 truncate">{user?.email ?? '—'}</span>
+              <span className="text-sm text-gray-300">{user?.email ?? '—'}</span>
             </div>
             {/* Sélecteur + bouton transmettre */}
             {members.filter(m => m.role !== 'spectateur').length > 0 && (
@@ -472,12 +472,12 @@ function MemberRow({
     >
       {/* Slot info */}
       <span className="text-xl w-7 text-center shrink-0">{emoji}</span>
-      <div className="w-14 shrink-0">
+      <div className="w-20 shrink-0">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{abbr}</span>
       </div>
 
       {/* Pseudo joueur */}
-      <div className="w-28 shrink-0">
+      <div className="w-36 shrink-0">
         {playerName ? (
           <span className="text-sm font-semibold text-white">{playerName}</span>
         ) : (
@@ -490,7 +490,7 @@ function MemberRow({
         {hasEmail ? (
           <>
             <Mail size={13} className="text-gray-500 shrink-0" />
-            <span className="text-sm text-gray-300 truncate">{member!.email}</span>
+            <span className="text-sm text-gray-300">{member!.email}</span>
           </>
         ) : (
           <span className="text-xs text-gray-600 italic">Pas encore rejoint</span>
@@ -554,7 +554,7 @@ function TransferSelector({ members, onSelect }: { members: TeamMemberWithEmail[
       <select
         value={selectedId}
         onChange={e => setSelectedId(e.target.value)}
-        className="bg-dark-bg border border-dark-border rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-yellow-500/60 max-w-[140px]"
+        className="bg-dark-bg border border-dark-border rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-yellow-500/60 max-w-[220px]"
       >
         {members.map(m => (
           <option key={m.user_id} value={m.user_id}>{m.email}</option>
