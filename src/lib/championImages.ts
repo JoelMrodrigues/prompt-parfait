@@ -1,7 +1,12 @@
 /** Riot renvoie "MonkeyKing", partout sur le site on affiche "Wukong" (nom + image) */
-const CHAMPION_DISPLAY_NAMES = {
+const CHAMPION_DISPLAY_NAMES: Record<string, string> = {
   MonkeyKing: 'Wukong',
   monkeyking: 'Wukong',
+}
+
+/** Correspondance ID Riot → nom du fichier asset (indépendant du nom d'affichage) */
+const ASSET_NAME_OVERRIDES: Record<string, string> = {
+  monkeyking: 'wukong',
 }
 
 /**
@@ -16,8 +21,8 @@ export function getChampionDisplayName(idOrName) {
 }
 
 function nameForAsset(championName) {
-  const display = getChampionDisplayName(championName) || championName
-  return (display || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const lower = (championName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  return ASSET_NAME_OVERRIDES[lower] ?? lower
 }
 
 /**

@@ -305,10 +305,19 @@ export function useTeamAutoSync() {
               rankData = await rankRes.json().catch(() => ({}))
             }
             if (rankData.success && rankData.rank != null) {
-              await updatePlayerFn(player.id, {
-                rank: rankData.rank,
+              const newRank: string = rankData.rank
+              const lpMatch = newRank.match(/(\d+)\s*LP/i)
+              const currentLp = lpMatch ? parseInt(lpMatch[1], 10) : null
+              const peakLp: number | null | undefined = (player as any).peak_lp_s16
+              const updates: Record<string, unknown> = {
+                rank: newRank,
                 rank_updated_at: new Date().toISOString(),
-              })
+              }
+              if (currentLp != null && (peakLp == null || currentLp > peakLp)) {
+                updates.peak_lp_s16 = currentLp
+                updates.peak_rank_s16 = newRank
+              }
+              await updatePlayerFn(player.id, updates)
             } else {
               logger.warn(LOG_PREFIX, name, '| sync-rank erreur:', rankData.error || rankRes.status)
             }
