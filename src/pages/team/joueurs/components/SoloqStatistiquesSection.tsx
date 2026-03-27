@@ -258,6 +258,34 @@ export function SoloqStatistiquesSection({ d }: { d: any }) {
             />
           </div>
 
+          {/* Barre Blue / Red side winrate */}
+          {hasSideData && (blueWR != null || redWR != null) && (
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end shrink-0 w-20">
+                <span className="text-xs font-semibold text-blue-400">{blueWR != null ? `${blueWR}%` : '—'}</span>
+                <span className="text-[10px] text-gray-600">{blueGames.length}G Blue</span>
+              </div>
+              <div className="relative flex-1 h-2 bg-dark-border/40 rounded-full overflow-hidden">
+                {blueWR != null && (
+                  <div
+                    className="absolute left-0 top-0 h-full bg-blue-500/80 rounded-l-full transition-all duration-500"
+                    style={{ width: `${blueWR}%` }}
+                  />
+                )}
+                {redWR != null && (
+                  <div
+                    className="absolute right-0 top-0 h-full bg-rose-500/80 rounded-r-full transition-all duration-500"
+                    style={{ width: `${redWR}%` }}
+                  />
+                )}
+              </div>
+              <div className="flex flex-col items-start shrink-0 w-20">
+                <span className="text-xs font-semibold text-rose-400">{redWR != null ? `${redWR}%` : '—'}</span>
+                <span className="text-[10px] text-gray-600">{redGames.length}G Rouge</span>
+              </div>
+            </div>
+          )}
+
           {hasContent && (
             <>
               {/* 4 catégories de stats */}

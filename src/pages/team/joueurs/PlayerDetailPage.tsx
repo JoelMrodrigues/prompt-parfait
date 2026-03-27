@@ -19,10 +19,8 @@ import {
   ChevronDown,
   TrendingUp,
   X,
-  Table2,
   LayoutList,
   Target,
-  Wrench,
   Clock,
   FileText,
 } from 'lucide-react'
@@ -33,13 +31,13 @@ import {
 } from '../../../lib/championImages'
 import { TIER_KEYS } from '../champion-pool/constants/tiers'
 import { TierTable } from '../champion-pool/components/TierTable'
-import { PlayerTeamStatsSection } from './components/PlayerTeamStatsSection'
 import { PlayerTimelineAdvantageSection } from './components/PlayerTimelineAdvantageSection'
 import { CoachCard } from './components/CoachCard'
 import { usePlayerDetail } from './hooks/usePlayerDetail'
 import { getRankColor, getRankImage, getRankColorText, parseLpFromRank, generateDpmLink, ROLE_LABELS } from './utils/playerDetailHelpers'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC, PAGE_SIZE } from '../../../lib/constants'
-import { RuneIcon, RunesRow, ItemImg, TeamBuildsRunesSection } from './components/BuildsRunesSection'
+import { RuneIcon, RunesRow, ItemImg } from './components/BuildsRunesSection'
+import { TeamStatistiquesSection } from './components/TeamStatistiquesSection'
 import { loadItems } from '../../../lib/items'
 import { SoloqStatistiquesSection } from './components/SoloqStatistiquesSection'
 import { fetchNotes, fetchObjectives } from '../../../services/supabase/coachingQueries'
@@ -63,8 +61,6 @@ const TEAM_SUB = [
   { id: 'statistiques', label: 'Statistiques', icon: BarChart3 },
   { id: 'champions', label: 'Champions', icon: Sparkles },
   { id: 'historiques', label: 'Historiques', icon: History },
-  { id: 'builds', label: 'Builds & Runes', icon: Wrench },
-  { id: 'allstats', label: 'All Stats', icon: Table2 },
 ]
 
 // ─── Accordion champions Solo Q ────────────────────────────────────────────────
@@ -227,36 +223,37 @@ function SoloqChampionsAccordion({
                                   const opp = g.opponent_champion
                                   const gr = getGameRunes(g)
                                   const gi = getGameItems(g)
-                                  const hasData = gr.ks > 0 || gi.length > 0
                                   const href = g.riot_match_id && playerId
                                     ? `/team/joueurs/${playerId}/soloq/${g.riot_match_id}`
                                     : null
-                                  const rowCls = `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${win ? 'bg-emerald-950/30 hover:bg-emerald-900/20' : 'bg-rose-950/20 hover:bg-rose-900/15'} ${href ? 'cursor-pointer' : ''}`
+                                  const rowCls = `flex flex-col gap-1.5 px-4 py-2.5 text-sm transition-colors ${win ? 'bg-emerald-950/30 hover:bg-emerald-900/20' : 'bg-rose-950/20 hover:bg-rose-900/15'} ${href ? 'cursor-pointer' : ''}`
                                   const inner = (
                                     <>
-                                      {/* V/D pill */}
-                                      <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-bold ${win ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
-                                        {win ? 'V' : 'D'}
-                                      </span>
-                                      {/* Opponent */}
-                                      {opp ? (
-                                        <div className="flex items-center gap-1 shrink-0">
-                                          <span className="text-[10px] text-gray-600">vs</span>
-                                          <img src={getChampionImage(opp)} alt={opp} title={getChampionDisplayName(opp) || opp} className="w-7 h-7 rounded-md object-cover border border-dark-border/60" />
+                                      {/* Ligne 1 : V/D — opponent — KDA — date/durée */}
+                                      <div className="flex items-center gap-2.5">
+                                        <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-bold ${win ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                                          {win ? 'V' : 'D'}
+                                        </span>
+                                        <div className="w-7 h-7 shrink-0 flex items-center justify-center">
+                                          {opp
+                                            ? <img src={getChampionImage(opp)} alt={opp} title={getChampionDisplayName(opp) || opp} className="w-7 h-7 rounded-md object-cover border border-dark-border/60" />
+                                            : <div className="w-7 h-7 rounded-md bg-dark-border/20" />}
                                         </div>
-                                      ) : <div className="w-8 shrink-0" />}
-                                      {/* KDA */}
-                                      <span className="font-mono font-semibold text-white text-xs shrink-0">{g.kills}/{g.deaths}/{g.assists}</span>
-                                      {/* Date + duration */}
-                                      <span className="text-gray-500 text-xs shrink-0 tabular-nums">{date}</span>
-                                      {dur && <span className="text-gray-600 text-xs shrink-0">· {dur}</span>}
-                                      {/* Rune + items — aligned right */}
-                                      {hasData && (
-                                        <div className="flex items-center gap-0.5 ml-auto">
-                                          {gr.ks ? <RuneIcon id={gr.ks} runesCache={runesCache} size="sm" /> : null}
-                                          {gi.slice(0, 6).map((id, idx) => <ItemImg key={`${id}-${idx}`} id={id} size="sm" />)}
-                                        </div>
-                                      )}
+                                        <span className="font-mono font-semibold text-white text-xs shrink-0">{g.kills}/{g.deaths}/{g.assists}</span>
+                                        <span className="text-gray-500 text-xs shrink-0 tabular-nums">{date}</span>
+                                        {dur && <span className="text-gray-600 text-xs shrink-0">· {dur}</span>}
+                                      </div>
+                                      {/* Ligne 2 : keystone + 6 slots items (positions fixes) */}
+                                      <div className="flex items-center gap-0.5">
+                                        {gr.ks ? <RuneIcon id={gr.ks} runesCache={runesCache} size="sm" /> : <div className="w-6 h-6 shrink-0" />}
+                                        <div className="w-1.5 shrink-0" />
+                                        {[0,1,2,3,4,5].map((idx) => {
+                                          const id = gi[idx]
+                                          return id
+                                            ? <ItemImg key={`${id}-${idx}`} id={id} size="sm" />
+                                            : <div key={idx} className="w-6 h-6 shrink-0 rounded bg-dark-border/20" />
+                                        })}
+                                      </div>
                                     </>
                                   )
                                   return href
@@ -281,6 +278,213 @@ function SoloqChampionsAccordion({
 
                           {!build && (
                             <p className="text-xs text-gray-500 italic">Données de build non disponibles. Importez les parties avec le backend Riot.</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Accordion champions Team ────────────────────────────────────────────────
+function TeamChampionsAccordion({
+  championStats, runesCache, loading, playerId, allTeamMatches,
+}: {
+  championStats: any[]
+  runesCache: Array<{ id: number; name: string; icon: string }>
+  loading: boolean
+  playerId: string | undefined
+  allTeamMatches: any[]
+}) {
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [limits, setLimits] = useState<Record<string, number>>({})
+
+  useEffect(() => { loadItems() }, [])
+
+  const buildData = useMemo(() => {
+    const result: Record<string, { ks: number; p1: number; p2: number; p3: number; s1: number; s2: number; topItems: number[] }> = {}
+    for (const champ of championStats) {
+      const runeCombos = new Map<string, number>()
+      const itemFreq = new Map<number, number>()
+      for (const s of champ.matchEntries || []) {
+        const ks = Number(s.perk0)
+        if (ks) {
+          const key = [ks, Number(s.perk1), Number(s.perk2), Number(s.perk3), Number(s.perk4), Number(s.perk5)].join(',')
+          runeCombos.set(key, (runeCombos.get(key) ?? 0) + 1)
+        }
+        for (const id of [s.item0, s.item1, s.item2, s.item3, s.item4, s.item5].filter((id: number) => id > 0))
+          itemFreq.set(id, (itemFreq.get(id) ?? 0) + 1)
+      }
+      const [bestRune] = [...runeCombos.entries()].sort((a, b) => b[1] - a[1])
+      const [ks, p1, p2, p3, s1, s2] = (bestRune?.[0] ?? '').split(',').map(Number)
+      const topItems = [...itemFreq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id]) => id)
+      result[champ.name] = { ks, p1, p2, p3, s1, s2, topItems }
+    }
+    return result
+  }, [championStats])
+
+  if (loading) return <p className="text-gray-500 text-sm py-4">Chargement…</p>
+  if (championStats.length === 0)
+    return <p className="text-gray-500 text-sm py-4">Aucune donnée. Ajoutez des parties depuis Matchs.</p>
+
+  return (
+    <div className="rounded-xl border border-dark-border overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-dark-bg/80 text-gray-400 text-left">
+            <th className="px-4 py-3 font-medium">Champion</th>
+            <th className="px-3 py-3 font-medium text-center">Parties</th>
+            <th className="px-3 py-3 font-medium text-center">Winrate</th>
+            <th className="px-3 py-3 font-medium text-center">KDA</th>
+            <th className="px-3 py-3 font-medium text-center hidden sm:table-cell">Moy.</th>
+            <th className="px-3 py-3 w-8" />
+          </tr>
+        </thead>
+        <tbody>
+          {championStats.map((champ: any) => {
+            const name = champ.name
+            const wr = champ.winrate ?? 0
+            const isExpanded = expanded === name
+            const build = buildData[name]
+            const games = [...(champ.matchEntries || [])].sort((a: any, b: any) =>
+              (b.team_matches?.game_creation ?? 0) - (a.team_matches?.game_creation ?? 0)
+            )
+            const limit = limits[name] ?? 5
+            const hasMore = games.length > limit
+            return (
+              <Fragment key={name}>
+                <tr
+                  className="border-t border-dark-border/50 cursor-pointer hover:bg-dark-bg/40 transition-colors"
+                  onClick={() => setExpanded(isExpanded ? null : name)}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <img src={getChampionImage(name)} alt={name} className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0" />
+                      <span className="font-medium text-white">{getChampionDisplayName(name) || name}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-center text-gray-300">{champ.games}</td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={`font-semibold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr}%</span>
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <span className={champ.kdaRatio >= 3 ? 'text-emerald-400' : champ.kdaRatio >= 2 ? 'text-white' : 'text-gray-400'}>{champ.kdaRatio}</span>
+                  </td>
+                  <td className="px-3 py-3 text-center hidden sm:table-cell">
+                    <span className="font-mono text-gray-300">{champ.avgK}/{champ.avgD}/{champ.avgA}</span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <ChevronDown className={`w-4 h-4 text-gray-500 inline transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr key={`${name}-exp`} className="border-t border-dark-border/30">
+                    <td colSpan={6} className="p-0">
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        transition={{ duration: 0.18 }}
+                        className="overflow-hidden bg-dark-bg/30"
+                      >
+                        <div className="px-4 py-4 space-y-4">
+                          {build && (build.ks || build.topItems.length > 0) && (
+                            <div className="flex flex-wrap items-start gap-5">
+                              {build.ks ? (
+                                <div className="flex flex-col gap-1.5">
+                                  <p className="text-xs text-gray-500 uppercase tracking-wider">Runes fréquentes</p>
+                                  <RunesRow ks={build.ks} p1={build.p1} p2={build.p2} p3={build.p3} s1={build.s1} s2={build.s2} runesCache={runesCache} />
+                                </div>
+                              ) : null}
+                              {build.topItems.length > 0 && (
+                                <div className="flex flex-col gap-1.5">
+                                  <p className="text-xs text-gray-500 uppercase tracking-wider">Items fréquents</p>
+                                  <div className="flex items-center gap-1">
+                                    {build.topItems.map((id, i) => <ItemImg key={`${id}-${i}`} id={id} />)}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {games.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Historique</p>
+                              <div className="rounded-xl border border-dark-border/40 overflow-hidden divide-y divide-dark-border/30">
+                                {games.slice(0, limit).map((s: any, i: number) => {
+                                  const m = s.team_matches
+                                  const win = !!m?.our_win
+                                  const date = m?.game_creation
+                                    ? new Date(m.game_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+                                    : null
+                                  const dur = m?.game_duration ? `${Math.round(m.game_duration / 60)} min` : null
+                                  const ks = Number(s.perk0)
+                                  const gr = { ks, p1: Number(s.perk1), p2: Number(s.perk2), p3: Number(s.perk3), s1: Number(s.perk4), s2: Number(s.perk5) }
+                                  const gi = [s.item0, s.item1, s.item2, s.item3, s.item4, s.item5].filter((id: number) => id > 0)
+                                  // Opposant : cherche dans les participants ennemis du match
+                                  const fullMatch = (allTeamMatches ?? []).find((m: any) => m.id === s.match_id)
+                                  const enemyParts = (fullMatch?.team_match_participants ?? []).filter((p: any) => p.team_side !== 'our')
+                                  const playerRole = s.role || s.position || null
+                                  const oppPart = playerRole
+                                    ? (enemyParts.find((p: any) => p.role === playerRole || p.position === playerRole) ?? enemyParts[0])
+                                    : enemyParts[0]
+                                  const oppChamp = oppPart?.champion_name ?? null
+                                  const rowCls = `flex flex-col gap-1.5 px-4 py-2.5 text-sm transition-colors ${win ? 'bg-emerald-950/30 hover:bg-emerald-900/20' : 'bg-rose-950/20 hover:bg-rose-900/15'} cursor-pointer`
+                                  const inner = (
+                                    <>
+                                      {/* Ligne 1 : V/D — opponent — KDA — date/durée */}
+                                      <div className="flex items-center gap-2.5">
+                                        <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-bold ${win ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                                          {win ? 'V' : 'D'}
+                                        </span>
+                                        <div className="w-7 h-7 shrink-0 flex items-center justify-center">
+                                          {oppChamp
+                                            ? <img src={getChampionImage(oppChamp)} alt={oppChamp} title={getChampionDisplayName(oppChamp) || oppChamp} className="w-7 h-7 rounded-md object-cover border border-dark-border/60" />
+                                            : <div className="w-7 h-7 rounded-md bg-dark-border/20" />}
+                                        </div>
+                                        <span className="font-mono font-semibold text-white text-xs shrink-0">{s.kills}/{s.deaths}/{s.assists}</span>
+                                        <span className="text-gray-500 text-xs shrink-0 tabular-nums">{date}</span>
+                                        {dur && <span className="text-gray-600 text-xs shrink-0">· {dur}</span>}
+                                      </div>
+                                      {/* Ligne 2 : keystone + 6 slots items (positions fixes) */}
+                                      <div className="flex items-center gap-0.5">
+                                        {gr.ks ? <RuneIcon id={gr.ks} runesCache={runesCache} size="sm" /> : <div className="w-6 h-6 shrink-0" />}
+                                        <div className="w-1.5 shrink-0" />
+                                        {[0,1,2,3,4,5].map((idx) => {
+                                          const id = gi[idx]
+                                          return id
+                                            ? <ItemImg key={`${id}-${idx}`} id={id} size="sm" />
+                                            : <div key={idx} className="w-6 h-6 shrink-0 rounded bg-dark-border/20" />
+                                        })}
+                                      </div>
+                                    </>
+                                  )
+                                  return s.match_id
+                                    ? <Link key={i} to={`/team/matchs/${s.match_id}`} state={{ fromPlayer: playerId }} className={rowCls}>{inner}</Link>
+                                    : <div key={i} className={rowCls}>{inner}</div>
+                                })}
+                              </div>
+                              {hasMore && (
+                                <button
+                                  type="button"
+                                  className="mt-2 w-full py-2 text-xs text-accent-blue hover:opacity-80 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setLimits((prev) => ({ ...prev, [name]: (prev[name] ?? 5) + 10 }))
+                                  }}
+                                >
+                                  Voir plus ({Math.min(games.length - limit, 10)} parties supplémentaires)
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {!build && (
+                            <p className="text-xs text-gray-500 italic">Données de build non disponibles pour ce champion.</p>
                           )}
                         </div>
                       </motion.div>
@@ -646,7 +850,7 @@ export const PlayerDetailPage = () => {
                   ))}
                 </div>
                 {d.teamStatsSubSub === 'general' && (
-                  <PlayerTeamStatsSection playerId={playerId} mode="stats" matchesWithJson={d.allTeamMatches} />
+                  <TeamStatistiquesSection d={d} />
                 )}
                 {d.teamStatsSubSub === 'timeline' && (
                   <PlayerTimelineAdvantageSection
@@ -659,89 +863,13 @@ export const PlayerDetailPage = () => {
             )}
 
             {d.selectedTeamSub === 'champions' && (
-              <div>
-                {d.teamStatsLoading ? (
-                  <p className="text-gray-500 text-sm py-4">Chargement…</p>
-                ) : d.championStatsFromTeam.length === 0 ? (
-                  <p className="text-gray-500 text-sm">Aucune donnée. Ajoutez des parties depuis Matchs.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {d.championStatsFromTeam.map((c) => {
-                      const isOpen = d.expandedTeamChampion === c.name
-                      return (
-                        <div key={c.name} className="rounded-xl border border-dark-border overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => d.setExpandedTeamChampion(isOpen ? null : c.name)}
-                            aria-expanded={isOpen}
-                            className="w-full flex items-center gap-3 p-4 bg-dark-bg/50 hover:bg-dark-bg/80 transition-colors text-left"
-                          >
-                            <img src={getChampionImage(c.name)} alt={c.name} className="w-10 h-10 rounded-lg object-cover border border-dark-border shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-white">{getChampionDisplayName(c.name) || c.name}</p>
-                              <p className="text-sm text-gray-400">
-                                {c.games} partie{c.games > 1 ? 's' : ''} ·{' '}
-                                <span className={c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{c.winrate}%</span>
-                                {' · '}KDA{' '}
-                                <span className={c.kdaRatio >= 3 ? 'text-emerald-400' : c.kdaRatio >= 2 ? 'text-white' : 'text-gray-400'}>{c.kdaRatio}</span>
-                              </p>
-                            </div>
-                            <div className="text-right shrink-0 text-sm text-gray-400 hidden sm:block">
-                              <p className="font-mono">{c.avgK}/{c.avgD}/{c.avgA}</p>
-                              <p className="text-xs text-gray-500">Moy. K/D/A</p>
-                            </div>
-                            <ChevronDown className={`w-5 h-5 text-gray-500 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                          </button>
-                          {isOpen && (
-                            <div className="border-t border-dark-border">
-                              <div className="grid grid-cols-3 gap-px bg-dark-border">
-                                <div className="bg-dark-bg/80 p-3 text-center">
-                                  <p className="text-xs text-gray-500 mb-0.5">Winrate</p>
-                                  <p className={`font-semibold ${c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{c.winrate}%</p>
-                                </div>
-                                <div className="bg-dark-bg/80 p-3 text-center">
-                                  <p className="text-xs text-gray-500 mb-0.5">KDA ratio</p>
-                                  <p className={`font-semibold ${c.kdaRatio >= 3 ? 'text-emerald-400' : c.kdaRatio >= 2 ? 'text-white' : 'text-gray-400'}`}>{c.kdaRatio}</p>
-                                </div>
-                                <div className="bg-dark-bg/80 p-3 text-center">
-                                  <p className="text-xs text-gray-500 mb-0.5">Moy. K/D/A</p>
-                                  <p className="font-mono text-white text-sm">{c.avgK}/{c.avgD}/{c.avgA}</p>
-                                </div>
-                              </div>
-                              <div className="divide-y divide-dark-border/50">
-                                {c.matchEntries.map((s: any, i: number) => {
-                                  const m = s.team_matches
-                                  return (
-                                    <Link
-                                      key={s.id || i}
-                                      to={`/team/matchs/${s.match_id}`}
-                                      state={{ fromPlayer: playerId }}
-                                      className="flex items-center gap-3 px-4 py-3 hover:bg-dark-bg/60 transition-colors"
-                                    >
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-gray-300">
-                                          {m?.created_at ? new Date(m.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          {m?.game_duration ? `${Math.round(m.game_duration / 60)} min` : '—'}
-                                        </p>
-                                      </div>
-                                      <p className="font-mono text-sm text-white shrink-0">{s.kills}/{s.deaths}/{s.assists}</p>
-                                      <span className={`px-2 py-1 rounded text-xs font-semibold shrink-0 ${m?.our_win ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                                        {m?.our_win ? 'V' : 'D'}
-                                      </span>
-                                    </Link>
-                                  )
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+              <TeamChampionsAccordion
+                championStats={d.championStatsFromTeam}
+                runesCache={d.allRunesCache}
+                loading={d.teamStatsLoading}
+                playerId={playerId}
+                allTeamMatches={d.allTeamMatches ?? []}
+              />
             )}
 
             {d.selectedTeamSub === 'historiques' && (
@@ -786,19 +914,6 @@ export const PlayerDetailPage = () => {
               </div>
             )}
 
-            {/* ── Team Builds & Runes ── */}
-            {d.selectedTeamSub === 'builds' && (
-              <TeamBuildsRunesSection teamStats={d.filteredTeamStats} loading={d.teamStatsLoading} runesCache={d.allRunesCache} />
-            )}
-
-            {d.selectedTeamSub === 'allstats' && (
-              <AllStatsSection
-                selectedMatchId={d.selectedAllStatsMatchId}
-                setSelectedMatchId={d.setSelectedAllStatsMatchId}
-                allTeamMatches={d.allTeamMatches}
-                allRunesCache={d.allRunesCache}
-              />
-            )}
           </>
         )}
 
@@ -866,211 +981,6 @@ export const PlayerDetailPage = () => {
         )}
 
       </div>
-    </div>
-  )
-}
-
-// ─── AllStats section (extraite du render principal pour lisibilité) ────────────
-function AllStatsSection({
-  selectedMatchId,
-  setSelectedMatchId,
-  allTeamMatches,
-  allRunesCache,
-}: {
-  selectedMatchId: string | null
-  setSelectedMatchId: (id: string | null) => void
-  allTeamMatches: any[]
-  allRunesCache: Array<{ id: number; name: string; icon: string }>
-}) {
-  if (selectedMatchId) {
-    const m = (allTeamMatches || []).find((x: any) => x.id === selectedMatchId)
-    const json = m?.match_json
-
-    return (
-      <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setSelectedMatchId(null)}
-          className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
-        >
-          <ArrowLeft size={16} />
-          Retour à la liste des matchs
-        </button>
-        <p className="text-gray-500 text-xs mt-1">
-          Runes = keystone + 3 de la branche principale + 2 secondaires. Si tout affiche « — », ré-importez le match avec le <strong>JSON Riot complet</strong>.
-        </p>
-        {!m ? (
-          <p className="text-gray-500 text-sm">Match introuvable.</p>
-        ) : !json || (!json.participants?.length && !json.info?.participants?.length) ? (
-          <div className="rounded-xl border border-dark-border bg-dark-card/50 p-6 text-center">
-            <p className="text-gray-500 text-sm">Données complètes non disponibles pour ce match (import ancien).</p>
-            <p className="text-gray-500 text-xs mt-1">Ré-importez le match depuis Import pour enregistrer toutes les stats.</p>
-          </div>
-        ) : (
-          <AllStatsTable json={json} allRunesCache={allRunesCache} />
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-gray-500 text-sm">Choisissez un match pour afficher les 10 joueurs et toutes les statistiques.</p>
-      {!allTeamMatches?.length ? (
-        <div className="rounded-xl border border-dark-border bg-dark-card/50 p-6 text-center">
-          <p className="text-gray-500 text-sm">Aucun match. Importez des parties depuis Matchs / Import.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {(allTeamMatches || []).map((m: any) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setSelectedMatchId(m.id)}
-              className="w-full text-left flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-dark-bg/50 border border-dark-border hover:border-accent-blue/50 hover:bg-dark-bg/70 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-sm text-gray-500">#{m.game_id}</span>
-                <span className={`px-2 py-1 rounded text-sm font-medium ${m.our_win ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                  {m.our_win ? 'Victoire' : 'Défaite'}
-                </span>
-                <span className="text-gray-500 text-sm">{m.game_duration ? `${Math.round(m.game_duration / 60)} min` : '—'}</span>
-              </div>
-              {m.game_creation && (
-                <span className="text-xs text-gray-500">
-                  {new Date(m.game_creation).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AllStatsTable({
-  json,
-  allRunesCache,
-}: {
-  json: any
-  allRunesCache: Array<{ id: number; name: string; icon: string }>
-}) {
-  const participants = json.info?.participants ?? json.participants ?? []
-  const identities = json.participantIdentities ?? json.info?.participantIdentities ?? []
-
-  const getPseudo = (participantId: number) => {
-    const id = identities.find((i: any) => (i.participantId ?? i.participant_id) === participantId)
-    const p = id?.player ?? id?.riotId
-    if (!p) return `Joueur ${participantId}`
-    const name = p.gameName ?? p.game_name ?? p.summonerName ?? ''
-    const tag = p.tagLine ?? p.tag_line ?? ''
-    return tag ? `${name}#${tag}` : name || `Joueur ${participantId}`
-  }
-
-  const sorted = [...participants].sort((a: any, b: any) => {
-    const tA = a.teamId ?? a.team_id ?? 0
-    const tB = b.teamId ?? b.team_id ?? 0
-    if (tA !== tB) return tA - tB
-    return (a.participantId ?? a.participant_id ?? 0) - (b.participantId ?? b.participant_id ?? 0)
-  })
-
-  const ignoredExact = new Set([
-    'causedEarlySurrender', 'combatPlayerScore', 'earlySurrenderAccomplice',
-    'gameEndedInSurrender', 'gameEndedInEarlySurrender', 'neutralMinionsKilledEnemyJungle',
-    'neutralMinionsKilledTeamJungle', 'objectivePlayerScore', 'playerSubteamId',
-    'sightWardsBoughtInGame', 'subteamPlacement', 'teamEarlySurrendered',
-    'totalPlayerScore', 'totalScoreRank', 'unrealKills',
-  ].map((k) => k.toLowerCase()))
-
-  const allKeys = new Set<string>()
-  sorted.forEach((p: any) => {
-    const s = p.stats ?? p
-    if (s && typeof s === 'object') Object.keys(s).forEach((k) => allKeys.add(k))
-  })
-  const statKeys = Array.from(allKeys)
-    .filter((k) => {
-      const kl = k.toLowerCase()
-      if (ignoredExact.has(kl)) return false
-      if (kl.startsWith('playeraugment') || kl.startsWith('playerscore')) return false
-      return true
-    })
-    .sort()
-
-  const getStat = (p: any, key: string) => {
-    const s = p.stats ?? p
-    if (!s || typeof s !== 'object') return '—'
-    const k = Object.keys(s).find((x) => x.toLowerCase() === key.toLowerCase())
-    const v = k ? s[k] : s[key]
-    if (v === undefined || v === null) return '—'
-    if (typeof v === 'boolean') return v ? 'Oui' : 'Non'
-    return String(v)
-  }
-
-  const getRuneIds = (p: any): number[] => {
-    const ids: number[] = []
-    const add = (v: any) => { if (v != null && v !== '' && !Number.isNaN(Number(v))) ids.push(Number(v)) }
-    const perks = p.perks ?? p.perk
-    if (perks?.styles?.length) {
-      perks.styles.forEach((style: any) => {
-        const list = style.selections ?? style.picks ?? []
-        list.forEach((sel: any) => add(sel.perk ?? sel.perkId ?? sel.runeId))
-      })
-      if (ids.length > 0) return ids
-    }
-    for (let i = 0; i <= 7; i++) {
-      add(p[`perk${i}`] ?? p[`perk_${i}`] ?? p.stats?.[`perk${i}`])
-    }
-    return ids
-  }
-
-  const DD_IMG_RUNE = (icon: string) => `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/${icon.toLowerCase()}`
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-dark-border bg-dark-bg/50">
-      <table className="w-full text-left border-collapse min-w-[800px]">
-        <thead>
-          <tr className="border-b border-dark-border">
-            <th className="p-3 text-gray-400 font-medium text-sm sticky left-0 bg-dark-bg/90 z-10 min-w-[120px]">Stat</th>
-            {sorted.map((p: any, i: number) => {
-              const pid = p.participantId ?? p.participant_id ?? i + 1
-              return (
-                <th key={pid} className="p-3 text-gray-300 font-medium text-sm whitespace-nowrap max-w-[140px] truncate" title={getPseudo(pid)}>
-                  {getPseudo(pid)}
-                </th>
-              )
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-b border-dark-border/50 hover:bg-dark-card/30">
-            <td className="p-3 text-gray-400 text-sm font-medium sticky left-0 bg-dark-bg/80 z-10">Runes</td>
-            {sorted.map((p: any, i: number) => {
-              const ids = getRuneIds(p)
-              return (
-                <td key={i} className="p-2 text-white text-sm align-top">
-                  <div className="flex flex-wrap gap-0.5 items-center">
-                    {ids.map((id) => {
-                      const r = allRunesCache.find((x) => x.id === id)
-                      if (!r) return <span key={id} className="text-gray-500 text-xs" title={String(id)}>{id}</span>
-                      return <img key={id} src={DD_IMG_RUNE(r.icon)} alt={r.name} title={r.name} className="w-6 h-6 rounded object-contain" />
-                    })}
-                    {ids.length === 0 && <span className="text-gray-500 text-xs">—</span>}
-                  </div>
-                </td>
-              )
-            })}
-          </tr>
-          {statKeys.map((key) => (
-            <tr key={key} className="border-b border-dark-border/50 hover:bg-dark-card/30">
-              <td className="p-3 text-gray-400 text-sm font-medium sticky left-0 bg-dark-bg/80 z-10">{key}</td>
-              {sorted.map((p: any, i: number) => (
-                <td key={i} className="p-3 text-white text-sm">{getStat(p, key)}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }
