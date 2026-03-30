@@ -54,7 +54,7 @@ export const PlayerCard = memo(({
 
   const handleCardClick = () => {
     if (onClick) onClick(player)
-    else navigate(`/team/joueurs/${player.id}`)
+    else navigate(`/team/joueurs/${encodeURIComponent(player.player_name)}`)
   }
 
   const validChampions = useMemo(() => {

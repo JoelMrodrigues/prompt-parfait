@@ -180,20 +180,14 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
   const avgVPMin = avg(withVision.filter((s: any) => (s.team_matches?.game_duration ?? 0) > 0).map((s: any) => s.vision_score / (s.team_matches.game_duration / 60)))
   const withWards = real.filter((s: any) => (s.wards_placed ?? s.wardsPlaced) != null)
   const avgWardsPlaced = avg(withWards.map((s: any) => s.wards_placed ?? s.wardsPlaced))
-  const withCtrl = real.filter((s: any) => (s.control_wards_purchased ?? s.visionWardsBoughtInGame) != null)
-  const avgCtrlWards = avg(withCtrl.map((s: any) => s.control_wards_purchased ?? s.visionWardsBoughtInGame))
+  const withCtrl = real.filter((s: any) => s.vision_wards_bought != null)
+  const avgCtrlWards = avg(withCtrl.map((s: any) => s.vision_wards_bought))
   const totalPinks = withCtrl.length > 0
-    ? withCtrl.reduce((sum: number, s: any) => sum + (s.control_wards_purchased ?? s.visionWardsBoughtInGame ?? 0), 0)
+    ? withCtrl.reduce((sum: number, s: any) => sum + (s.vision_wards_bought ?? 0), 0)
     : null
   const withWardKill = real.filter((s: any) => (s.wards_killed ?? s.wardsKilled) != null)
   const avgWardsKilled = avg(withWardKill.map((s: any) => s.wards_killed ?? s.wardsKilled))
 
-  // Turret plates (si disponible dans les données)
-  const withPlates = real.filter((s: any) => (s.turret_plates ?? s.turretPlatesTaken) != null)
-  const totalPlates = withPlates.length > 0
-    ? withPlates.reduce((sum: number, s: any) => sum + (s.turret_plates ?? s.turretPlatesTaken ?? 0), 0)
-    : null
-  const avgPlates = avg(withPlates.map((s: any) => s.turret_plates ?? s.turretPlatesTaken))
 
   // Side breakdown (our_team_id: 100 = blue, 200 = red)
   const blueGames = all.filter((s: any) => s.team_matches?.our_team_id === 100)
@@ -346,14 +340,6 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
                   label="CS / partie"
                   value={fmt(avgCs, 0)}
                   valueColor="text-gray-300"
-                />
-              )}
-              {avgPlates != null && (
-                <StatRow
-                  label="Plates / partie"
-                  value={fmt(avgPlates, 1)}
-                  hint={totalPlates != null ? `${totalPlates} total` : undefined}
-                  valueColor={avgPlates >= 3 ? 'text-emerald-400' : avgPlates >= 1.5 ? 'text-white' : 'text-gray-300'}
                 />
               )}
             </StatCard>

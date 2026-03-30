@@ -224,7 +224,7 @@ function SoloqChampionsAccordion({
                                   const gr = getGameRunes(g)
                                   const gi = getGameItems(g)
                                   const href = g.riot_match_id && playerId
-                                    ? `/team/joueurs/${playerId}/soloq/${g.riot_match_id}`
+                                    ? `/team/joueurs/${encodeURIComponent(playerId!)}/soloq/${g.riot_match_id}`
                                     : null
                                   const rowCls = `flex flex-col gap-1.5 px-4 py-2.5 text-sm transition-colors ${win ? 'bg-emerald-950/30 hover:bg-emerald-900/20' : 'bg-rose-950/20 hover:bg-rose-900/15'} ${href ? 'cursor-pointer' : ''}`
                                   const inner = (
@@ -500,6 +500,7 @@ function TeamChampionsAccordion({
   )
 }
 
+
 export const PlayerDetailPage = () => {
   const { playerId } = useParams()
   const navigate = useNavigate()
@@ -638,7 +639,7 @@ export const PlayerDetailPage = () => {
         </div>
       </div>
 
-      {/* 5 cartes principales — une seule ligne */}
+      {/* 5 cartes principales */}
       <div className="grid grid-cols-5 gap-3">
         {MAIN_CARDS.map((card) => {
           const Icon = card.icon
@@ -648,15 +649,11 @@ export const PlayerDetailPage = () => {
               key={card.id}
               type="button"
               onClick={() => d.setSelectedCard(card.id)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-colors text-left ${
-                isActive
-                  ? 'border-accent-blue bg-accent-blue/10 shadow-lg shadow-accent-blue/20'
-                  : 'border-dark-border bg-dark-card/50 hover:border-dark-border/80 hover:bg-dark-card/70'
+              className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 text-left ${
+                isActive ? 'border-accent-blue bg-accent-blue/10' : 'border-dark-border bg-dark-card/50'
               }`}
             >
-              <div className={`p-2.5 rounded-xl ${isActive ? 'bg-accent-blue/20' : 'bg-dark-bg/50'}`}>
-                <Icon size={22} className={isActive ? 'text-accent-blue' : 'text-gray-400'} />
-              </div>
+              <Icon size={22} className={isActive ? 'text-accent-blue' : 'text-gray-400'} />
               <span className={`font-display font-semibold text-sm ${isActive ? 'text-white' : 'text-gray-400'}`}>
                 {card.label}
               </span>
@@ -756,7 +753,7 @@ export const PlayerDetailPage = () => {
                 lpGraphMatches={d.lpGraphMatches ?? []}
                 runesCache={d.allRunesCache}
                 loading={d.soloqTopChampionsLoading}
-                playerId={playerId}
+                playerId={player.id}
               />
             )}
 
@@ -780,7 +777,7 @@ export const PlayerDetailPage = () => {
                         return (
                           <Link
                             key={m.matchId || i}
-                            to={m.matchId ? `/team/joueurs/${playerId}/soloq/${m.matchId}` : '#'}
+                            to={m.matchId ? `/team/joueurs/${encodeURIComponent(playerId!)}/soloq/${m.matchId}` : '#'}
                             className="w-full flex items-center gap-4 p-3 rounded-xl bg-dark-bg/50 border border-dark-border/50 hover:border-purple-500/50 hover:bg-dark-bg/70 transition-colors text-left"
                           >
                             <img src={getChampionImage(m.championName)} alt={m.championName} className="w-10 h-10 rounded-lg object-cover border border-dark-border shrink-0" />
@@ -854,7 +851,7 @@ export const PlayerDetailPage = () => {
                 )}
                 {d.teamStatsSubSub === 'timeline' && (
                   <PlayerTimelineAdvantageSection
-                    playerId={playerId!}
+                    playerId={player.id}
                     matches={d.allTeamMatches}
                     timelines={d.allTeamTimelines}
                   />
@@ -867,7 +864,7 @@ export const PlayerDetailPage = () => {
                 championStats={d.championStatsFromTeam}
                 runesCache={d.allRunesCache}
                 loading={d.teamStatsLoading}
-                playerId={playerId}
+                playerId={player.id}
                 allTeamMatches={d.allTeamMatches ?? []}
               />
             )}
@@ -932,7 +929,7 @@ export const PlayerDetailPage = () => {
 
         {/* ── Coach ── */}
         {d.selectedCard === 'coach' && (
-          <CoachCard playerId={playerId!} />
+          <CoachCard playerId={player.id} />
         )}
 
         {/* Modal Champion (matchups solo Q) */}
@@ -1136,8 +1133,14 @@ function ScrimBlockCarousel({ teamStats, loading, allTeamMatches, playerId }: {
   // Match complet + participants
   const fullMatch = (allTeamMatches ?? []).find((m: any) => m.id === game.match_id)
   const allParts: any[] = fullMatch?.team_match_participants ?? []
-  const ourParts = allParts.filter((p: any) => p.team_side === 'our')
-  const enemyParts = allParts.filter((p: any) => p.team_side !== 'our')
+  const ROLE_ORDER: Record<string, number> = { top: 0, jungle: 1, jng: 1, mid: 2, adc: 3, bot: 3, support: 4, sup: 4, utility: 4 }
+  const sortByRole = (a: any, b: any) => {
+    const ra = ROLE_ORDER[String(a.role || a.position || '').toLowerCase()] ?? 99
+    const rb = ROLE_ORDER[String(b.role || b.position || '').toLowerCase()] ?? 99
+    return ra - rb
+  }
+  const ourParts = allParts.filter((p: any) => p.team_side === 'our').sort(sortByRole)
+  const enemyParts = allParts.filter((p: any) => p.team_side !== 'our').sort(sortByRole)
 
   // Côté bleu = teamId 100 (gauche), rouge = 200 (droite)
   // our_team_id 100 → notre équipe à gauche, sinon à droite

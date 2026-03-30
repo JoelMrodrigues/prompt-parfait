@@ -4,7 +4,8 @@
  * Tabs : Résumé | Timeline | Build | Stats
  */
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useTeam } from '../hooks/useTeam'
 import { ArrowLeft, Sword, Clock, BarChart3, Layers, TrendingUp } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { loadItems, getItemImageUrl, isItemsLoaded } from '../../../lib/items'
@@ -32,8 +33,10 @@ function statCard(label: string, value: string | number | null) {
 }
 
 export function SoloqMatchDetailPage() {
-  const { playerId, riotMatchId } = useParams<{ playerId: string; riotMatchId: string }>()
+  // playerId param = player_name (slug) depuis le changement d'URL
+  const { playerId: playerSlug, riotMatchId } = useParams<{ playerId: string; riotMatchId: string }>()
   const navigate = useNavigate()
+  const { players = [] } = useTeam()
   const [activeTab, setActiveTab] = useState('resume')
   const [itemsReady, setItemsReady] = useState(isItemsLoaded)
   const [runesCache, setRunesCache] = useState<Array<{ id: number; name: string; icon: string }>>([])
@@ -41,6 +44,12 @@ export function SoloqMatchDetailPage() {
     if (!itemsReady) loadItems().then(() => setItemsReady(true))
     fetchAllRunes().then(({ data }) => { if (data) setRunesCache(data as any) })
   }, [])
+
+  // Résoudre l'UUID réel depuis le player_name
+  const playerId = useMemo(
+    () => players.find((p) => p.player_name === playerSlug)?.id,
+    [players, playerSlug]
+  )
 
   const { matchData, timelineData, loading, timelineLoading, error } = useSoloqMatchDetail(
     playerId,

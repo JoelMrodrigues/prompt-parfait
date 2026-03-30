@@ -909,7 +909,7 @@ export const TeamOverviewPage = () => {
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => navigate(`/team/joueurs/${p.id}`)}
+                    onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
                     className="w-full flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
                   >
                     <span className="text-xs font-bold text-gray-600 w-4 shrink-0 text-center">
@@ -998,7 +998,7 @@ export const TeamOverviewPage = () => {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => navigate(`/team/joueurs/${p.id}`)}
+                      onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left hover:border-accent-blue/40 hover:bg-dark-bg ${
                         isTop ? 'bg-yellow-500/5 border-yellow-500/25' : 'bg-dark-bg/50 border-dark-border/40'
                       }`}
@@ -1376,7 +1376,7 @@ export const TeamOverviewPage = () => {
                   key={p.id}
                   type="button"
                   whileHover={{ scale: 1.03 }}
-                  onClick={() => navigate(`/team/joueurs/${p.id}`)}
+                  onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
                   className={`relative rounded-xl border border-dark-border bg-gradient-to-b ${cfg.gradient} bg-dark-bg/50 overflow-hidden cursor-pointer min-h-[170px] flex flex-col p-4 text-left transition-colors hover:border-accent-blue/50`}
                 >
                   {/* Champion background blurred */}

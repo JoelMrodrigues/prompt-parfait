@@ -12,11 +12,9 @@ import { fetchAllRunes } from '../../../../services/supabase/runeQueries'
 import { usePlayerSoloqData } from './usePlayerSoloqData'
 import { aggregateChampionStats } from '../../../../lib/team/statsAggregation'
 
-export function usePlayerDetail(playerId: string | undefined) {
+export function usePlayerDetail(playerSlug: string | undefined) {
   const { error: toastError, info: toastInfo } = useToast()
   const { players = [], team, updatePlayer, refetch } = useTeam()
-
-  const { stats: teamStats, teamTotalsByMatch, loading: teamStatsLoading } = usePlayerTeamStats(playerId)
 
   // ─── Tab navigation ───────────────────────────────────────────────────────
   const [selectedCard, setSelectedCard] = useState('general')
@@ -30,8 +28,11 @@ export function usePlayerDetail(playerId: string | undefined) {
   const [selectedAllStatsMatchId, setSelectedAllStatsMatchId] = useState<string | null>(null)
   const [allRunesCache, setAllRunesCache] = useState<Array<{ id: number; name: string; icon: string }>>([])
 
-  // ─── Derived player values ────────────────────────────────────────────────
-  const player = players.find((p) => p.id === playerId)
+  // ─── Derived player values (lookup by player_name = URL slug) ────────────
+  const player = players.find((p) => p.player_name === playerSlug)
+  const playerId = player?.id  // UUID réel pour les requêtes Supabase
+
+  const { stats: teamStats, teamTotalsByMatch, loading: teamStatsLoading } = usePlayerTeamStats(playerId)
   const activeSoloqPseudo = selectedSoloqAccount === 1 ? (player?.pseudo ?? '') : (player?.secondary_account ?? '')
   const soloqAccountSource = selectedSoloqAccount === 1 ? 'primary' : 'secondary'
   const totalFromRiot = selectedSoloqAccount === 1
