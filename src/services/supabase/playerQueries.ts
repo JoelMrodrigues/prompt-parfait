@@ -147,21 +147,35 @@ export async function fetchSoloqTopChampions(playerId: string, accountSource: st
  * Aucun appel API Riot — données déjà en base.
  */
 export async function fetchWeeklySoloqCount(playerId: string): Promise<number> {
+  const counts = await fetchWeeklySoloqCounts([playerId])
+  return counts[playerId] ?? 0
+}
+
+/** Retourne le nombre de parties SoloQ de la semaine pour plusieurs joueurs en 1 requête */
+export async function fetchWeeklySoloqCounts(playerIds: string[]): Promise<Record<string, number>> {
+  if (!playerIds.length) return {}
+
   const now = new Date()
-  const dayOfWeek = now.getDay() // 0=dim, 1=lun, …
-  const diffToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
+  const dayOfWeek = now.getDay()
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
   const monday = new Date(now)
   monday.setDate(now.getDate() + diffToMonday)
   monday.setHours(0, 0, 0, 0)
 
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from('player_soloq_matches')
-    .select('id', { count: 'exact', head: true })
-    .eq('player_id', playerId)
+    .select('player_id')
+    .in('player_id', playerIds)
     .gte('game_creation', monday.getTime())
 
-  if (error || count == null) return 0
-  return count
+  if (error || !data) return {}
+
+  // Aggregation JS — 1 requête au lieu de N
+  const counts: Record<string, number> = {}
+  for (const row of data) {
+    counts[row.player_id] = (counts[row.player_id] ?? 0) + 1
+  }
+  return counts
 }
 
 /** Retourne les riot_match_id des parties sans match_json (non enrichies) — max `limit` IDs */

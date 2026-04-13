@@ -35,7 +35,7 @@ import { PlayerModal } from '../components/PlayerModal'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { supabase } from '../../../lib/supabase'
 import { getChampionImage } from '../../../lib/championImages'
-import { fetchWeeklySoloqCount } from '../../../services/supabase/playerQueries'
+import { fetchWeeklySoloqCounts } from '../../../services/supabase/playerQueries'
 import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
 
 const ROLE_ORDER: Record<string, number> = {
@@ -192,14 +192,10 @@ export const TeamOverviewPage = () => {
     if (!players.length) return
     setWeeklyLoading(true)
     try {
-      const results = await Promise.all(
-        players.map(async (p) => ({
-          id: p.id,
-          count: await fetchWeeklySoloqCount(p.id),
-        })),
-      )
+      // 1 requête pour tous les joueurs au lieu de N requêtes parallèles
+      const counts = await fetchWeeklySoloqCounts(players.map((p) => p.id))
       const map: Record<string, number | null> = {}
-      for (const r of results) map[r.id] = r.count
+      for (const p of players) map[p.id] = counts[p.id] ?? 0
       setWeeklyGames(map)
       if (team?.id) sessionStorage.setItem(`weeklyGames_${team.id}`, JSON.stringify({ data: map, ts: Date.now() }))
     } finally {

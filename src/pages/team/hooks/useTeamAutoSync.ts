@@ -62,6 +62,7 @@ export function useTeamAutoSync() {
   const runningRef = useRef(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const updatePlayerRef = useRef(updatePlayer)
   const playersRef = useRef(players)
   const teamIdRef = useRef<string | null>(null)
@@ -81,6 +82,11 @@ export function useTeamAutoSync() {
       const currentPlayers = playersRef.current
       const updatePlayerFn = updatePlayerRef.current
       const listToSync = (currentPlayers || []).filter(hasValidPseudo)
+
+      // Nouveau AbortController pour chaque cycle — annule toutes les requêtes en vol si abort
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+      const signal = controller.signal
 
       runningRef.current = true
       logger.debug(LOG_PREFIX, '--- Début du cycle ---', listToSync.length, 'joueur(s)')
@@ -112,14 +118,14 @@ export function useTeamAutoSync() {
           try {
             // ─── 1) Total OFFICIEL S16 (match-count, simple pagination sans binary search) ───
             let countRes = await apiFetch(
-              `/api/riot/match-count?${buildParams()}`
+              `/api/riot/match-count?${buildParams()}`, { signal }
             )
             let countData = await countRes.json().catch(() => ({}))
             if (countRes.status === 429 && (countData.retry_after ?? countData.retryAfter)) {
               const wait = Math.max(2000, (countData.retry_after ?? countData.retryAfter) * 1000)
               await delay(wait)
               countRes = await apiFetch(
-                `/api/riot/match-count?${buildParams()}`
+                `/api/riot/match-count?${buildParams()}`, { signal }
               )
               countData = await countRes.json().catch(() => ({}))
             }
@@ -128,7 +134,7 @@ export function useTeamAutoSync() {
               if (countRes.status === 400 && cachedPuuid && /decrypt/i.test(countData.error || '')) {
                 logger.warn(LOG_PREFIX, name, '| PUUID invalide — relance sans PUUID (fresh lookup Riot)')
                 cachedPuuid = null
-                const retryRes = await apiFetch(`/api/riot/match-count?pseudo=${encodeURIComponent(pseudo)}&region=${encodeURIComponent(region)}`)
+                const retryRes = await apiFetch(`/api/riot/match-count?pseudo=${encodeURIComponent(pseudo)}&region=${encodeURIComponent(region)}`, { signal })
                 const retryData = await retryRes.json().catch(() => ({}))
                 if (retryData.success && typeof retryData.total === 'number') {
                   if (retryData.puuid) {
@@ -176,7 +182,7 @@ export function useTeamAutoSync() {
               if (abortRef.current) break
               pageCount++
               const idsRes = await apiFetch(
-                `/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}`
+                `/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}`, { signal }
               )
               const idsData = await idsRes.json().catch(() => ({}))
               if (idsRes.status === 429) {
@@ -224,7 +230,7 @@ export function useTeamAutoSync() {
                 const chunk = missingIds.slice(c, c + DETAILS_CHUNK)
                 try {
                   const detailsRes = await apiFetch(
-                    `/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`
+                    `/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`, { signal }
                   )
                   const detailsData = await detailsRes.json().catch(() => ({}))
                   if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
@@ -259,7 +265,7 @@ export function useTeamAutoSync() {
                 const chunk = unenrichedIds.slice(c, c + DETAILS_CHUNK)
                 try {
                   const detailsRes = await apiFetch(
-                    `/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`
+                    `/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`, { signal }
                   )
                   const detailsData = await detailsRes.json().catch(() => ({}))
                   if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
@@ -293,14 +299,14 @@ export function useTeamAutoSync() {
             // ─── 5) Rang en dernier (sync-rank seul) ───
             await delay(DELAY_BETWEEN_REQUESTS_MS)
             let rankRes = await apiFetch(
-              `/api/riot/sync-rank?${buildParams()}`
+              `/api/riot/sync-rank?${buildParams()}`, { signal }
             )
             let rankData = await rankRes.json().catch(() => ({}))
             if (rankRes.status === 429 && (rankData.retry_after ?? rankData.retryAfter)) {
               const wait = Math.max(2000, (rankData.retry_after ?? rankData.retryAfter) * 1000)
               await delay(wait)
               rankRes = await apiFetch(
-                `/api/riot/sync-rank?${buildParams()}`
+                `/api/riot/sync-rank?${buildParams()}`, { signal }
               )
               rankData = await rankRes.json().catch(() => ({}))
             }
@@ -353,6 +359,8 @@ export function useTeamAutoSync() {
 
             await delay(DELAY_BETWEEN_PLAYERS_MS)
           } catch (e) {
+            // AbortError = sync annulée volontairement (changement d'équipe) — pas une erreur
+            if (e instanceof Error && e.name === 'AbortError') break
             logger.warn(LOG_PREFIX, 'Erreur joueur', name, e)
             await delay(DELAY_BETWEEN_PLAYERS_MS)
           }
@@ -380,6 +388,8 @@ export function useTeamAutoSync() {
 
     return () => {
       abortRef.current = true
+      // Annule immédiatement toutes les requêtes réseau en vol
+      abortControllerRef.current?.abort()
       clearTimeout(t)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)

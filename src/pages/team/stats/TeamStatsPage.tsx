@@ -2,9 +2,9 @@
  * Page Team Stats — Statistiques de l'équipe
  * Sous-menus Team : Résumé | Stats | Timeline | Historiques
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTeam } from '../hooks/useTeam'
-import { useTeamMatchesFull } from '../hooks/useTeamMatches'
+import { useTeamMatchesFull, getFullCacheAgeMs } from '../hooks/useTeamMatches'
 import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
@@ -1436,9 +1436,25 @@ function SideSection({
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
+// Seuil au-delà duquel le fullCache est considéré stale (3 minutes)
+const STALE_THRESHOLD_MS = 3 * 60 * 1000
+
 export const TeamStatsPage = () => {
   const { team, players = [] } = useTeam()
-  const { matches, loading: matchesLoading } = useTeamMatchesFull(team?.id)
+  const { matches, loading: matchesLoading, refetch: refetchMatches } = useTeamMatchesFull(team?.id)
+
+  // Rafraîchit silencieusement si l'utilisateur revient sur l'onglet
+  // et que le cache a plus de 3 min (couvre l'import depuis un autre appareil)
+  useEffect(() => {
+    if (!team?.id) return
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && getFullCacheAgeMs(team.id) > STALE_THRESHOLD_MS) {
+        refetchMatches()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [team?.id, refetchMatches])
   const matchIds = useMemo(() => (matches || []).map((m) => m.id), [matches])
   const { timelines } = useTeamTimelines(matchIds)
   const [statsCategory, setStatsCategory] = useState(null)

@@ -71,6 +71,7 @@ export async function fetchTeamMatches(teamId: string) {
     )
     .eq('team_id', teamId)
     .order('game_creation', { ascending: false })
+    .limit(500)
   return { data, error }
 }
 

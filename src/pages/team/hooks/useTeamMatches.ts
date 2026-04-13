@@ -5,6 +5,8 @@ import { fetchTeamMatchesList, fetchTeamMatches } from '../../../services/supaba
 const listCache = new Map<string, any[]>()
 // Cache complète — matchs avec toutes les stats participants (TeamStatsPage)
 const fullCache = new Map<string, any[]>()
+// Timestamps — heure du dernier fetch réussi par teamId (pour visibilitychange)
+const fullCacheTimestamps = new Map<string, number>()
 
 // Déduplication — si une requête est en vol pour un teamId, tous les appelants
 // attendent la même Promise au lieu de lancer N requêtes identiques en parallèle.
@@ -41,6 +43,7 @@ function makeHook(
             if (error) throw error
             const result = data ?? []
             cache.set(teamId, result)
+            if (cache === fullCache) fullCacheTimestamps.set(teamId, Date.now())
             return result
           })
           .catch((err) => {
@@ -89,4 +92,11 @@ export function getListCachedMatches(teamId: string): any[] | null {
 export function invalidateFullCache(teamId: string) {
   fullCache.delete(teamId)
   fullInflight.delete(teamId)
+  fullCacheTimestamps.delete(teamId)
+}
+
+// Retourne l'âge du fullCache en ms (Infinity si jamais chargé)
+export function getFullCacheAgeMs(teamId: string): number {
+  const ts = fullCacheTimestamps.get(teamId)
+  return ts ? Date.now() - ts : Infinity
 }
