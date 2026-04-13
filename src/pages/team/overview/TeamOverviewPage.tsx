@@ -26,6 +26,8 @@ import {
   Mail,
   Send,
   Link,
+  ArrowRight,
+  Sparkles,
 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { usePlayerSync } from '../hooks/usePlayerSync'
@@ -146,6 +148,7 @@ export const TeamOverviewPage = () => {
   }, [refetchMatches])
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -513,9 +516,115 @@ export const TeamOverviewPage = () => {
     )
   }
 
+  // ── Onboarding banner ────────────────────────────────────────────────────────
+  const hasPlayers = (players?.length ?? 0) > 0
+  const hasPseudos = (players ?? []).some((p) => p.pseudo?.includes('#'))
+  const hasMatches = (teamMatches?.length ?? 0) > 0
+  const allDone    = hasPlayers && hasPseudos && hasMatches
+  const showBanner = !allDone && !bannerDismissed
+
+  const ONBOARDING_STEPS = [
+    {
+      num: 1,
+      done: hasPlayers,
+      icon: Users,
+      title: 'Ajouter les joueurs',
+      desc: 'Crée les profils de chaque membre de ton roster.',
+      action: () => setShowPlayerModal(true),
+      label: 'Ajouter un joueur',
+    },
+    {
+      num: 2,
+      done: hasPseudos,
+      icon: Zap,
+      title: 'Configurer les pseudos SoloQ',
+      desc: 'Format requis : Pseudo#TAG (ex: Shayn#EUW1). Permet la sync automatique des stats SoloQ.',
+      action: () => navigate('joueurs'),
+      label: 'Gérer les joueurs',
+    },
+    {
+      num: 3,
+      done: hasMatches,
+      icon: Swords,
+      title: 'Importer des matchs d\'équipe',
+      desc: 'Importe vos scrims et tournois via Exalty pour débloquer toutes les statistiques.',
+      action: () => navigate('import'),
+      label: 'Importer des matchs',
+    },
+  ]
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-7xl mx-auto space-y-5">
+
+      {/* ── Bannière onboarding ──────────────────────────────────────────────── */}
+      {showBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="relative bg-gradient-to-br from-accent-blue/10 to-purple-500/5 border border-accent-blue/20 rounded-2xl p-5"
+        >
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors"
+            aria-label="Fermer"
+          >
+            <X size={16} />
+          </button>
+
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles size={16} className="text-accent-blue" />
+            <p className="text-sm font-semibold text-accent-blue">Par où commencer ?</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {ONBOARDING_STEPS.map((step) => {
+              const Icon = step.icon
+              const isNext = !step.done && ONBOARDING_STEPS.filter((s) => !s.done)[0]?.num === step.num
+              return (
+                <div
+                  key={step.num}
+                  className={`relative rounded-xl p-4 border transition-colors ${
+                    step.done
+                      ? 'bg-emerald-500/5 border-emerald-500/20 opacity-60'
+                      : isNext
+                      ? 'bg-accent-blue/10 border-accent-blue/30'
+                      : 'bg-dark-bg/60 border-dark-border'
+                  }`}
+                >
+                  {/* Numéro + icône */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      step.done ? 'bg-emerald-500/20 text-emerald-400' : isNext ? 'bg-accent-blue/20 text-accent-blue' : 'bg-dark-border text-gray-500'
+                    }`}>
+                      {step.done ? <Check size={12} /> : step.num}
+                    </div>
+                    <Icon size={14} className={step.done ? 'text-emerald-400' : isNext ? 'text-accent-blue' : 'text-gray-500'} />
+                    <span className={`text-xs font-semibold uppercase tracking-wider ${step.done ? 'text-emerald-400' : isNext ? 'text-accent-blue' : 'text-gray-500'}`}>
+                      {step.done ? 'Fait' : isNext ? 'À faire' : 'En attente'}
+                    </span>
+                  </div>
+
+                  <p className="text-sm font-semibold text-white mb-1">{step.title}</p>
+                  <p className="text-xs text-gray-400 leading-relaxed mb-3">{step.desc}</p>
+
+                  {!step.done && (
+                    <button
+                      onClick={step.action}
+                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
+                        isNext ? 'text-accent-blue hover:text-accent-blue/80' : 'text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      {step.label} <ArrowRight size={12} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <motion.div
