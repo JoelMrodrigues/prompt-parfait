@@ -104,6 +104,103 @@ function DropZone({ files, onFiles, accept, color }: {
   )
 }
 
+// ─── Guide d'import (accordion) ──────────────────────────────────────────────
+
+function ImportGuide() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-dark-bg/30 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <HelpCircle size={16} className="text-accent-blue" />
+          <span className="font-semibold text-white">Comment ça marche ?</span>
+          <span className="text-xs text-gray-500">Guide d'import</span>
+        </div>
+        {open ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+      </button>
+
+      {open && (
+        <div className="border-t border-dark-border px-5 pb-5 pt-4 space-y-4">
+          <p className="text-sm text-gray-400 leading-relaxed">
+            Deux méthodes pour importer vos scrims et tournois. Choisissez celle qui correspond à votre setup.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Option A — LCU Direct */}
+            <div className="bg-dark-bg/50 border border-emerald-500/20 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400">Option A</span>
+                <span className="text-sm font-semibold text-white">LCU Direct Import</span>
+                <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Recommandé</span>
+              </div>
+              <p className="text-xs text-gray-500">Connecte-toi directement à League of Legends sur ton PC.</p>
+              <ol className="space-y-2">
+                {([
+                  { text: 'Lance npm run dev dans le terminal (backend local requis)' },
+                  { text: 'Ouvre League of Legends sur ton PC' },
+                  { text: <>Trouve le fichier <code className="bg-dark-card px-1 rounded text-gray-300">lockfile</code> dans le dossier d'installation League (<code className="bg-dark-card px-1 rounded text-gray-300">C:\Riot Games\League of Legends\lockfile</code>)</> },
+                  { text: 'Colle le contenu du lockfile ci-dessous et clique "Se connecter"' },
+                  { text: 'Sélectionne les parties à importer dans la liste et clique Importer' },
+                ] as { text: React.ReactNode }[]).map(({ text }, i) => (
+                  <li key={i} className="flex gap-2.5 text-xs text-gray-400">
+                    <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="leading-relaxed">{text}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[10px] text-gray-600 pt-2 border-t border-dark-border">
+                ⚡ Importe le match <span className="text-gray-400">et</span> la timeline en un seul clic
+              </p>
+            </div>
+
+            {/* Option B — JSON */}
+            <div className="bg-dark-bg/50 border border-accent-blue/20 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-xs font-bold bg-accent-blue/20 text-accent-blue">Option B</span>
+                <span className="text-sm font-semibold text-white">Import JSON</span>
+              </div>
+              <p className="text-xs text-gray-500">Exporte manuellement les parties depuis LCU Explorer.</p>
+              <ol className="space-y-2">
+                {([
+                  { text: <>Ouvre <span className="text-white font-medium">LCU Explorer</span> pendant ou juste après la partie</> },
+                  { text: <>Navigue vers <code className="bg-dark-card px-1 rounded text-gray-300">/lol-match-history/v1/games</code> et repère l'ID de la partie</> },
+                  { text: <>Exporte le JSON et renomme-le <code className="bg-dark-card px-1 rounded text-gray-300">Scrim1.json</code> (scrim) ou <code className="bg-dark-card px-1 rounded text-gray-300">tr1.json</code> (tournoi)</> },
+                  { text: 'Glisse le(s) fichier(s) dans la zone de dépôt ci-dessous' },
+                ] as { text: React.ReactNode }[]).map(({ text }, i) => (
+                  <li key={i} className="flex gap-2.5 text-xs text-gray-400">
+                    <span className="w-4 h-4 rounded-full bg-accent-blue/20 text-accent-blue text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="leading-relaxed">{text}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-[10px] text-gray-600 pt-2 border-t border-dark-border">
+                📁 Formats acceptés : <code>.json</code> · <code>.txt</code> · <code>.csv</code> — plusieurs fichiers en même temps
+              </p>
+            </div>
+          </div>
+
+          {/* Ce qui est importé */}
+          <div className="bg-dark-bg/30 border border-dark-border rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5">Ce qui est importé automatiquement</p>
+            <div className="flex flex-wrap gap-2">
+              {['KDA par joueur', 'Champions joués', 'Rôles', 'Dégâts & Or', 'CS & Vision', 'Victoire / Défaite', 'Durée de partie'].map((item) => (
+                <span key={item} className="text-[11px] px-2.5 py-1 rounded-lg bg-accent-blue/10 border border-accent-blue/20 text-accent-blue">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Mode d'import JSON ───────────────────────────────────────────────────────
 
 type ImportMode = 'simple' | 'auto' | 'manual'
@@ -552,6 +649,9 @@ export const ImportPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Guide d'import */}
+      <ImportGuide />
 
       {/* ═══════════════════════════════════════════════════════════════════════
           OPTION A — LCU Direct Import
