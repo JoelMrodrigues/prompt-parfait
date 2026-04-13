@@ -251,6 +251,7 @@ export function useTeamAutoSync() {
                     }
                   }
                 } catch (err) {
+                  if (err instanceof Error && err.name === 'AbortError') throw err
                   logger.warn(LOG_PREFIX, name, '| erreur match-details:', err)
                 }
                 await delay(DELAY_BETWEEN_REQUESTS_MS)
@@ -286,6 +287,7 @@ export function useTeamAutoSync() {
                     }
                   }
                 } catch (err) {
+                  if (err instanceof Error && err.name === 'AbortError') throw err
                   logger.warn(LOG_PREFIX, name, '| enrichissement match-details erreur:', err)
                 }
                 await delay(DELAY_BETWEEN_REQUESTS_MS)
