@@ -84,3 +84,9 @@ export const useTeamMatchesFull = makeHook(fetchTeamMatches, fullCache, fullInfl
 export function getListCachedMatches(teamId: string): any[] | null {
   return listCache.get(teamId) ?? null
 }
+
+// Invalide le cache complet (fullCache) — à appeler après import de nouveaux matchs
+export function invalidateFullCache(teamId: string) {
+  fullCache.delete(teamId)
+  fullInflight.delete(teamId)
+}

@@ -98,12 +98,13 @@ export async function fetchParticipantsByMatch(matchId: string) {
 }
 
 export async function fetchPlayerMatchStats(playerId: string) {
-  // Étape 1 : récupérer les participations du joueur
+  // Étape 1 : récupérer toutes les participations du joueur
+  // Pas de limit ici — le tri final par game_creation (étape 3) garantit l'ordre correct.
+  // Un joueur en équipe aura rarement plus de quelques centaines de parties.
   const { data: parts, error } = await supabase
     .from('team_match_participants')
     .select('*')
     .eq('player_id', playerId)
-    .limit(50)
   if (error || !parts?.length) return { data: parts ?? [], error }
 
   // Étape 2 : récupérer les matches correspondants

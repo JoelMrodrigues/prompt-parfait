@@ -10,7 +10,7 @@ import {
   CheckSquare, Square, User, Activity, XCircle, Zap,
 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
-import { useTeamMatches } from '../hooks/useTeamMatches'
+import { useTeamMatches, invalidateFullCache } from '../hooks/useTeamMatches'
 import { useTeamBlocks } from '../hooks/useTeamBlocks'
 import { importExaltyMatches } from '../../../lib/team/exaltyMatchImporter'
 import {
@@ -518,7 +518,11 @@ export const ImportPage = () => {
     setSelected(prev => prev.size === games.length ? new Set() : new Set(games.map(g => g.gameId)))
   }
 
-  const handleImported = async () => { await refetchMatches(); refetchTeam?.() }
+  const handleImported = async () => {
+    if (team?.id) invalidateFullCache(team.id)
+    await refetchMatches()
+    refetchTeam?.()
+  }
 
   if (!team) {
     return (
