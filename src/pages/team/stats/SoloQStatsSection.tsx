@@ -1,12 +1,13 @@
 /**
  * Section Solo Q dans la page Statistiques équipe
- * Tabs: Stats | Timeline
+ * Tabs joueur individuel: Stats | Résumé | Historiques | Timeline (en travaux)
  */
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
+import { getRankImage } from '../joueurs/utils/playerDetailHelpers'
 import { ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 
 // ─── Hook : charge les matches SoloQ d'un joueur ─────────────────────────────
@@ -16,7 +17,7 @@ function useSoloqStats(playerId: string | null) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!playerId || playerId === ALL_ID) { setRows([]); return }
+    if (!playerId || playerId === ALL_ID) { setRows([]); return undefined }
     let cancelled = false
     setLoading(true)
     supabase
@@ -41,13 +42,13 @@ function useSoloqAllPlayers(players: any[]) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!players.length) return
+    if (!players.length) return undefined
     let cancelled = false
     setLoading(true)
     const ids = players.map((p) => p.id)
     supabase
       .from('player_soloq_matches')
-      .select('player_id, win, kills, deaths, assists, game_duration, cs, champion_name')
+      .select('player_id, win, kills, deaths, assists, game_duration, cs, champion_name, total_damage, vision_score, gold_earned')
       .in('player_id', ids)
       .eq('account_source', 'primary')
       .gte('game_creation', SEASON_16_START_MS)
@@ -78,22 +79,49 @@ function computeStats(rows: any[]) {
   const sumD = rows.reduce((a, r) => a + (r.deaths ?? 0), 0)
   const sumA = rows.reduce((a, r) => a + (r.assists ?? 0), 0)
   const kda = sumD > 0 ? (sumK + sumA) / sumD : sumK + sumA
-  const csPerMinList = rows
-    .filter((r) => r.cs != null && (r.game_duration ?? 0) > 0)
+
+  const withDuration = rows.filter((r) => (r.game_duration ?? 0) > 0)
+  const avgDurationMin = withDuration.length
+    ? withDuration.reduce((a, r) => a + r.game_duration, 0) / withDuration.length / 60
+    : 0
+
+  const csPerMinList = withDuration
+    .filter((r) => r.cs != null)
     .map((r) => r.cs / (r.game_duration / 60))
   const avgCsMin = csPerMinList.length ? csPerMinList.reduce((a, b) => a + b, 0) / csPerMinList.length : 0
-  return { n, wins, winrate: (wins / n) * 100, avgK: sumK / n, avgD: sumD / n, avgA: sumA / n, kda, avgCsMin }
+
+  const dpmList = withDuration
+    .filter((r) => r.total_damage != null)
+    .map((r) => r.total_damage / (r.game_duration / 60))
+  const avgDpm = dpmList.length ? dpmList.reduce((a, b) => a + b, 0) / dpmList.length : 0
+
+  const goldMinList = withDuration
+    .filter((r) => r.gold_earned != null)
+    .map((r) => r.gold_earned / (r.game_duration / 60))
+  const avgGoldMin = goldMinList.length ? goldMinList.reduce((a, b) => a + b, 0) / goldMinList.length : 0
+
+  const sumDmg = rows.reduce((a, r) => a + (r.total_damage ?? 0), 0)
+  const sumVision = rows.reduce((a, r) => a + (r.vision_score ?? 0), 0)
+  const sumGold = rows.reduce((a, r) => a + (r.gold_earned ?? 0), 0)
+  const sumCs = rows.reduce((a, r) => a + (r.cs ?? 0), 0)
+
+  return {
+    n, wins, winrate: (wins / n) * 100,
+    avgK: sumK / n, avgD: sumD / n, avgA: sumA / n,
+    totalK: sumK, totalD: sumD, totalA: sumA,
+    kda, avgCsMin, avgDurationMin,
+    avgDamage: sumDmg / n, avgVision: sumVision / n, avgGold: sumGold / n,
+    avgCs: sumCs / n, avgDpm, avgGoldMin,
+  }
 }
 
 function computeChampions(rows: any[]) {
-  // Base aggregation via shared utility
   const base = aggregateChampionStats(
     rows,
     (r: any) => r.champion_name || 'Unknown',
     (r: any) => !!r.win,
   )
 
-  // Compute avgCsMin separately (specific to SoloQ)
   const csMinByChamp: Record<string, { sum: number; count: number }> = {}
   for (const r of rows) {
     const name = r.champion_name || 'Unknown'
@@ -110,6 +138,31 @@ function computeChampions(rows: any[]) {
     kda: s.kdaRatio,
     avgCsMin: csMinByChamp[s.name]?.count ? csMinByChamp[s.name].sum / csMinByChamp[s.name].count : 0,
   }))
+}
+
+// ─── Composant helpers ────────────────────────────────────────────────────────
+
+function StatRow({ label, value, valueColor = 'text-white', hint }: {
+  label: string; value: string; valueColor?: string; hint?: string
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-dark-border/30 last:border-0">
+      <span className="text-sm text-gray-400">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className={`text-sm font-semibold tabular-nums ${valueColor}`}>{value}</span>
+        {hint && <span className="text-xs text-gray-600">{hint}</span>}
+      </div>
+    </div>
+  )
+}
+
+function StatBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5">
+      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-3">{title}</p>
+      {children}
+    </div>
+  )
 }
 
 // ─── Rolling WR chart (SVG natif) ─────────────────────────────────────────────
@@ -140,20 +193,15 @@ function RollingWrChart({ rows }: { rows: any[] }) {
   return (
     <div className="w-full overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 120 }}>
-        {/* Grid */}
         {[0, 25, 50, 75, 100].map((pct) => (
           <g key={pct}>
             <line x1={PAD.left} x2={PAD.left + IW} y1={toY(pct)} y2={toY(pct)} stroke="#1e2035" strokeWidth="1" />
             <text x={PAD.left - 4} y={toY(pct) + 4} textAnchor="end" fontSize="9" fill="#6b7280">{pct}%</text>
           </g>
         ))}
-        {/* 50% reference */}
         <line x1={PAD.left} x2={PAD.left + IW} y1={midY} y2={midY} stroke="#374151" strokeWidth="1" strokeDasharray="4 3" />
-        {/* Area */}
         <path d={areaD} fill="url(#sqGrad)" opacity="0.3" />
-        {/* Line */}
         <path d={pathD} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" />
-        {/* Gradient */}
         <defs>
           <linearGradient id="sqGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.6" />
@@ -164,8 +212,6 @@ function RollingWrChart({ rows }: { rows: any[] }) {
     </div>
   )
 }
-
-// ─── Rolling stats cards ───────────────────────────────────────────────────────
 
 function RollingStats({ rows }: { rows: any[] }) {
   const recent = [...rows].sort((a, b) => (b.game_creation ?? 0) - (a.game_creation ?? 0))
@@ -189,8 +235,6 @@ function RollingStats({ rows }: { rows: any[] }) {
   )
 }
 
-// ─── Streak de résultats ──────────────────────────────────────────────────────
-
 function GameStreak({ rows }: { rows: any[] }) {
   const recent = [...rows]
     .sort((a, b) => (b.game_creation ?? 0) - (a.game_creation ?? 0))
@@ -213,9 +257,84 @@ function GameStreak({ rows }: { rows: any[] }) {
   )
 }
 
-// ─── Vue joueur — Stats ───────────────────────────────────────────────────────
+// ─── Tab : Stats (vue détaillée comme TeamStatistiquesSection) ────────────────
 
-function PlayerSoloQStatsTab({ rows }: { rows: any[] }) {
+function PlayerSoloQStatsDetailed({ rows }: { rows: any[] }) {
+  const s = useMemo(() => computeStats(rows), [rows])
+  if (!s) return <p className="text-gray-500 text-sm">Aucune donnée.</p>
+
+  return (
+    <div className="space-y-3">
+      {/* Hero — 3 KPI */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className={`rounded-2xl border bg-dark-card/60 p-5 flex flex-col gap-1 ${s.winrate >= 50 ? 'border-emerald-500/40' : 'border-rose-500/40'}`}>
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">Winrate</p>
+          <p className={`text-3xl font-bold tabular-nums ${s.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{s.winrate.toFixed(0)}%</p>
+          <p className="text-xs text-gray-500">{s.wins}V · {s.n - s.wins}D</p>
+          <div className="h-1 rounded-full bg-dark-bg overflow-hidden mt-1">
+            <div className={`h-full rounded-full ${s.winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${s.winrate}%` }} />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">KDA Moyen</p>
+          <p className="text-3xl font-bold text-white tabular-nums">{s.kda.toFixed(2)}</p>
+          <p className="text-xs text-gray-500 tabular-nums">{s.avgK.toFixed(1)} / {s.avgD.toFixed(1)} / {s.avgA.toFixed(1)}</p>
+        </div>
+        <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">Parties</p>
+          <p className="text-3xl font-bold text-white tabular-nums">{s.n}</p>
+          <p className="text-xs text-gray-500">Durée moy. {s.avgDurationMin.toFixed(0)} min</p>
+        </div>
+      </div>
+
+      {/* Blocs détaillés */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Combat */}
+        <StatBlock title="Combat">
+          <StatRow label="Kills / partie" value={s.avgK.toFixed(1)} />
+          <StatRow label="Morts / partie" value={s.avgD.toFixed(1)} valueColor="text-rose-400" />
+          <StatRow label="Assists / partie" value={s.avgA.toFixed(1)} valueColor="text-blue-400" />
+          <StatRow label="Dégâts / partie" value={Math.round(s.avgDamage).toLocaleString('fr-FR')} />
+          <StatRow label="Dégâts / min (DPM)" value={Math.round(s.avgDpm).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+        </StatBlock>
+
+        {/* Économie */}
+        <StatBlock title="Économie">
+          <StatRow label="Or / partie" value={`${(s.avgGold / 1000).toFixed(1)}k`} valueColor="text-amber-400" />
+          <StatRow label="Or / min" value={Math.round(s.avgGoldMin).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+          <StatRow label="CS / min" value={s.avgCsMin.toFixed(1)} />
+          <StatRow label="CS / partie" value={Math.round(s.avgCs).toLocaleString('fr-FR')} />
+        </StatBlock>
+
+        {/* Vision */}
+        <StatBlock title="Vision">
+          <StatRow label="Score de vision" value={s.avgVision.toFixed(1)} valueColor="text-emerald-400" />
+          <StatRow
+            label="Vision / min"
+            value={s.avgDurationMin > 0 ? (s.avgVision / s.avgDurationMin).toFixed(2) : '—'}
+          />
+        </StatBlock>
+
+        {/* Performance détaillée */}
+        <StatBlock title="Performance Détaillée">
+          <StatRow label="KDA ratio" value={s.kda.toFixed(2)} />
+          <StatRow label="K / M / A par partie" value={`${s.avgK.toFixed(1)} / ${s.avgD.toFixed(1)} / ${s.avgA.toFixed(1)}`} />
+          <StatRow label="Total Kills / Morts / Assists" value={`${s.totalK} / ${s.totalD} / ${s.totalA}`} />
+          <StatRow
+            label="Winrate global"
+            value={`${s.winrate.toFixed(0)}%`}
+            valueColor={s.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}
+            hint={`${s.wins}V · ${s.n - s.wins}D`}
+          />
+        </StatBlock>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab : Résumé (KPI cards + champions) ────────────────────────────────────
+
+function PlayerSoloQResume({ rows }: { rows: any[] }) {
   const s = useMemo(() => computeStats(rows), [rows])
   const champions = useMemo(() => computeChampions(rows).slice(0, 8), [rows])
 
@@ -223,8 +342,8 @@ function PlayerSoloQStatsTab({ rows }: { rows: any[] }) {
 
   return (
     <div className="space-y-3">
-      {/* Hero row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* 3 KPI + 4 chips */}
+      <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
           <p className="text-[10px] uppercase tracking-widest text-gray-500">Parties</p>
           <p className="text-3xl font-bold text-white tabular-nums">{s.n}</p>
@@ -240,13 +359,22 @@ function PlayerSoloQStatsTab({ rows }: { rows: any[] }) {
         <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
           <p className="text-[10px] uppercase tracking-widest text-gray-500">KDA</p>
           <p className="text-3xl font-bold text-white tabular-nums">{s.kda.toFixed(2)}</p>
-          <p className="text-xs text-gray-500 tabular-nums">{s.avgK.toFixed(1)} · {s.avgD.toFixed(1)} · {s.avgA.toFixed(1)}</p>
+          <p className="text-xs text-gray-500 tabular-nums">{s.avgK.toFixed(1)} / {s.avgD.toFixed(1)} / {s.avgA.toFixed(1)}</p>
         </div>
-        <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
-          <p className="text-[10px] uppercase tracking-widest text-gray-500">CS / min</p>
-          <p className="text-3xl font-bold text-white tabular-nums">{s.avgCsMin.toFixed(1)}</p>
-          <p className="text-xs text-gray-500">Minions par minute</p>
-        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'CS / min', value: s.avgCsMin.toFixed(1) },
+          { label: 'Dégâts / game', value: Math.round(s.avgDamage).toLocaleString('fr-FR') },
+          { label: 'Vision / game', value: s.avgVision.toFixed(1) },
+          { label: 'Or / game', value: `${(s.avgGold / 1000).toFixed(1)}k` },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-xl border border-dark-border bg-dark-card/40 px-4 py-3 flex flex-col gap-0.5">
+            <p className="text-[10px] uppercase tracking-widest text-gray-500">{label}</p>
+            <p className="text-lg font-bold text-white tabular-nums">{value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Champions */}
@@ -298,17 +426,15 @@ function PlayerSoloQStatsTab({ rows }: { rows: any[] }) {
   )
 }
 
-// ─── Vue joueur — Timeline ────────────────────────────────────────────────────
+// ─── Tab : Historiques (rolling stats + streak + périodes) ───────────────────
 
-function PlayerSoloQTimelineTab({ rows }: { rows: any[] }) {
+function PlayerSoloQHistoriques({ rows }: { rows: any[] }) {
   if (!rows.length) return <p className="text-gray-500 text-sm">Aucune donnée.</p>
 
   return (
     <div className="space-y-3">
-      {/* Rolling WR */}
       <RollingStats rows={rows} />
 
-      {/* Graphique WR glissant sur 10 parties */}
       {rows.length >= 10 && (
         <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5">
           <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-4">WR glissant (fenêtre 10 parties)</p>
@@ -316,13 +442,11 @@ function PlayerSoloQTimelineTab({ rows }: { rows: any[] }) {
         </div>
       )}
 
-      {/* Streak */}
       <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5">
         <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">30 dernières parties (→ plus récente)</p>
         <GameStreak rows={rows} />
       </div>
 
-      {/* Stats par periode */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
           { label: 'Cette semaine', days: 7 },
@@ -340,18 +464,11 @@ function PlayerSoloQTimelineTab({ rows }: { rows: any[] }) {
           return (
             <div key={label} className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 space-y-2">
               <p className="text-[10px] uppercase tracking-widest text-gray-500">{label} · {s.n} partie{s.n > 1 ? 's' : ''}</p>
-              <div className="flex justify-between items-center border-b border-dark-border pb-2">
-                <span className="text-xs text-gray-400">Winrate</span>
-                <span className={`text-sm font-bold tabular-nums ${s.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{s.winrate.toFixed(0)}%</span>
-              </div>
-              <div className="flex justify-between items-center border-b border-dark-border pb-2">
-                <span className="text-xs text-gray-400">KDA</span>
-                <span className="text-sm font-bold text-white tabular-nums">{s.kda.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-400">CS/min</span>
-                <span className="text-sm font-bold text-white tabular-nums">{s.avgCsMin.toFixed(1)}</span>
-              </div>
+              <StatRow label="Winrate" value={`${s.winrate.toFixed(0)}%`} valueColor={s.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'} />
+              <StatRow label="KDA" value={s.kda.toFixed(2)} />
+              <StatRow label="CS/min" value={s.avgCsMin.toFixed(1)} />
+              <StatRow label="Dégâts / game" value={Math.round(s.avgDamage).toLocaleString('fr-FR')} />
+              <StatRow label="Or / game" value={`${(s.avgGold / 1000).toFixed(1)}k`} />
             </div>
           )
         })}
@@ -360,11 +477,34 @@ function PlayerSoloQTimelineTab({ rows }: { rows: any[] }) {
   )
 }
 
-// ─── Vue joueur individuel (avec tabs Stats / Timeline) ───────────────────────
+// ─── Tab : Timeline (en travaux) ─────────────────────────────────────────────
+
+function PlayerSoloQTimeline() {
+  return (
+    <div className="rounded-2xl border border-dark-border bg-dark-card/50 p-16 flex flex-col items-center justify-center text-center gap-3">
+      <div className="text-4xl">🚧</div>
+      <p className="text-white font-semibold text-lg">En travaux</p>
+      <p className="text-gray-500 text-sm max-w-xs">
+        La section Timeline Solo Q sera disponible prochainement.
+      </p>
+    </div>
+  )
+}
+
+// ─── Vue joueur individuel (4 tabs) ──────────────────────────────────────────
+
+type SoloqTab = 'stats' | 'resume' | 'historiques' | 'timeline'
+
+const SOLOQ_TABS: { id: SoloqTab; label: string }[] = [
+  { id: 'stats', label: 'Stats' },
+  { id: 'resume', label: 'Résumé' },
+  { id: 'historiques', label: 'Historiques' },
+  { id: 'timeline', label: 'Timeline' },
+]
 
 function PlayerSoloQStats({ playerId }: { playerId: string }) {
   const { rows, loading } = useSoloqStats(playerId)
-  const [tab, setTab] = useState<'stats' | 'timeline'>('stats')
+  const [tab, setTab] = useState<SoloqTab>('stats')
 
   if (loading) {
     return (
@@ -386,27 +526,26 @@ function PlayerSoloQStats({ playerId }: { playerId: string }) {
     <div className="space-y-3">
       {/* Tabs */}
       <div className="flex gap-0 border-b border-dark-border">
-        {(['stats', 'timeline'] as const).map((t) => (
+        {SOLOQ_TABS.map((t) => (
           <button
-            key={t}
+            key={t.id}
             type="button"
-            onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors capitalize ${
-              tab === t
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === t.id
                 ? 'border-purple-500 text-purple-400'
                 : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            {t === 'stats' ? 'Stats' : 'Timeline'}
+            {t.label}
           </button>
         ))}
       </div>
 
-      {tab === 'stats' ? (
-        <PlayerSoloQStatsTab rows={rows} />
-      ) : (
-        <PlayerSoloQTimelineTab rows={rows} />
-      )}
+      {tab === 'stats' && <PlayerSoloQStatsDetailed rows={rows} />}
+      {tab === 'resume' && <PlayerSoloQResume rows={rows} />}
+      {tab === 'historiques' && <PlayerSoloQHistoriques rows={rows} />}
+      {tab === 'timeline' && <PlayerSoloQTimeline />}
     </div>
   )
 }
@@ -443,38 +582,78 @@ function AllPlayersSoloQStats({ players }: { players: any[] }) {
       <div className="px-5 pt-5 pb-3">
         <p className="text-[10px] uppercase tracking-widest text-gray-500">Performances Solo Q · Saison 16</p>
       </div>
-      <div className="divide-y divide-dark-border">
-        {rows.map(({ player, s: st }) => (
-          <div key={player.id} className="flex items-center gap-4 px-5 py-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white">{player.player_name || player.pseudo || 'Joueur'}</p>
-              <p className="text-xs text-gray-500">{st!.n} partie{st!.n > 1 ? 's' : ''}</p>
-            </div>
-            <div className="flex items-center gap-6 text-xs">
-              <div className="text-right">
-                <p className="text-gray-500">WR</p>
-                <p className={`font-bold tabular-nums ${st!.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{st!.winrate.toFixed(0)}%</p>
-              </div>
-              <div className="text-right hidden sm:block">
-                <p className="text-gray-500">K/D/A</p>
-                <p className="text-white tabular-nums">{st!.avgK.toFixed(1)} / {st!.avgD.toFixed(1)} / {st!.avgA.toFixed(1)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-500">KDA</p>
-                <p className="text-white tabular-nums font-semibold">{st!.kda.toFixed(1)}</p>
-              </div>
-              <div className="text-right hidden sm:block">
-                <p className="text-gray-500">CS/min</p>
-                <p className="text-white tabular-nums">{st!.avgCsMin > 0 ? st!.avgCsMin.toFixed(1) : '—'}</p>
-              </div>
-              <div className="w-16">
-                <div className="h-1.5 rounded-full bg-dark-bg overflow-hidden">
-                  <div className={`h-full rounded-full ${st!.winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${st!.winrate}%` }} />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-dark-bg/60 border-b border-dark-border text-gray-500 text-[10px] uppercase tracking-wider">
+              <th className="px-5 py-3 text-left">Joueur</th>
+              <th className="px-4 py-3 text-center">Parties</th>
+              <th className="px-4 py-3 text-center">WR</th>
+              <th className="px-4 py-3 text-center">KDA</th>
+              <th className="px-4 py-3 text-center hidden sm:table-cell">K/D/A</th>
+              <th className="px-4 py-3 text-center hidden md:table-cell">CS/min</th>
+              <th className="px-4 py-3 text-center hidden lg:table-cell">Dégâts</th>
+              <th className="px-4 py-3 text-center hidden lg:table-cell">Vision</th>
+              <th className="px-4 py-3 text-center hidden xl:table-cell">Or</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-dark-border">
+            {rows.map(({ player, s: st }) => {
+              const rankImg = getRankImage(player.rank)
+              return (
+                <tr key={player.id} className="hover:bg-dark-bg/30 transition-colors">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      {rankImg && (
+                        <img src={rankImg} alt="" aria-hidden className="w-8 h-8 object-contain shrink-0 opacity-80" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium text-white truncate">{player.player_name || player.pseudo || 'Joueur'}</p>
+                        {player.rank && (
+                          <p className="text-[10px] text-gray-500 truncate">{player.rank}</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <p className="text-white font-semibold">{st!.n}</p>
+                    <p className="text-[10px] text-gray-500">{st!.wins}V · {st!.n - st!.wins}D</p>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <p className={`font-bold tabular-nums text-base ${st!.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {st!.winrate.toFixed(0)}%
+                    </p>
+                    <div className="w-16 mx-auto mt-1">
+                      <div className="h-1 rounded-full bg-dark-bg overflow-hidden">
+                        <div className={`h-full rounded-full ${st!.winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${st!.winrate}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-center">
+                    <p className={`font-semibold tabular-nums ${st!.kda >= 3 ? 'text-emerald-400' : st!.kda >= 2 ? 'text-white' : 'text-gray-400'}`}>
+                      {st!.kda.toFixed(1)}
+                    </p>
+                  </td>
+                  <td className="px-4 py-4 text-center text-xs text-gray-300 tabular-nums hidden sm:table-cell">
+                    {st!.avgK.toFixed(1)} / {st!.avgD.toFixed(1)} / {st!.avgA.toFixed(1)}
+                  </td>
+                  <td className="px-4 py-4 text-center hidden md:table-cell">
+                    <p className="text-white tabular-nums">{st!.avgCsMin > 0 ? st!.avgCsMin.toFixed(1) : '—'}</p>
+                  </td>
+                  <td className="px-4 py-4 text-center hidden lg:table-cell">
+                    <p className="text-white tabular-nums">{st!.avgDamage > 0 ? Math.round(st!.avgDamage).toLocaleString('fr-FR') : '—'}</p>
+                  </td>
+                  <td className="px-4 py-4 text-center hidden lg:table-cell">
+                    <p className="text-white tabular-nums">{st!.avgVision > 0 ? st!.avgVision.toFixed(1) : '—'}</p>
+                  </td>
+                  <td className="px-4 py-4 text-center hidden xl:table-cell">
+                    <p className="text-amber-400 tabular-nums">{st!.avgGold > 0 ? `${(st!.avgGold / 1000).toFixed(1)}k` : '—'}</p>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

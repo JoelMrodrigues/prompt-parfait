@@ -565,10 +565,10 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
       </div>
 
       {/* ── Colonne droite : panel ── */}
-      <div className="w-[380px] shrink-0 flex flex-col gap-4 sticky top-6 max-h-[calc(100vh-160px)] overflow-y-auto">
+      <div className="w-[380px] shrink-0 flex flex-col gap-4 sticky top-6 h-[calc(100vh-160px)] overflow-hidden">
 
-        {/* Sessions planifiées — toujours en premier */}
-        <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+        {/* Sessions planifiées — toujours en premier, hauteur fixe */}
+        <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden shrink-0">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
             <div>
               <h4 className="font-display font-bold text-white text-base leading-tight">
@@ -629,10 +629,10 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
           </div>
         </div>
 
-        {/* Matchs joués ce jour — toujours en dessous */}
+        {/* Matchs joués ce jour — scrollable, prend l'espace restant */}
         {selectedDay && matchesByDay.get(selectedDay)?.length ? (
-          <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border">
+          <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden flex flex-col min-h-0 flex-1">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-border shrink-0">
               <div>
                 <h4 className="font-display font-bold text-white text-base leading-tight flex items-center gap-2">
                   Matchs joués
@@ -667,7 +667,7 @@ function CalendarTab({ teamId, allMatches, avail, players }: {
                 </span>
               </div>
             </div>
-            <div className="p-3 space-y-2">
+            <div className="p-3 space-y-2 overflow-y-auto flex-1 min-h-0">
               {matchesByDay.get(selectedDay)!.map((m) => (
                 <MatchRow key={m.id} match={m} compact />
               ))}

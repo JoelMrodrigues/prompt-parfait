@@ -1,6 +1,6 @@
 /**
  * Page Team Stats — Statistiques de l'équipe
- * Sous-menus Team : Général | Timeline | Champions (Plus joués / Stats détaillées)
+ * Sous-menus Team : Résumé | Stats | Timeline | Historiques
  */
 import { useState, useMemo } from 'react'
 import { useTeam } from '../hooks/useTeam'
@@ -9,7 +9,7 @@ import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
 import { SoloQStatsSection } from './SoloQStatsSection'
-import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles } from 'lucide-react'
+import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles, Activity } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
 
@@ -117,51 +117,6 @@ function computeComboStats(matches: any[], size: number, side: 'our' | 'enemy') 
 }
 
 // ─── Composants champions ─────────────────────────────────────────────────────
-
-function ChampionStatsGrid({ champions }: { champions: any[] }) {
-  const top = champions.slice(0, 12)
-  if (!top.length) {
-    return (
-      <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
-        <p className="text-gray-500 text-sm">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-      {top.map((c) => (
-        <div
-          key={c.name}
-          className="bg-dark-card border border-dark-border rounded-xl p-3 flex flex-col items-center gap-2 hover:border-accent-blue/40 transition-colors"
-        >
-          <div className="relative">
-            <img
-              src={getChampionImage(c.name)}
-              alt={getChampionDisplayName(c.name) || c.name}
-              className="w-14 h-14 rounded-xl object-cover border border-dark-border"
-            />
-            <span
-              className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded text-xs font-bold whitespace-nowrap ${
-                c.winrate >= 50 ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-              }`}
-            >
-              {c.winrate}%
-            </span>
-          </div>
-          <p className="text-sm font-medium text-white text-center truncate w-full mt-1">
-            {getChampionDisplayName(c.name) || c.name}
-          </p>
-          <p className="text-xs text-gray-500">{c.games} partie{c.games > 1 ? 's' : ''}</p>
-          <p className="text-xs">
-            <span className="text-emerald-400">{c.wins}V</span>
-            <span className="text-gray-500 mx-1">/</span>
-            <span className="text-rose-400">{c.losses}D</span>
-          </p>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function ChampionStatsDetailTable({ champions }: { champions: any[] }) {
   if (!champions.length) {
@@ -707,12 +662,13 @@ function TeamGlobalStats({ matches, loading }: { matches: any[]; loading: boolea
           {/* Premier objectif */}
           <div className="border-t border-dark-border/40 pt-4">
             <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Premier objectif</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {[
                 { label: 'First Blood', pct: stats.firstBloodPct },
                 { label: 'First Tower', pct: stats.firstTowerPct },
                 { label: 'First Dragon', pct: stats.firstDragonPct },
                 { label: 'First Baron', pct: stats.firstBaronPct },
+                { label: 'First Inhib', pct: stats.firstInhibPct },
               ].map(({ label, pct }) => (
                 <div key={label}>
                   <div className="flex items-center justify-between mb-1">
@@ -732,6 +688,400 @@ function TeamGlobalStats({ matches, loading }: { matches: any[]; loading: boolea
   )
 }
 
+// ─── Helpers UI ───────────────────────────────────────────────────────────────
+
+function TStatRow({ label, value, valueColor = 'text-white', hint }: {
+  label: string; value: string; valueColor?: string; hint?: string
+}) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-dark-border/30 last:border-0">
+      <span className="text-sm text-gray-400">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className={`text-sm font-semibold tabular-nums ${valueColor}`}>{value}</span>
+        {hint && <span className="text-xs text-gray-600">{hint}</span>}
+      </div>
+    </div>
+  )
+}
+
+function TStatBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5">
+      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-3">{title}</p>
+      {children}
+    </div>
+  )
+}
+
+// ─── Stats détaillées équipe (onglet Stats, ALL) ──────────────────────────────
+
+function TeamStatsDetailed({ matches, loading }: { matches: any[]; loading: boolean }) {
+  const stats = useMemo(() => {
+    if (!matches?.length) return null
+    const n = matches.length
+    const wins = matches.filter((m) => m.our_win).length
+    const winrate = n ? (wins / n) * 100 : 0
+    const blue = matches.filter((m) => m.our_team_id === 100)
+    const red = matches.filter((m) => m.our_team_id === 200)
+    const blueWins = blue.filter((m) => m.our_win).length
+    const redWins = red.filter((m) => m.our_win).length
+    const blueWR = blue.length ? (blueWins / blue.length) * 100 : null
+    const redWR = red.length ? (redWins / red.length) * 100 : null
+    const withDur = matches.filter((m) => (m.game_duration ?? 0) > 0)
+    const avgDurationMin = withDur.length ? withDur.reduce((s, m) => s + m.game_duration, 0) / withDur.length / 60 : 0
+    const totalDurationSec = withDur.reduce((s, m) => s + m.game_duration, 0)
+    const totalDurationMin = totalDurationSec / 60
+
+    let totalKills = 0, totalDeaths = 0, totalAssists = 0
+    let totalGold = 0, totalDamage = 0, totalCs = 0, totalVision = 0
+    let blueK = 0, blueD = 0, blueA = 0, redK = 0, redD = 0, redA = 0
+    for (const m of matches) {
+      const our = (m.team_match_participants || []).filter((p: any) => p.team_side === 'our' || !p.team_side)
+      for (const p of our) {
+        totalKills += p.kills ?? 0; totalDeaths += p.deaths ?? 0; totalAssists += p.assists ?? 0
+        totalGold += p.gold_earned ?? 0; totalDamage += p.total_damage_dealt_to_champions ?? 0
+        totalCs += p.cs ?? 0; totalVision += p.vision_score ?? 0
+        if (m.our_team_id === 100) { blueK += p.kills ?? 0; blueD += p.deaths ?? 0; blueA += p.assists ?? 0 }
+        else { redK += p.kills ?? 0; redD += p.deaths ?? 0; redA += p.assists ?? 0 }
+      }
+    }
+    const div = n || 1
+    const kdaRatio = totalDeaths > 0 ? (totalKills + totalAssists) / totalDeaths : totalKills + totalAssists
+    const avgDpmTeam = totalDurationMin > 0 ? totalDamage / totalDurationMin : 0
+    const avgGoldMinTeam = totalDurationMin > 0 ? totalGold / totalDurationMin : 0
+    const avgCsMinTeam = totalDurationMin > 0 ? totalCs / totalDurationMin : 0
+    const avgVisionMinTeam = totalDurationMin > 0 ? totalVision / totalDurationMin : 0
+    const blueKDA = blueD > 0 ? (blueK + blueA) / blueD : blueK + blueA
+    const redKDA = redD > 0 ? (redK + redA) / redD : redK + redA
+    const blueN = blue.length || 1; const redN = red.length || 1
+
+    let totalDragons = 0, totalBarons = 0, totalHeralds = 0, totalTowers = 0, totalInhibs = 0, totalGrubs = 0
+    let firstTowerCount = 0, firstBloodCount = 0, firstDragonCount = 0, firstBaronCount = 0, firstInhibCount = 0
+    let objectivesMatchCount = 0
+    for (const m of matches) {
+      const obj = m.objectives && typeof m.objectives === 'object' ? m.objectives : null
+      const our = obj?.[String(m.our_team_id ?? 100)]
+      if (!our) continue
+      objectivesMatchCount++
+      totalDragons += our.dragonKills ?? 0; totalBarons += our.baronKills ?? 0
+      totalHeralds += our.riftHeraldKills ?? 0; totalTowers += our.towerKills ?? 0
+      totalInhibs += our.inhibitorKills ?? 0; totalGrubs += our.hordeKills ?? 0
+      if (our.firstTower) firstTowerCount++; if (our.firstBlood) firstBloodCount++
+      if (our.firstDragon) firstDragonCount++; if (our.firstBaron) firstBaronCount++
+      if (our.firstInhibitor) firstInhibCount++
+    }
+    const objDiv = objectivesMatchCount || 1
+
+    const scrims = matches.filter((m) => (m.match_type || 'scrim') === 'scrim')
+    const tournaments = matches.filter((m) => m.match_type === 'tournament')
+    const scrimWins = scrims.filter((m) => m.our_win).length
+    const tourneyWins = tournaments.filter((m) => m.our_win).length
+
+    return {
+      n, wins, winrate, kdaRatio, avgDurationMin,
+      avgKills: totalKills / div, avgDeaths: totalDeaths / div, avgAssists: totalAssists / div,
+      totalKills, totalDeaths, totalAssists,
+      avgGold: totalGold / div, avgDamage: totalDamage / div, avgCs: totalCs / div, avgVision: totalVision / div,
+      avgDpmTeam, avgGoldMinTeam, avgCsMinTeam, avgVisionMinTeam,
+      blueGames: blue.length, blueWins, blueWR, blueKDA,
+      blueAvgK: blueK / blueN, blueAvgD: blueD / blueN, blueAvgA: blueA / blueN,
+      redGames: red.length, redWins, redWR, redKDA,
+      redAvgK: redK / redN, redAvgD: redD / redN, redAvgA: redA / redN,
+      objectivesMatchCount, objDiv,
+      avgDragons: totalDragons / objDiv, avgBarons: totalBarons / objDiv, avgHeralds: totalHeralds / objDiv,
+      avgTowers: totalTowers / objDiv, avgInhibs: totalInhibs / objDiv, avgGrubs: totalGrubs / objDiv,
+      firstBloodPct: n ? (firstBloodCount / n) * 100 : 0, firstTowerPct: n ? (firstTowerCount / n) * 100 : 0,
+      firstDragonPct: n ? (firstDragonCount / n) * 100 : 0, firstBaronPct: n ? (firstBaronCount / n) * 100 : 0,
+      firstInhibPct: n ? (firstInhibCount / n) * 100 : 0,
+      scrims: scrims.length, scrimWins, scrimWR: scrims.length ? (scrimWins / scrims.length) * 100 : null,
+      tournaments: tournaments.length, tourneyWins, tourneyWR: tournaments.length ? (tourneyWins / tournaments.length) * 100 : null,
+    }
+  }, [matches])
+
+  if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
+  if (!stats) return <div className="bg-dark-card border border-dark-border rounded-lg p-8 text-center"><p className="text-gray-500">Aucune donnée. Importez des matchs depuis la page Matchs.</p></div>
+
+  return (
+    <div className="space-y-4">
+      {/* Hero row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Parties</p>
+          <p className="text-3xl font-bold text-white leading-none">{stats.n}</p>
+          <p className="text-xs text-gray-500 mt-2"><span className="text-emerald-400">{stats.wins}V</span><span className="mx-1 text-gray-600">·</span><span className="text-rose-400">{stats.n - stats.wins}D</span></p>
+        </div>
+        <div className={`bg-dark-card border rounded-2xl p-5 ${stats.winrate >= 50 ? 'border-emerald-500/25' : 'border-rose-500/25'}`}>
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Winrate</p>
+          <p className={`text-3xl font-bold leading-none ${stats.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.winrate.toFixed(1)}%</p>
+          <div className="mt-3 h-1 rounded-full bg-dark-bg overflow-hidden"><div className={`h-full rounded-full ${stats.winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(stats.winrate, 100)}%` }} /></div>
+        </div>
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">KDA équipe</p>
+          <p className="text-3xl font-bold text-white leading-none">{stats.kdaRatio.toFixed(2)}</p>
+          <p className="text-xs text-gray-500 mt-2 font-mono">{stats.avgKills.toFixed(1)} / {stats.avgDeaths.toFixed(1)} / {stats.avgAssists.toFixed(1)}</p>
+        </div>
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Durée moy.</p>
+          <p className="text-3xl font-bold text-white leading-none">{stats.avgDurationMin.toFixed(1)}<span className="text-lg text-gray-500 font-normal"> min</span></p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Combat */}
+        <TStatBlock title="Combat (par partie, équipe entière)">
+          <TStatRow label="Kills" value={stats.avgKills.toFixed(1)} />
+          <TStatRow label="Morts" value={stats.avgDeaths.toFixed(1)} valueColor="text-rose-400" />
+          <TStatRow label="Assists" value={stats.avgAssists.toFixed(1)} valueColor="text-blue-400" />
+          <TStatRow label="Total K / M / A" value={`${stats.totalKills} / ${stats.totalDeaths} / ${stats.totalAssists}`} />
+          <TStatRow label="Dégâts / partie" value={Math.round(stats.avgDamage).toLocaleString('fr-FR')} />
+          <TStatRow label="DPM équipe" value={Math.round(stats.avgDpmTeam).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+          <TStatRow label="KDA ratio" value={stats.kdaRatio.toFixed(2)} />
+        </TStatBlock>
+
+        {/* Économie */}
+        <TStatBlock title="Économie (par partie, équipe)">
+          <TStatRow label="Or / partie" value={`${(stats.avgGold / 1000).toFixed(1)}k`} valueColor="text-amber-400" />
+          <TStatRow label="Or / min" value={Math.round(stats.avgGoldMinTeam).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+          <TStatRow label="CS / partie" value={Math.round(stats.avgCs).toLocaleString('fr-FR')} />
+          <TStatRow label="CS / min" value={stats.avgCsMinTeam.toFixed(1)} />
+        </TStatBlock>
+
+        {/* Vision */}
+        <TStatBlock title="Vision (par partie, équipe)">
+          <TStatRow label="Score de vision" value={stats.avgVision.toFixed(1)} valueColor="text-emerald-400" />
+          <TStatRow label="Vision / min" value={stats.avgVisionMinTeam.toFixed(2)} />
+        </TStatBlock>
+
+        {/* Side détaillé */}
+        <TStatBlock title="Side — performance détaillée">
+          {[
+            { label: 'Blue Side', color: 'text-blue-400', bar: 'bg-blue-500', wr: stats.blueWR, wins: stats.blueWins, games: stats.blueGames, kda: stats.blueKDA, avgK: stats.blueAvgK, avgD: stats.blueAvgD, avgA: stats.blueAvgA },
+            { label: 'Red Side', color: 'text-rose-400', bar: 'bg-rose-500', wr: stats.redWR, wins: stats.redWins, games: stats.redGames, kda: stats.redKDA, avgK: stats.redAvgK, avgD: stats.redAvgD, avgA: stats.redAvgA },
+          ].map(({ label, color, bar, wr, wins, games, kda, avgK, avgD, avgA }) => (
+            <div key={label} className="py-2 border-b border-dark-border/30 last:border-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-sm font-medium ${color}`}>{label}</span>
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-gray-500">{wins}V/{games}</span>
+                  <span className={`font-bold tabular-nums ${wr != null && wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr != null ? `${wr.toFixed(0)}%` : '—'}</span>
+                </div>
+              </div>
+              {wr != null && <div className="h-1 rounded-full bg-dark-bg overflow-hidden mb-1"><div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.min(wr, 100)}%` }} /></div>}
+              <p className="text-[11px] text-gray-500 tabular-nums">KDA {kda.toFixed(2)} · {avgK.toFixed(1)}/{avgD.toFixed(1)}/{avgA.toFixed(1)}</p>
+            </div>
+          ))}
+        </TStatBlock>
+      </div>
+
+      {/* Type de match */}
+      {(stats.scrims > 0 || stats.tournaments > 0) && (
+        <TStatBlock title="Par type de match">
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Scrims', games: stats.scrims, wins: stats.scrimWins, wr: stats.scrimWR },
+              { label: 'Tournois', games: stats.tournaments, wins: stats.tourneyWins, wr: stats.tourneyWR },
+            ].map(({ label, games, wins, wr }) => games > 0 ? (
+              <div key={label}>
+                <p className="text-xs text-gray-500 mb-1">{label} · {games} partie{games > 1 ? 's' : ''}</p>
+                <p className={`text-lg font-bold tabular-nums ${wr != null && wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr != null ? `${wr.toFixed(0)}%` : '—'}</p>
+                <p className="text-xs text-gray-600">{wins}V · {games - wins}D</p>
+              </div>
+            ) : null)}
+          </div>
+        </TStatBlock>
+      )}
+
+      {/* Objectifs */}
+      {stats.objectivesMatchCount > 0 && (
+        <TStatBlock title={`Objectifs moy. · ${stats.objectivesMatchCount} parties`}>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-5">
+            {[
+              { emoji: '🐉', label: 'Dragons', value: stats.avgDragons },
+              { emoji: '🪲', label: 'Grubs', value: stats.avgGrubs },
+              { emoji: '🦀', label: 'Herald', value: stats.avgHeralds },
+              { emoji: '👑', label: 'Nashor', value: stats.avgBarons },
+              { emoji: '🏰', label: 'Tours', value: stats.avgTowers },
+              { emoji: '🚪', label: 'Inhibs', value: stats.avgInhibs },
+            ].map(({ emoji, label, value }) => (
+              <div key={label} className="text-center">
+                <div className="text-2xl mb-1">{emoji}</div>
+                <div className="text-lg font-bold text-white">{value.toFixed(1)}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">{label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-dark-border/40 pt-4">
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3">Premier objectif</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[
+                { label: 'First Blood', pct: stats.firstBloodPct },
+                { label: 'First Tower', pct: stats.firstTowerPct },
+                { label: 'First Dragon', pct: stats.firstDragonPct },
+                { label: 'First Baron', pct: stats.firstBaronPct },
+                { label: 'First Inhib', pct: stats.firstInhibPct },
+              ].map(({ label, pct }) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-400">{label}</span>
+                    <span className={`text-xs font-bold ${pct >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-dark-bg overflow-hidden">
+                    <div className={`h-full rounded-full ${pct >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TStatBlock>
+      )}
+    </div>
+  )
+}
+
+// ─── Stats détaillées joueur individuel (onglet Stats) ────────────────────────
+
+function PlayerTeamStatsDetailed({ playerId, matches }: { playerId: string; matches: any[] }) {
+  const stats = useMemo(() => {
+    if (!matches?.length || !playerId) return null
+    const flat: { p: any; win: boolean; duration: number; side: number }[] = []
+    for (const m of matches) {
+      const our = (m.team_match_participants || []).filter((x: any) => x.team_side === 'our' || !x.team_side)
+      const p = our.find((x: any) => x.player_id === playerId)
+      if (p) flat.push({ p, win: !!m.our_win, duration: m.game_duration ?? 0, side: m.our_team_id ?? 100 })
+    }
+    if (!flat.length) return null
+
+    const n = flat.length
+    const wins = flat.filter((f) => f.win).length
+    const winrate = (wins / n) * 100
+    const sumK = flat.reduce((a, f) => a + (f.p.kills ?? 0), 0)
+    const sumD = flat.reduce((a, f) => a + (f.p.deaths ?? 0), 0)
+    const sumA = flat.reduce((a, f) => a + (f.p.assists ?? 0), 0)
+    const kda = sumD > 0 ? (sumK + sumA) / sumD : sumK + sumA
+    const withDur = flat.filter((f) => f.duration > 0)
+    const avgDurationMin = withDur.length ? withDur.reduce((a, f) => a + f.duration, 0) / withDur.length / 60 : 0
+    const sumDmg = flat.reduce((a, f) => a + (f.p.total_damage_dealt_to_champions ?? 0), 0)
+    const sumGold = flat.reduce((a, f) => a + (f.p.gold_earned ?? 0), 0)
+    const sumCs = flat.reduce((a, f) => a + (f.p.cs ?? 0), 0)
+    const sumVision = flat.reduce((a, f) => a + (f.p.vision_score ?? 0), 0)
+    const avgDpm = avgDurationMin > 0 ? (sumDmg / n) / avgDurationMin : 0
+    const avgGoldMin = avgDurationMin > 0 ? (sumGold / n) / avgDurationMin : 0
+    const avgCsMin = avgDurationMin > 0 ? (sumCs / n) / avgDurationMin : 0
+    const avgVisionMin = avgDurationMin > 0 ? (sumVision / n) / avgDurationMin : 0
+
+    const blue = flat.filter((f) => f.side === 100)
+    const red = flat.filter((f) => f.side === 200)
+    const blueWins = blue.filter((f) => f.win).length
+    const redWins = red.filter((f) => f.win).length
+    const blueWR = blue.length ? (blueWins / blue.length) * 100 : null
+    const redWR = red.length ? (redWins / red.length) * 100 : null
+    const blueK = blue.reduce((a, f) => a + (f.p.kills ?? 0), 0)
+    const blueD = blue.reduce((a, f) => a + (f.p.deaths ?? 0), 0)
+    const blueA = blue.reduce((a, f) => a + (f.p.assists ?? 0), 0)
+    const redK = red.reduce((a, f) => a + (f.p.kills ?? 0), 0)
+    const redD = red.reduce((a, f) => a + (f.p.deaths ?? 0), 0)
+    const redA = red.reduce((a, f) => a + (f.p.assists ?? 0), 0)
+    const blueKDA = blueD > 0 ? (blueK + blueA) / blueD : blueK + blueA
+    const redKDA = redD > 0 ? (redK + redA) / redD : redK + redA
+    const blueN = blue.length || 1; const redN = red.length || 1
+
+    return {
+      n, wins, winrate, kda, avgDurationMin,
+      avgK: sumK / n, avgD: sumD / n, avgA: sumA / n,
+      totalK: sumK, totalD: sumD, totalA: sumA,
+      avgDamage: sumDmg / n, avgGold: sumGold / n, avgCs: sumCs / n, avgVision: sumVision / n,
+      avgDpm, avgGoldMin, avgCsMin, avgVisionMin,
+      blueGames: blue.length, blueWins, blueWR, blueKDA,
+      blueAvgK: blueK / blueN, blueAvgD: blueD / blueN, blueAvgA: blueA / blueN,
+      redGames: red.length, redWins, redWR, redKDA,
+      redAvgK: redK / redN, redAvgD: redD / redN, redAvgA: redA / redN,
+    }
+  }, [playerId, matches])
+
+  if (!stats) return <div className="bg-dark-card border border-dark-border rounded-lg p-8 text-center"><p className="text-gray-500">Aucune donnée pour ce joueur.</p></div>
+
+  return (
+    <div className="space-y-3">
+      {/* Hero row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className={`rounded-2xl border bg-dark-card/60 p-5 flex flex-col gap-1 ${stats.winrate >= 50 ? 'border-emerald-500/40' : 'border-rose-500/40'}`}>
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">Winrate</p>
+          <p className={`text-3xl font-bold tabular-nums ${stats.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.winrate.toFixed(0)}%</p>
+          <p className="text-xs text-gray-500">{stats.wins}V · {stats.n - stats.wins}D</p>
+          <div className="h-1 rounded-full bg-dark-bg overflow-hidden mt-1"><div className={`h-full rounded-full ${stats.winrate >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${stats.winrate}%` }} /></div>
+        </div>
+        <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">KDA Moyen</p>
+          <p className="text-3xl font-bold text-white tabular-nums">{stats.kda.toFixed(2)}</p>
+          <p className="text-xs text-gray-500 tabular-nums">{stats.avgK.toFixed(1)} / {stats.avgD.toFixed(1)} / {stats.avgA.toFixed(1)}</p>
+        </div>
+        <div className="rounded-2xl border border-dark-border bg-dark-card/60 p-5 flex flex-col gap-1">
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">Parties</p>
+          <p className="text-3xl font-bold text-white tabular-nums">{stats.n}</p>
+          <p className="text-xs text-gray-500">Durée moy. {stats.avgDurationMin.toFixed(0)} min</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Combat */}
+        <TStatBlock title="Combat">
+          <TStatRow label="Kills / partie" value={stats.avgK.toFixed(1)} />
+          <TStatRow label="Morts / partie" value={stats.avgD.toFixed(1)} valueColor="text-rose-400" />
+          <TStatRow label="Assists / partie" value={stats.avgA.toFixed(1)} valueColor="text-blue-400" />
+          <TStatRow label="Total K / M / A" value={`${stats.totalK} / ${stats.totalD} / ${stats.totalA}`} />
+          <TStatRow label="Dégâts / partie" value={Math.round(stats.avgDamage).toLocaleString('fr-FR')} />
+          <TStatRow label="DPM" value={Math.round(stats.avgDpm).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+          <TStatRow label="KDA ratio" value={stats.kda.toFixed(2)} />
+        </TStatBlock>
+
+        {/* Économie */}
+        <TStatBlock title="Économie">
+          <TStatRow label="Or / partie" value={`${(stats.avgGold / 1000).toFixed(1)}k`} valueColor="text-amber-400" />
+          <TStatRow label="Or / min" value={Math.round(stats.avgGoldMin).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+          <TStatRow label="CS / min" value={stats.avgCsMin.toFixed(1)} />
+          <TStatRow label="CS / partie" value={Math.round(stats.avgCs).toLocaleString('fr-FR')} />
+        </TStatBlock>
+
+        {/* Vision */}
+        <TStatBlock title="Vision">
+          <TStatRow label="Score de vision / partie" value={stats.avgVision.toFixed(1)} valueColor="text-emerald-400" />
+          <TStatRow label="Vision / min" value={stats.avgVisionMin.toFixed(2)} />
+        </TStatBlock>
+
+        {/* Side performance */}
+        <TStatBlock title="Performance par side">
+          {[
+            { label: 'Blue Side', color: 'text-blue-400', bar: 'bg-blue-500', wr: stats.blueWR, wins: stats.blueWins, games: stats.blueGames, kda: stats.blueKDA, avgK: stats.blueAvgK, avgD: stats.blueAvgD, avgA: stats.blueAvgA },
+            { label: 'Red Side', color: 'text-rose-400', bar: 'bg-rose-500', wr: stats.redWR, wins: stats.redWins, games: stats.redGames, kda: stats.redKDA, avgK: stats.redAvgK, avgD: stats.redAvgD, avgA: stats.redAvgA },
+          ].map(({ label, color, bar, wr, wins, games, kda, avgK, avgD, avgA }) => (
+            <div key={label} className="py-2 border-b border-dark-border/30 last:border-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-sm font-medium ${color}`}>{label}</span>
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-gray-500">{wins}V/{games}</span>
+                  <span className={`font-bold tabular-nums ${wr != null && wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr != null ? `${wr.toFixed(0)}%` : '—'}</span>
+                </div>
+              </div>
+              {wr != null && <div className="h-1 rounded-full bg-dark-bg overflow-hidden mb-1"><div className={`h-full rounded-full ${bar}`} style={{ width: `${Math.min(wr, 100)}%` }} /></div>}
+              <p className="text-[11px] text-gray-500 tabular-nums">KDA {kda.toFixed(2)} · {avgK.toFixed(1)}/{avgD.toFixed(1)}/{avgA.toFixed(1)}</p>
+            </div>
+          ))}
+        </TStatBlock>
+      </div>
+
+      {/* Performance détaillée */}
+      <TStatBlock title="Performance Détaillée">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+          <TStatRow label="KDA ratio" value={stats.kda.toFixed(2)} />
+          <TStatRow label="K / M / A par partie" value={`${stats.avgK.toFixed(1)} / ${stats.avgD.toFixed(1)} / ${stats.avgA.toFixed(1)}`} />
+          <TStatRow label="Total Kills / Morts / Assists" value={`${stats.totalK} / ${stats.totalD} / ${stats.totalA}`} />
+          <TStatRow label="Winrate global" value={`${stats.winrate.toFixed(0)}%`} valueColor={stats.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'} hint={`${stats.wins}V · ${stats.n - stats.wins}D`} />
+        </div>
+      </TStatBlock>
+    </div>
+  )
+}
+
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const STATS_CATEGORY_JOUEURS = 'joueurs'
@@ -742,14 +1092,10 @@ const STATS_MODE_TEAM = 'team'
 const STATS_MODE_SOLOQ = 'soloq'
 
 const TEAM_STAT_SUBS = [
-  { id: 'general', label: 'Général', icon: BarChart3 },
+  { id: 'resume', label: 'Résumé', icon: BarChart3 },
+  { id: 'stats', label: 'Stats', icon: Activity },
   { id: 'timeline', label: 'Timeline', icon: TrendingUp },
-  { id: 'champions', label: 'Champions', icon: Sparkles },
-]
-
-const CHAMP_SUBS = [
-  { id: 'joues', label: 'Plus joués' },
-  { id: 'stats', label: 'Stats détaillées' },
+  { id: 'historiques', label: 'Historiques', icon: Sparkles },
 ]
 
 const STATS_CARDS = [
@@ -1094,12 +1440,11 @@ export const TeamStatsPage = () => {
   const { team, players = [] } = useTeam()
   const { matches, loading: matchesLoading } = useTeamMatchesFull(team?.id)
   const matchIds = useMemo(() => (matches || []).map((m) => m.id), [matches])
-  const { timelines, loading: timelinesLoading } = useTeamTimelines(matchIds)
+  const { timelines } = useTeamTimelines(matchIds)
   const [statsCategory, setStatsCategory] = useState(null)
   const [selectedId, setSelectedId] = useState(ALL_ID)
   const [statsMode, setStatsMode] = useState(STATS_MODE_TEAM)
-  const [teamStatsSub, setTeamStatsSub] = useState('general')
-  const [champSub, setChampSub] = useState('joues')
+  const [teamStatsSub, setTeamStatsSub] = useState('resume')
 
   const selectedPlayer = players.find((p) => p.id === selectedId)
   const selectedLabel =
@@ -1131,15 +1476,18 @@ export const TeamStatsPage = () => {
       )
     }
 
-    if (teamStatsSub === 'champions') {
-      return champSub === 'joues' ? (
-        <ChampionStatsGrid champions={teamChampStats} />
-      ) : (
-        <ChampionStatsDetailTable champions={teamChampStats} />
-      )
+    if (teamStatsSub === 'historiques') {
+      return <ChampionStatsDetailTable champions={teamChampStats} />
     }
 
-    // Général (default)
+    if (teamStatsSub === 'stats') {
+      if (selectedId === ALL_ID) {
+        return <TeamStatsDetailed matches={matches} loading={matchesLoading} />
+      }
+      return <PlayerTeamStatsDetailed playerId={selectedId} matches={matches} />
+    }
+
+    // Résumé (default)
     if (selectedId === ALL_ID) {
       return <TeamGlobalStats matches={matches} loading={matchesLoading} />
     }
@@ -1262,26 +1610,6 @@ export const TeamStatsPage = () => {
                 </button>
               )
             })}
-          </div>
-        )}
-
-        {/* Sous-menus Champions : Plus joués | Stats détaillées */}
-        {statsMode === STATS_MODE_TEAM && teamStatsSub === 'champions' && (
-          <div className="flex gap-2 mb-4">
-            {CHAMP_SUBS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setChampSub(s.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  champSub === s.id
-                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
-                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
           </div>
         )}
 
