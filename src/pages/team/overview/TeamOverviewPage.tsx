@@ -547,7 +547,7 @@ export const TeamOverviewPage = () => {
       done: hasMatches,
       icon: Swords,
       title: 'Importer des matchs d\'équipe',
-      desc: 'Importe vos scrims et tournois via Exalty pour débloquer toutes les statistiques.',
+      desc: 'Importe vos scrims et tournois depuis la page Import pour débloquer toutes les statistiques.',
       action: () => navigate('import'),
       label: 'Importer des matchs',
     },

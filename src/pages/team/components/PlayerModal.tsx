@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, Info } from 'lucide-react'
 import { fetchSyncRank } from '../../../lib/riotSync'
 import { useToast } from '../../../contexts/ToastContext'
 import { OPGG_TO_RIOT, generateOpggLink, generateDpmLink } from '../../../lib/team/linkGenerators'
@@ -205,18 +205,39 @@ export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1.5">
-                    Pseudo Riot ID <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs text-gray-500">
+                      Pseudo Riot ID <span className="text-red-500">*</span>
+                    </label>
+                    {pseudo && (
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        pseudo.includes('#')
+                          ? 'bg-emerald-500/15 text-emerald-400'
+                          : 'bg-orange-500/15 text-orange-400'
+                      }`}>
+                        {pseudo.includes('#') ? '✓ Format correct' : '# manquant'}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={pseudo}
                     onChange={(e) => setPseudo(e.target.value)}
-                    placeholder="Summoner#EUW"
+                    placeholder="ex: Shayn#EUW1"
                     maxLength={50}
-                    className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm focus:border-accent-blue focus:outline-none text-white placeholder-gray-600"
+                    className={`w-full px-3 py-2.5 bg-dark-bg border rounded-lg text-sm focus:outline-none text-white placeholder-gray-600 transition-colors ${
+                      pseudo && !pseudo.includes('#')
+                        ? 'border-orange-500/50 focus:border-orange-400'
+                        : 'border-dark-border focus:border-accent-blue'
+                    }`}
                     required
                   />
+                  <div className="flex items-start gap-1 mt-1.5">
+                    <Info size={11} className="text-gray-600 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
+                      Format Riot ID requis — active la sync SoloQ automatique
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -241,7 +262,7 @@ export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
                     type="text"
                     value={secondaryAccount}
                     onChange={(e) => setSecondaryAccount(e.target.value)}
-                    placeholder="Alt#EUW"
+                    placeholder="ex: AltAccount#EUW1"
                     maxLength={50}
                     className="w-full px-3 py-2.5 bg-dark-bg border border-dark-border rounded-lg text-sm focus:border-accent-blue focus:outline-none text-white placeholder-gray-600"
                   />
