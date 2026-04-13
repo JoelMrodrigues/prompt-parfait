@@ -9,7 +9,7 @@ import { getChampionImage, getChampionDisplayName } from '../../../lib/championI
 import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
 import { getRankImage } from '../joueurs/utils/playerDetailHelpers'
 import { ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
-import { EmptyStats } from './TeamStatsPage'
+import { EmptyStats, StatTooltip } from './TeamStatsPage'
 
 // ─── Hook : charge les matches SoloQ d'un joueur ─────────────────────────────
 
@@ -143,12 +143,15 @@ function computeChampions(rows: any[]) {
 
 // ─── Composant helpers ────────────────────────────────────────────────────────
 
-function StatRow({ label, value, valueColor = 'text-white', hint }: {
-  label: string; value: string; valueColor?: string; hint?: string
+function StatRow({ label, value, valueColor = 'text-white', hint, tooltip }: {
+  label: string; value: string; valueColor?: string; hint?: string; tooltip?: string
 }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-dark-border/30 last:border-0">
-      <span className="text-sm text-gray-400">{label}</span>
+      <span className="text-sm text-gray-400 flex items-center">
+        {label}
+        {tooltip && <StatTooltip text={tooltip} />}
+      </span>
       <div className="flex items-center gap-1.5">
         <span className={`text-sm font-semibold tabular-nums ${valueColor}`}>{value}</span>
         {hint && <span className="text-xs text-gray-600">{hint}</span>}
@@ -296,29 +299,30 @@ function PlayerSoloQStatsDetailed({ rows }: { rows: any[] }) {
           <StatRow label="Morts / partie" value={s.avgD.toFixed(1)} valueColor="text-rose-400" />
           <StatRow label="Assists / partie" value={s.avgA.toFixed(1)} valueColor="text-blue-400" />
           <StatRow label="Dégâts / partie" value={Math.round(s.avgDamage).toLocaleString('fr-FR')} />
-          <StatRow label="Dégâts / min (DPM)" value={Math.round(s.avgDpm).toLocaleString('fr-FR')} valueColor="text-amber-400" />
+          <StatRow label="Dégâts / min (DPM)" value={Math.round(s.avgDpm).toLocaleString('fr-FR')} valueColor="text-amber-400" tooltip="Dégâts par Minute — total des dégâts infligés aux champions divisé par la durée de la partie." />
         </StatBlock>
 
         {/* Économie */}
         <StatBlock title="Économie">
           <StatRow label="Or / partie" value={`${(s.avgGold / 1000).toFixed(1)}k`} valueColor="text-amber-400" />
-          <StatRow label="Or / min" value={Math.round(s.avgGoldMin).toLocaleString('fr-FR')} valueColor="text-amber-400" />
-          <StatRow label="CS / min" value={s.avgCsMin.toFixed(1)} />
-          <StatRow label="CS / partie" value={Math.round(s.avgCs).toLocaleString('fr-FR')} />
+          <StatRow label="Or / min" value={Math.round(s.avgGoldMin).toLocaleString('fr-FR')} valueColor="text-amber-400" tooltip="Or généré par Minute — indicateur d'efficacité économique sur la durée de la partie." />
+          <StatRow label="CS / min" value={s.avgCsMin.toFixed(1)} tooltip="CS par Minute — indicateur de régularité au farm. En ranked EUW, un bon joueur vise 8+ CS/min." />
+          <StatRow label="CS / partie" value={Math.round(s.avgCs).toLocaleString('fr-FR')} tooltip="Creep Score — nombre de sbires et monstres de jungle tués." />
         </StatBlock>
 
         {/* Vision */}
         <StatBlock title="Vision">
-          <StatRow label="Score de vision" value={s.avgVision.toFixed(1)} valueColor="text-emerald-400" />
+          <StatRow label="Score de vision" value={s.avgVision.toFixed(1)} valueColor="text-emerald-400" tooltip="Score calculé par Riot mesurant l'impact sur la vision (wards posées, wards annulées, zones éclairées)." />
           <StatRow
             label="Vision / min"
             value={s.avgDurationMin > 0 ? (s.avgVision / s.avgDurationMin).toFixed(2) : '—'}
+            tooltip="Score de vision divisé par la durée de la partie — utile pour comparer des joueurs sur des parties de durées différentes."
           />
         </StatBlock>
 
         {/* Performance détaillée */}
         <StatBlock title="Performance Détaillée">
-          <StatRow label="KDA ratio" value={s.kda.toFixed(2)} />
+          <StatRow label="KDA ratio" value={s.kda.toFixed(2)} tooltip="(Kills + Assists) / Deaths — mesure l'impact en combat. Un KDA > 3 est excellent." />
           <StatRow label="K / M / A par partie" value={`${s.avgK.toFixed(1)} / ${s.avgD.toFixed(1)} / ${s.avgA.toFixed(1)}`} />
           <StatRow label="Total Kills / Morts / Assists" value={`${s.totalK} / ${s.totalD} / ${s.totalA}`} />
           <StatRow

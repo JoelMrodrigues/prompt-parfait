@@ -84,6 +84,21 @@ export function EmptyStats({
   )
 }
 
+// ─── Tooltip sur stats ───────────────────────────────────────────────────────
+
+export function StatTooltip({ text }: { text: string }) {
+  return (
+    <span className="relative group/tip inline-flex items-center ml-1 align-middle">
+      <span className="w-3.5 h-3.5 rounded-full bg-dark-bg border border-dark-border text-gray-600 text-[9px] font-bold flex items-center justify-center cursor-help leading-none select-none">
+        ?
+      </span>
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f1117] border border-dark-border rounded-lg px-3 py-2 text-xs text-gray-300 leading-relaxed opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 z-50 shadow-2xl text-left font-normal whitespace-normal">
+        {text}
+      </span>
+    </span>
+  )
+}
+
 // ─── Fonctions utilitaires ────────────────────────────────────────────────────
 
 function teamCsFromParticipants(participants, ourTeamId) {
@@ -201,9 +216,9 @@ function ChampionStatsDetailTable({ champions }: { champions: any[] }) {
             <th className="px-4 py-3 w-8">#</th>
             <th className="px-4 py-3">Champion</th>
             <th className="px-4 py-3 text-center">Joué</th>
-            <th className="px-4 py-3 text-center">KDA</th>
+            <th className="px-4 py-3 text-center">KDA <StatTooltip text="(Kills + Assists) / Deaths — mesure l'impact en combat." /></th>
             <th className="px-4 py-3 text-center hidden md:table-cell">Or moy.</th>
-            <th className="px-4 py-3 text-center hidden lg:table-cell">DMG moy.</th>
+            <th className="px-4 py-3 text-center hidden lg:table-cell">DMG moy. <StatTooltip text="Dégâts moyens infligés aux champions par partie." /></th>
           </tr>
         </thead>
         <tbody>
@@ -747,12 +762,15 @@ function TeamGlobalStats({ matches, loading }: { matches: any[]; loading: boolea
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
-function TStatRow({ label, value, valueColor = 'text-white', hint }: {
-  label: string; value: string; valueColor?: string; hint?: string
+function TStatRow({ label, value, valueColor = 'text-white', hint, tooltip }: {
+  label: string; value: string; valueColor?: string; hint?: string; tooltip?: string
 }) {
   return (
     <div className="flex items-center justify-between py-2 border-b border-dark-border/30 last:border-0">
-      <span className="text-sm text-gray-400">{label}</span>
+      <span className="text-sm text-gray-400 flex items-center">
+        {label}
+        {tooltip && <StatTooltip text={tooltip} />}
+      </span>
       <div className="flex items-center gap-1.5">
         <span className={`text-sm font-semibold tabular-nums ${valueColor}`}>{value}</span>
         {hint && <span className="text-xs text-gray-600">{hint}</span>}
@@ -891,22 +909,22 @@ function TeamStatsDetailed({ matches, loading }: { matches: any[]; loading: bool
           <TStatRow label="Assists" value={stats.avgAssists.toFixed(1)} valueColor="text-blue-400" />
           <TStatRow label="Total K / M / A" value={`${stats.totalKills} / ${stats.totalDeaths} / ${stats.totalAssists}`} />
           <TStatRow label="Dégâts / partie" value={Math.round(stats.avgDamage).toLocaleString('fr-FR')} />
-          <TStatRow label="DPM équipe" value={Math.round(stats.avgDpmTeam).toLocaleString('fr-FR')} valueColor="text-amber-400" />
-          <TStatRow label="KDA ratio" value={stats.kdaRatio.toFixed(2)} />
+          <TStatRow label="DPM équipe" value={Math.round(stats.avgDpmTeam).toLocaleString('fr-FR')} valueColor="text-amber-400" tooltip="Dégâts par Minute — total des dégâts infligés aux champions divisé par la durée de la partie." />
+          <TStatRow label="KDA ratio" value={stats.kdaRatio.toFixed(2)} tooltip="(Kills + Assists) / Deaths — mesure l'impact en combat. Un KDA > 3 est excellent." />
         </TStatBlock>
 
         {/* Économie */}
         <TStatBlock title="Économie (par partie, équipe)">
           <TStatRow label="Or / partie" value={`${(stats.avgGold / 1000).toFixed(1)}k`} valueColor="text-amber-400" />
-          <TStatRow label="Or / min" value={Math.round(stats.avgGoldMinTeam).toLocaleString('fr-FR')} valueColor="text-amber-400" />
-          <TStatRow label="CS / partie" value={Math.round(stats.avgCs).toLocaleString('fr-FR')} />
-          <TStatRow label="CS / min" value={stats.avgCsMinTeam.toFixed(1)} />
+          <TStatRow label="Or / min" value={Math.round(stats.avgGoldMinTeam).toLocaleString('fr-FR')} valueColor="text-amber-400" tooltip="Or généré par Minute — indicateur d'efficacité économique sur la durée de la partie." />
+          <TStatRow label="CS / partie" value={Math.round(stats.avgCs).toLocaleString('fr-FR')} tooltip="Creep Score — nombre de sbires et monstres de jungle tués." />
+          <TStatRow label="CS / min" value={stats.avgCsMinTeam.toFixed(1)} tooltip="CS par Minute — indicateur de régularité au farm. En ranked EUW, un bon joueur vise 8+ CS/min." />
         </TStatBlock>
 
         {/* Vision */}
         <TStatBlock title="Vision (par partie, équipe)">
-          <TStatRow label="Score de vision" value={stats.avgVision.toFixed(1)} valueColor="text-emerald-400" />
-          <TStatRow label="Vision / min" value={stats.avgVisionMinTeam.toFixed(2)} />
+          <TStatRow label="Score de vision" value={stats.avgVision.toFixed(1)} valueColor="text-emerald-400" tooltip="Score calculé par Riot mesurant l'impact sur la vision (wards posées, wards annulées, zones éclairées)." />
+          <TStatRow label="Vision / min" value={stats.avgVisionMinTeam.toFixed(2)} tooltip="Score de vision divisé par la durée de la partie — utile pour comparer des joueurs sur des parties de durées différentes." />
         </TStatBlock>
 
         {/* Side détaillé */}
@@ -1087,22 +1105,22 @@ function PlayerTeamStatsDetailed({ playerId, matches }: { playerId: string; matc
           <TStatRow label="Assists / partie" value={stats.avgA.toFixed(1)} valueColor="text-blue-400" />
           <TStatRow label="Total K / M / A" value={`${stats.totalK} / ${stats.totalD} / ${stats.totalA}`} />
           <TStatRow label="Dégâts / partie" value={Math.round(stats.avgDamage).toLocaleString('fr-FR')} />
-          <TStatRow label="DPM" value={Math.round(stats.avgDpm).toLocaleString('fr-FR')} valueColor="text-amber-400" />
-          <TStatRow label="KDA ratio" value={stats.kda.toFixed(2)} />
+          <TStatRow label="DPM" value={Math.round(stats.avgDpm).toLocaleString('fr-FR')} valueColor="text-amber-400" tooltip="Dégâts par Minute — total des dégâts infligés aux champions divisé par la durée de la partie." />
+          <TStatRow label="KDA ratio" value={stats.kda.toFixed(2)} tooltip="(Kills + Assists) / Deaths — mesure l'impact en combat. Un KDA > 3 est excellent." />
         </TStatBlock>
 
         {/* Économie */}
         <TStatBlock title="Économie">
           <TStatRow label="Or / partie" value={`${(stats.avgGold / 1000).toFixed(1)}k`} valueColor="text-amber-400" />
-          <TStatRow label="Or / min" value={Math.round(stats.avgGoldMin).toLocaleString('fr-FR')} valueColor="text-amber-400" />
-          <TStatRow label="CS / min" value={stats.avgCsMin.toFixed(1)} />
-          <TStatRow label="CS / partie" value={Math.round(stats.avgCs).toLocaleString('fr-FR')} />
+          <TStatRow label="Or / min" value={Math.round(stats.avgGoldMin).toLocaleString('fr-FR')} valueColor="text-amber-400" tooltip="Or généré par Minute — indicateur d'efficacité économique sur la durée de la partie." />
+          <TStatRow label="CS / min" value={stats.avgCsMin.toFixed(1)} tooltip="CS par Minute — indicateur de régularité au farm. En ranked EUW, un bon joueur vise 8+ CS/min." />
+          <TStatRow label="CS / partie" value={Math.round(stats.avgCs).toLocaleString('fr-FR')} tooltip="Creep Score — nombre de sbires et monstres de jungle tués." />
         </TStatBlock>
 
         {/* Vision */}
         <TStatBlock title="Vision">
-          <TStatRow label="Score de vision / partie" value={stats.avgVision.toFixed(1)} valueColor="text-emerald-400" />
-          <TStatRow label="Vision / min" value={stats.avgVisionMin.toFixed(2)} />
+          <TStatRow label="Score de vision / partie" value={stats.avgVision.toFixed(1)} valueColor="text-emerald-400" tooltip="Score calculé par Riot mesurant l'impact sur la vision (wards posées, wards annulées, zones éclairées)." />
+          <TStatRow label="Vision / min" value={stats.avgVisionMin.toFixed(2)} tooltip="Score de vision divisé par la durée de la partie — utile pour comparer des joueurs sur des parties de durées différentes." />
         </TStatBlock>
 
         {/* Side performance */}
