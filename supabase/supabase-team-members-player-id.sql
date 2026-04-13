@@ -63,6 +63,9 @@ $$;
 -- L'appelant doit être l'owner actuel (teams.user_id = auth.uid()).
 -- Effet : teams.user_id → new_owner, ancien owner → 'co_owner' dans team_members.
 
+-- Drop nécessaire car le type de retour a changé (ancien : void/autre → nouveau : JSONB)
+DROP FUNCTION IF EXISTS public.transfer_team_ownership(UUID, UUID);
+
 CREATE OR REPLACE FUNCTION public.transfer_team_ownership(
   p_team_id      UUID,
   p_new_owner_id UUID
