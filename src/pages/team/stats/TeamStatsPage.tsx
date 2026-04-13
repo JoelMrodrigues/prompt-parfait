@@ -3,15 +3,86 @@
  * Sous-menus Team : Résumé | Stats | Timeline | Historiques
  */
 import { useState, useMemo, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatchesFull, getFullCacheAgeMs } from '../hooks/useTeamMatches'
 import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
 import { SoloQStatsSection } from './SoloQStatsSection'
-import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles, Activity } from 'lucide-react'
+import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles, Activity, Swords, Zap, ArrowRight } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
+
+// ─── Empty state réutilisable ─────────────────────────────────────────────────
+
+export function EmptyStats({
+  type = 'matches',
+  compact = false,
+}: {
+  type?: 'matches' | 'soloq' | 'player-soloq'
+  compact?: boolean
+}) {
+  const config = {
+    matches: {
+      icon: Swords,
+      title: 'Aucun match importé',
+      desc: 'Importez vos scrims et tournois pour débloquer les statistiques équipe.',
+      cta: 'Aller à l\'import',
+      to: '../import',
+    },
+    soloq: {
+      icon: Zap,
+      title: 'Aucune donnée Solo Q',
+      desc: 'Configurez les pseudos Riot ID des joueurs (format Nom#TAG) pour activer la synchronisation automatique.',
+      cta: 'Gérer les joueurs',
+      to: '../joueurs',
+    },
+    'player-soloq': {
+      icon: Zap,
+      title: 'Aucune donnée Solo Q',
+      desc: 'Renseignez le pseudo Riot ID de ce joueur (format Nom#TAG) pour activer la synchronisation.',
+      cta: 'Modifier le joueur',
+      to: '../joueurs',
+    },
+  }
+  const { icon: Icon, title, desc, cta, to } = config[type]
+
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between gap-4 bg-dark-card border border-dark-border rounded-xl px-5 py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Icon size={16} className="text-gray-600 shrink-0" />
+          <p className="text-sm text-gray-500 truncate">{title} — {desc.split('.')[0]}.</p>
+        </div>
+        <Link
+          to={to}
+          className="shrink-0 flex items-center gap-1 text-xs font-medium text-accent-blue hover:text-accent-blue/80 transition-colors"
+        >
+          {cta} <ArrowRight size={12} />
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-dark-card border border-dark-border rounded-xl p-10 flex flex-col items-center text-center gap-4">
+      <div className="w-14 h-14 rounded-2xl bg-dark-bg border border-dark-border flex items-center justify-center">
+        <Icon size={24} className="text-gray-600" />
+      </div>
+      <div>
+        <p className="font-semibold text-white mb-1">{title}</p>
+        <p className="text-sm text-gray-500 max-w-xs leading-relaxed">{desc}</p>
+      </div>
+      <Link
+        to={to}
+        className="flex items-center gap-2 px-4 py-2 bg-accent-blue/10 border border-accent-blue/30 text-accent-blue rounded-lg text-sm font-medium hover:bg-accent-blue/20 transition-colors"
+      >
+        {cta} <ArrowRight size={14} />
+      </Link>
+    </div>
+  )
+}
 
 // ─── Fonctions utilitaires ────────────────────────────────────────────────────
 
@@ -120,11 +191,7 @@ function computeComboStats(matches: any[], size: number, side: 'our' | 'enemy') 
 
 function ChampionStatsDetailTable({ champions }: { champions: any[] }) {
   if (!champions.length) {
-    return (
-      <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
-        <p className="text-gray-500 text-sm">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
-      </div>
-    )
+    return <EmptyStats type="matches" />
   }
   return (
     <div className="rounded-xl border border-dark-border overflow-hidden">
@@ -235,14 +302,11 @@ function TeamTimelineAdvantage({ matches, timelines }: { matches: any[]; timelin
 
   if (!advantageByMinute?.length || advantageByMinute.every((r) => r.count === 0)) {
     return (
-      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
-        <h3 className="font-display text-base font-semibold text-white mb-2">
+      <div className="space-y-3">
+        <h3 className="font-display text-base font-semibold text-white">
           Avantage de l&apos;équipe en fonction du temps
         </h3>
-        <p className="text-gray-500 text-sm">
-          Aucune timeline disponible. Importez des timelines depuis la page Import et associez-les à
-          vos matchs pour afficher l&apos;avantage or/XP/CS à 5, 10, 15, 20, 25 min.
-        </p>
+        <EmptyStats type="matches" compact />
       </div>
     )
   }
@@ -361,14 +425,11 @@ function PlayerTimelineAdvantage({ playerId, matches, timelines }) {
 
   if (!advantageByMinute?.length || advantageByMinute.every((r) => r.count === 0)) {
     return (
-      <div className="bg-dark-card border border-dark-border rounded-lg p-6">
-        <h3 className="font-display text-base font-semibold text-white mb-2">
+      <div className="space-y-3">
+        <h3 className="font-display text-base font-semibold text-white">
           Avantage vs vis-à-vis en fonction du temps
         </h3>
-        <p className="text-gray-500 text-sm">
-          Aucune timeline disponible. Importez des timelines depuis la page Import et associez-les à
-          vos matchs pour afficher l&apos;avantage or / XP / CS à 5, 10, 15, 20, 25 min.
-        </p>
+        <EmptyStats type="matches" compact />
       </div>
     )
   }
@@ -547,11 +608,7 @@ function TeamGlobalStats({ matches, loading }: { matches: any[]; loading: boolea
     )
   }
   if (!stats || stats.games === 0) {
-    return (
-      <div className="bg-dark-card border border-dark-border rounded-lg p-8 text-center">
-        <p className="text-gray-500">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
-      </div>
-    )
+    return <EmptyStats type="matches" />
   }
 
   return (
@@ -799,7 +856,7 @@ function TeamStatsDetailed({ matches, loading }: { matches: any[]; loading: bool
   }, [matches])
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
-  if (!stats) return <div className="bg-dark-card border border-dark-border rounded-lg p-8 text-center"><p className="text-gray-500">Aucune donnée. Importez des matchs depuis la page Matchs.</p></div>
+  if (!stats) return <EmptyStats type="matches" />
 
   return (
     <div className="space-y-4">
@@ -998,7 +1055,7 @@ function PlayerTeamStatsDetailed({ playerId, matches }: { playerId: string; matc
     }
   }, [playerId, matches])
 
-  if (!stats) return <div className="bg-dark-card border border-dark-border rounded-lg p-8 text-center"><p className="text-gray-500">Aucune donnée pour ce joueur.</p></div>
+  if (!stats) return <EmptyStats type="matches" compact />
 
   return (
     <div className="space-y-3">
@@ -1200,12 +1257,7 @@ function ComposSection({ matches, onBack }: { matches: any[]; onBack: () => void
       </div>
 
       {combos.length === 0 ? (
-        <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
-          <p className="text-gray-500 text-sm">
-            Aucune combinaison trouvée. Importez des matchs avec des participants depuis la page
-            Matchs.
-          </p>
-        </div>
+        <EmptyStats type="matches" />
       ) : (
         <div className="rounded-xl border border-dark-border overflow-hidden">
           <table className="w-full text-sm">
@@ -1325,9 +1377,7 @@ function SideSection({
       </div>
 
       {matches.length === 0 ? (
-        <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center">
-          <p className="text-gray-500 text-sm">Aucune donnée. Importez des matchs depuis la page Matchs.</p>
-        </div>
+        <EmptyStats type="matches" />
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">

@@ -9,6 +9,7 @@ import { getChampionImage, getChampionDisplayName } from '../../../lib/championI
 import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
 import { getRankImage } from '../joueurs/utils/playerDetailHelpers'
 import { ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
+import { EmptyStats } from './TeamStatsPage'
 
 // ─── Hook : charge les matches SoloQ d'un joueur ─────────────────────────────
 
@@ -261,7 +262,7 @@ function GameStreak({ rows }: { rows: any[] }) {
 
 function PlayerSoloQStatsDetailed({ rows }: { rows: any[] }) {
   const s = useMemo(() => computeStats(rows), [rows])
-  if (!s) return <p className="text-gray-500 text-sm">Aucune donnée.</p>
+  if (!s) return <EmptyStats type="player-soloq" compact />
 
   return (
     <div className="space-y-3">
@@ -338,7 +339,7 @@ function PlayerSoloQResume({ rows }: { rows: any[] }) {
   const s = useMemo(() => computeStats(rows), [rows])
   const champions = useMemo(() => computeChampions(rows).slice(0, 8), [rows])
 
-  if (!s) return <p className="text-gray-500 text-sm">Aucune donnée.</p>
+  if (!s) return <EmptyStats type="player-soloq" compact />
 
   return (
     <div className="space-y-3">
@@ -429,7 +430,7 @@ function PlayerSoloQResume({ rows }: { rows: any[] }) {
 // ─── Tab : Historiques (rolling stats + streak + périodes) ───────────────────
 
 function PlayerSoloQHistoriques({ rows }: { rows: any[] }) {
-  if (!rows.length) return <p className="text-gray-500 text-sm">Aucune donnée.</p>
+  if (!rows.length) return <EmptyStats type="player-soloq" compact />
 
   return (
     <div className="space-y-3">
@@ -515,11 +516,7 @@ function PlayerSoloQStats({ playerId }: { playerId: string }) {
   }
 
   if (!rows.length) {
-    return (
-      <div className="rounded-2xl border border-dark-border bg-dark-card/50 p-12 text-center">
-        <p className="text-gray-500 text-sm">Aucune partie Solo Q (S16) enregistrée pour ce joueur.</p>
-      </div>
-    )
+    return <EmptyStats type="player-soloq" />
   }
 
   return (
@@ -570,11 +567,7 @@ function AllPlayersSoloQStats({ players }: { players: any[] }) {
   }).filter((r) => r.s !== null)
 
   if (!rows.length) {
-    return (
-      <div className="rounded-2xl border border-dark-border bg-dark-card/50 p-12 text-center">
-        <p className="text-gray-500 text-sm">Aucune donnée Solo Q (S16) pour les joueurs de l'équipe.</p>
-      </div>
-    )
+    return <EmptyStats type="soloq" />
   }
 
   return (
