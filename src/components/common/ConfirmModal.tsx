@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 
@@ -16,8 +17,8 @@ export const ConfirmModal = ({
     info: 'bg-accent-blue hover:bg-accent-blue/90',
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+  const modal = (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -47,4 +48,6 @@ export const ConfirmModal = ({
       </motion.div>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }

@@ -459,7 +459,13 @@ export const TeamOverviewPage = () => {
 
   const handleSendInviteEmail = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inviteEmail.trim() || !inviteLink || !team) return
+    const emailTrimmed = inviteEmail.trim()
+    if (!emailTrimmed || !inviteLink || !team) return
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(emailTrimmed)) {
+      toastError('Adresse email invalide')
+      return
+    }
     setInviteEmailSending(true)
     setInviteEmailSent(false)
     try {

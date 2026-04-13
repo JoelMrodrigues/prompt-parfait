@@ -111,6 +111,16 @@ function AppRoutes() {
           <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
+          <Route path="*" element={
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+              <p className="text-6xl font-display font-bold text-gray-700">404</p>
+              <p className="text-xl font-semibold text-white">Page introuvable</p>
+              <p className="text-gray-400">Cette adresse n'existe pas ou a été déplacée.</p>
+              <a href="/" className="mt-2 px-5 py-2 bg-accent-blue text-white rounded-lg hover:bg-accent-blue/90 transition-colors text-sm font-medium">
+                Retour à l'accueil
+              </a>
+            </div>
+          } />
         </Route>
       </Routes>
       </Suspense>
