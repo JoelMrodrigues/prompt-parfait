@@ -7,10 +7,12 @@ import { useState, useEffect } from 'react'
 export interface SyncStatus {
   isSyncing: boolean
   currentPlayer: string
+  currentIndex: number   // 1-based (ex: 2 = 2ème joueur en cours)
+  totalPlayers: number   // total joueurs à syncer ce cycle
   lastCycleAt: number | null  // timestamp de fin du dernier cycle complet
 }
 
-let state: SyncStatus = { isSyncing: false, currentPlayer: '', lastCycleAt: null }
+let state: SyncStatus = { isSyncing: false, currentPlayer: '', currentIndex: 0, totalPlayers: 0, lastCycleAt: null }
 const listeners = new Set<() => void>()
 
 export function setSyncStatus(patch: Partial<SyncStatus>) {

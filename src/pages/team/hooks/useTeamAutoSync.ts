@@ -102,7 +102,7 @@ export function useTeamAutoSync() {
           const pseudo = (player.pseudo || '').trim()
           const name = player.player_name || pseudo
           const region = (player.region || 'euw1').toLowerCase()
-          setSyncStatus({ isSyncing: true, currentPlayer: name })
+          setSyncStatus({ isSyncing: true, currentPlayer: name, currentIndex: i + 1, totalPlayers: listToSync.length })
 
           // PUUID en cache : si connu, tous les endpoints l'utilisent directement (0 re-lookup)
           let cachedPuuid: string | null = player.puuid || null

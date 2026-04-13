@@ -28,6 +28,7 @@ import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
 import { useSyncStatus } from '../../lib/syncStatus'
 import { useLayout } from '../../contexts/LayoutContext'
+import { RefreshCw } from 'lucide-react'
 
 const SIDEBAR_GROUPS = [
   {
@@ -61,7 +62,8 @@ const SIDEBAR_GROUPS = [
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
   const { sidebarOpen, setSidebarOpen } = useLayout()
-  const { isSyncing, currentPlayer } = useSyncStatus()
+  const { isSyncing, currentPlayer, currentIndex, totalPlayers, lastCycleAt } = useSyncStatus()
+  const [, setTick] = useState(0)
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [creatingTeam, setCreatingTeam] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
@@ -75,6 +77,13 @@ export const TeamSidebar = () => {
     return true
   }
 
+  // Rafraîchir le label "il y a X min" chaque minute quand pas en cours de sync
+  useEffect(() => {
+    if (isSyncing || !lastCycleAt) return
+    const interval = setInterval(() => setTick((t) => t + 1), 60000)
+    return () => clearInterval(interval)
+  }, [isSyncing, lastCycleAt])
+
   // Fermer au clic extérieur
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -87,6 +96,13 @@ export const TeamSidebar = () => {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  const lastSyncLabel = lastCycleAt
+    ? (() => {
+        const mins = Math.floor((Date.now() - lastCycleAt) / 60000)
+        return mins < 1 ? "Sync à l'instant" : `Sync il y a ${mins} min`
+      })()
+    : 'En attente de sync…'
 
   const handleSwitch = async (teamId: string) => {
     setSwitcherOpen(false)
@@ -262,14 +278,34 @@ export const TeamSidebar = () => {
       {editModalOpen && <TeamEditModal onClose={() => setEditModalOpen(false)} />}
 
       {/* Indicateur auto-sync */}
-      <div className="px-4 py-2 border-b border-dark-border/40 min-h-[28px] flex items-center gap-2">
+      <div className="px-3 py-2 border-b border-dark-border/40">
         {isSyncing ? (
-          <>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="text-[10px] text-gray-500 truncate">Sync : {currentPlayer}</span>
-          </>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <RefreshCw size={11} className="text-emerald-400 animate-spin shrink-0" />
+              <span className="text-[10px] text-emerald-400 font-medium truncate flex-1">
+                {currentPlayer}
+              </span>
+              {totalPlayers > 0 && (
+                <span className="text-[10px] text-gray-500 shrink-0 tabular-nums">
+                  {currentIndex}/{totalPlayers}
+                </span>
+              )}
+            </div>
+            {totalPlayers > 0 && (
+              <div className="h-0.5 rounded-full bg-dark-bg overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-400/70 transition-all duration-500"
+                  style={{ width: `${Math.round(((currentIndex - 1) / totalPlayers) * 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
         ) : (
-          <span className="w-1.5 h-1.5 rounded-full bg-gray-700 shrink-0" />
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-gray-700 shrink-0" />
+            <span className="text-[10px] text-gray-600 truncate">{lastSyncLabel}</span>
+          </div>
         )}
       </div>
 
