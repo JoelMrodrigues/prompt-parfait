@@ -33,11 +33,19 @@ export function usePlayerDetail(playerSlug: string | undefined) {
   const playerId = player?.id  // UUID réel pour les requêtes Supabase
 
   const { stats: teamStats, teamTotalsByMatch, loading: teamStatsLoading } = usePlayerTeamStats(playerId)
-  const activeSoloqPseudo = selectedSoloqAccount === 1 ? (player?.pseudo ?? '') : (player?.secondary_account ?? '')
-  const soloqAccountSource = selectedSoloqAccount === 1 ? 'primary' : 'secondary'
-  const totalFromRiot = selectedSoloqAccount === 1
-    ? (player?.soloq_total_match_ids ?? null)
-    : (player?.soloq_total_match_ids_secondary ?? null)
+  // 0 = combiné, 1 = primary, 2 = secondary
+  const activeSoloqPseudo =
+    selectedSoloqAccount === 1 ? (player?.pseudo ?? '') :
+    selectedSoloqAccount === 2 ? (player?.secondary_account ?? '') :
+    [player?.pseudo, player?.secondary_account].filter(Boolean).join(' + ')
+  const soloqAccountSource =
+    selectedSoloqAccount === 1 ? 'primary' :
+    selectedSoloqAccount === 2 ? 'secondary' :
+    'combined'
+  const totalFromRiot =
+    selectedSoloqAccount === 1 ? (player?.soloq_total_match_ids ?? null) :
+    selectedSoloqAccount === 2 ? (player?.soloq_total_match_ids_secondary ?? null) :
+    ((player?.soloq_total_match_ids ?? 0) + (player?.soloq_total_match_ids_secondary ?? 0)) || null
 
   // ─── Team data ────────────────────────────────────────────────────────────
   const { matches: allTeamMatches } = useTeamMatches(team?.id)

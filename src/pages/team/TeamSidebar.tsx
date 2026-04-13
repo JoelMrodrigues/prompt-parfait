@@ -62,7 +62,7 @@ const SIDEBAR_GROUPS = [
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
   const { sidebarOpen, setSidebarOpen } = useLayout()
-  const { isSyncing, currentPlayer, currentIndex, totalPlayers, lastCycleAt } = useSyncStatus()
+  const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
   const [, setTick] = useState(0)
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [creatingTeam, setCreatingTeam] = useState(false)
@@ -284,7 +284,7 @@ export const TeamSidebar = () => {
             <div className="flex items-center gap-2">
               <RefreshCw size={11} className="text-emerald-400 animate-spin shrink-0" />
               <span className="text-[10px] text-emerald-400 font-medium truncate flex-1">
-                {currentPlayer}
+                {currentPlayer}{isSecondaryPass && <span className="text-emerald-400/60"> (alt)</span>}
               </span>
               {totalPlayers > 0 && (
                 <span className="text-[10px] text-gray-500 shrink-0 tabular-nums">

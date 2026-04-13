@@ -368,6 +368,114 @@ export function useTeamAutoSync() {
           }
         }
 
+        // ─── Passe secondaire : comptes alternatifs ───────────────────────
+        const withSecondary = listToSync.filter((p) => {
+          const s = ((p.secondary_account || '') as string).trim()
+          return s.length > 0 && (s.includes('#') || s.includes('/'))
+        })
+        logger.debug(LOG_PREFIX, '--- Passe secondaire ---', withSecondary.length, 'joueur(s) avec alt')
+
+        for (let i = 0; i < withSecondary.length; i++) {
+          if (abortRef.current) break
+          const player = withSecondary[i]
+          const pseudo = (player.secondary_account || '').trim()
+          const name = player.player_name || pseudo
+          const region = (player.region || 'euw1').toLowerCase()
+          setSyncStatus({ isSyncing: true, currentPlayer: name, currentIndex: i + 1, totalPlayers: withSecondary.length, isSecondaryPass: true })
+
+          let cachedPuuid: string | null = (player as any).puuid_secondary || null
+
+          const buildParams = (extra = '') => {
+            let p = `pseudo=${encodeURIComponent(pseudo)}&region=${encodeURIComponent(region)}`
+            if (cachedPuuid) p += `&puuid=${encodeURIComponent(cachedPuuid)}`
+            if (extra) p += `&${extra}`
+            return p
+          }
+
+          try {
+            // 1) Total S16
+            let countRes = await apiFetch(`/api/riot/match-count?${buildParams()}`, { signal })
+            let countData = await countRes.json().catch(() => ({}))
+            if (countRes.status === 429 && (countData.retry_after ?? countData.retryAfter)) {
+              await delay(Math.max(2000, (countData.retry_after ?? countData.retryAfter) * 1000))
+              countRes = await apiFetch(`/api/riot/match-count?${buildParams()}`, { signal })
+              countData = await countRes.json().catch(() => ({}))
+            }
+            if (!countData.success || typeof countData.total !== 'number') {
+              logger.warn(LOG_PREFIX, name, '(alt) | match-count erreur:', countData.error || countRes.status)
+              await delay(DELAY_BETWEEN_PLAYERS_MS)
+              continue
+            }
+            const totalRiot = countData.total
+            if (countData.puuid && !cachedPuuid) {
+              cachedPuuid = countData.puuid
+              await updatePlayerFn(player.id, { puuid_secondary: cachedPuuid }).catch(() => {})
+            }
+            await delay(DELAY_BETWEEN_REQUESTS_MS)
+
+            if (totalRiot === 0) {
+              await updatePlayerFn(player.id, { soloq_total_match_ids_secondary: 0 })
+              await delay(DELAY_BETWEEN_PLAYERS_MS)
+              continue
+            }
+
+            // 2) IDs
+            const allRiotIds: string[] = []
+            let start = 0
+            const MAX_PAGES = Math.ceil(totalRiot / MATCH_IDS_PAGE) + 2
+            let pageCount = 0
+            while (allRiotIds.length < totalRiot && pageCount < MAX_PAGES) {
+              if (abortRef.current) break
+              pageCount++
+              const idsRes = await apiFetch(`/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}`, { signal })
+              const idsData = await idsRes.json().catch(() => ({}))
+              if (idsRes.status === 429) { await delay(Math.max(2000, ((idsData.retry_after ?? idsData.retryAfter) || 2) * 1000)); pageCount--; continue }
+              if (!idsData.success || !Array.isArray(idsData.matchIds)) { logger.warn(LOG_PREFIX, name, '(alt) | match-ids erreur'); break }
+              if (idsData.puuid && !cachedPuuid) { cachedPuuid = idsData.puuid; await updatePlayerFn(player.id, { puuid_secondary: cachedPuuid }).catch(() => {}) }
+              for (const id of idsData.matchIds) { if (allRiotIds.length >= totalRiot) break; allRiotIds.push(id) }
+              if (idsData.matchIds.length < MATCH_IDS_PAGE || !idsData.hasMore) break
+              start += MATCH_IDS_PAGE
+              await delay(DELAY_BETWEEN_REQUESTS_MS)
+            }
+            const idsToSync = allRiotIds.slice(0, totalRiot)
+
+            // 3) Diff avec base
+            const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'secondary', SEASON_16_START_MS)
+            const existingSet = new Set(existingIds || [])
+            const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
+
+            // 4) Détails manquants
+            if (missingIds.length > 0) {
+              for (let c = 0; c < missingIds.length; c += DETAILS_CHUNK) {
+                const chunk = missingIds.slice(c, c + DETAILS_CHUNK)
+                try {
+                  const detailsRes = await apiFetch(`/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`, { signal })
+                  const detailsData = await detailsRes.json().catch(() => ({}))
+                  if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
+                    await delay(Math.max(2000, (detailsData.retry_after ?? detailsData.retryAfter) * 1000))
+                    c -= DETAILS_CHUNK; continue
+                  }
+                  if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0) {
+                    const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'secondary'))
+                    await upsertSoloqMatches(rows)
+                  }
+                } catch (err) {
+                  if (err instanceof Error && err.name === 'AbortError') throw err
+                  logger.warn(LOG_PREFIX, name, '(alt) | erreur match-details:', err)
+                }
+                await delay(DELAY_BETWEEN_REQUESTS_MS)
+              }
+            }
+
+            await updatePlayerFn(player.id, { soloq_total_match_ids_secondary: totalRiot })
+            await delay(DELAY_BETWEEN_PLAYERS_MS)
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') break
+            logger.warn(LOG_PREFIX, 'Erreur joueur (alt)', name, e)
+            await delay(DELAY_BETWEEN_PLAYERS_MS)
+          }
+        }
+
         // Pas de refetchFn() — les updatePlayer locaux maintiennent l'état React à jour
         // sans déclencher de refetch global (2 requêtes Supabase + re-render complet évités)
         logger.debug(LOG_PREFIX, '--- Fin du cycle ---')
@@ -375,7 +483,7 @@ export function useTeamAutoSync() {
         logger.warn(LOG_PREFIX, 'Erreur boucle', e)
       } finally {
         runningRef.current = false
-        setSyncStatus({ isSyncing: false, currentPlayer: '', lastCycleAt: Date.now() })
+        setSyncStatus({ isSyncing: false, currentPlayer: '', isSecondaryPass: false, lastCycleAt: Date.now() })
       }
 
       if (!abortRef.current) {

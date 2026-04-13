@@ -13,7 +13,7 @@ import { EmptyStats, StatTooltip } from './TeamStatsPage'
 
 // ─── Hook : charge les matches SoloQ d'un joueur ─────────────────────────────
 
-function useSoloqStats(playerId: string | null) {
+function useSoloqStats(playerId: string | null, accountSource = 'primary') {
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -21,19 +21,21 @@ function useSoloqStats(playerId: string | null) {
     if (!playerId || playerId === ALL_ID) { setRows([]); return undefined }
     let cancelled = false
     setLoading(true)
-    supabase
+    let query = supabase
       .from('player_soloq_matches')
       .select('win, kills, deaths, assists, game_duration, total_damage, cs, vision_score, gold_earned, champion_name, game_creation')
       .eq('player_id', playerId)
-      .eq('account_source', 'primary')
       .gte('game_creation', SEASON_16_START_MS)
       .gte('game_duration', REMAKE_THRESHOLD_SEC)
       .order('game_creation', { ascending: false })
-      .then(({ data }) => {
-        if (!cancelled) { setRows(data ?? []); setLoading(false) }
-      })
+    if (accountSource !== 'combined') {
+      query = query.eq('account_source', accountSource)
+    }
+    query.then(({ data }) => {
+      if (!cancelled) { setRows(data ?? []); setLoading(false) }
+    })
     return () => { cancelled = true }
-  }, [playerId])
+  }, [playerId, accountSource])
 
   return { rows, loading }
 }
@@ -507,40 +509,77 @@ const SOLOQ_TABS: { id: SoloqTab; label: string }[] = [
   { id: 'timeline', label: 'Timeline' },
 ]
 
-function PlayerSoloQStats({ playerId }: { playerId: string }) {
-  const { rows, loading } = useSoloqStats(playerId)
+function PlayerSoloQStats({ playerId, player }: { playerId: string; player?: any }) {
+  const hasSecondary = !!player?.secondary_account
+  const [accountSource, setAccountSource] = useState('primary')
+  const { rows, loading } = useSoloqStats(playerId, accountSource)
   const [tab, setTab] = useState<SoloqTab>('stats')
+
+  // Sélecteur de compte (affiché uniquement si le joueur a un compte secondaire)
+  const accountSelector = hasSecondary ? (
+    <div className="flex gap-1.5">
+      {[
+        { src: 'primary', label: player?.pseudo?.split('#')[0] || 'Principal' },
+        { src: 'secondary', label: (player?.secondary_account?.split('#')[0] || 'Alt') },
+        { src: 'combined', label: 'Combiné' },
+      ].map(({ src, label }) => (
+        <button
+          key={src}
+          type="button"
+          onClick={() => setAccountSource(src)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors truncate max-w-[140px] ${
+            accountSource === src
+              ? 'bg-purple-500/20 border border-purple-500/50 text-purple-300'
+              : 'bg-dark-bg/60 border border-dark-border text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  ) : null
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-dark-border bg-dark-card/50 p-12 text-center">
-        <p className="text-gray-500 text-sm">Chargement…</p>
+      <div className="space-y-3">
+        {accountSelector}
+        <div className="rounded-2xl border border-dark-border bg-dark-card/50 p-12 text-center">
+          <p className="text-gray-500 text-sm">Chargement…</p>
+        </div>
       </div>
     )
   }
 
   if (!rows.length) {
-    return <EmptyStats type="player-soloq" />
+    return (
+      <div className="space-y-3">
+        {accountSelector}
+        <EmptyStats type="player-soloq" />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-3">
-      {/* Tabs */}
-      <div className="flex gap-0 border-b border-dark-border">
-        {SOLOQ_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.id
-                ? 'border-purple-500 text-purple-400'
-                : 'border-transparent text-gray-400 hover:text-white'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Ligne : sélecteur compte (gauche) + tabs (droite ou plein) */}
+      <div className="flex items-end justify-between gap-2 border-b border-dark-border">
+        <div className="flex gap-0">
+          {SOLOQ_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === t.id
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {accountSelector && <div className="pb-1.5">{accountSelector}</div>}
       </div>
 
       {tab === 'stats' && <PlayerSoloQStatsDetailed rows={rows} />}
@@ -660,5 +699,6 @@ function AllPlayersSoloQStats({ players }: { players: any[] }) {
 
 export function SoloQStatsSection({ selectedId, players }: { selectedId: string; players: any[] }) {
   if (selectedId === ALL_ID) return <AllPlayersSoloQStats players={players} />
-  return <PlayerSoloQStats playerId={selectedId} />
+  const player = players.find((p) => p.id === selectedId)
+  return <PlayerSoloQStats playerId={selectedId} player={player} />
 }

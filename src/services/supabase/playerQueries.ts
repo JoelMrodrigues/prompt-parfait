@@ -53,14 +53,18 @@ export async function fetchSoloqMatches({
   limit = 20,
   withCount = false,
 }: FetchSoloqMatchesParams) {
-  const query = supabase
+  let query = supabase
     .from('player_soloq_matches')
     .select('*', withCount ? { count: 'exact' } : undefined)
     .eq('player_id', playerId)
-    .eq('account_source', accountSource)
     .gte('game_creation', seasonStart)
     .order('game_creation', { ascending: false })
     .range(offset, offset + limit - 1)
+
+  // 'combined' = les deux comptes, pas de filtre account_source
+  if (accountSource !== 'combined') {
+    query = query.eq('account_source', accountSource)
+  }
 
   const { data, error, count } = await query
   return { data, error, count }
@@ -96,9 +100,11 @@ export async function fetchSoloqChampionStats({
     .from('player_soloq_matches')
     .select('champion_name, win, kills, deaths, assists')
     .eq('player_id', playerId)
-    .eq('account_source', accountSource)
     .gte('game_creation', seasonStart)
 
+  if (accountSource !== 'combined') {
+    query = query.eq('account_source', accountSource)
+  }
   if (minDuration) query = query.gte('game_duration', minDuration)
 
   const { data, error } = await query
@@ -122,10 +128,12 @@ export async function fetchSoloqMatchesByChampion({
     .from('player_soloq_matches')
     .select('*')
     .eq('player_id', playerId)
-    .eq('account_source', accountSource)
     .eq('champion_name', championName)
     .order('game_creation', { ascending: false })
 
+  if (accountSource !== 'combined') {
+    query = query.eq('account_source', accountSource)
+  }
   if (minDuration) query = query.gte('game_duration', minDuration)
 
   const { data, error } = await query

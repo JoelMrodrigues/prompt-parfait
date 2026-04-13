@@ -59,6 +59,7 @@ export interface Player {
   peak_rank_s16?: string | null
   player_type?: 'starter' | 'sub'
   puuid?: string | null
+  puuid_secondary?: string | null
   secondary_account?: string | null
   soloq_mood_last_5?: Record<string, unknown> | null
   team_mood_last_5?: Record<string, unknown> | null

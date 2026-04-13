@@ -60,8 +60,9 @@ export function usePlayerSoloqData({
   const matchHistoryPlayerIdRef = useRef<string | null>(null)
   const { lastCycleAt } = useSyncStatus()
 
-  // ─── LP curve ─────────────────────────────────────────────────────────────
+  // ─── LP curve — uniquement sur le compte primary (le rang stocké est celui du compte 1) ──
   const lpCurvePoints = useMemo(() => {
+    if (soloqAccountSource !== 'primary') return []
     const currentLp = parseLpFromRank(player?.rank)
     if (currentLp == null || !lpGraphMatches.length) return []
     const sorted = [...lpGraphMatches].sort(

@@ -552,26 +552,30 @@ export const PlayerDetailPage = () => {
           <ArrowLeft size={18} />
           Retour aux joueurs
         </button>
-        <div className="flex gap-2">
-          {[
-            { idx: 1, label: player.pseudo || 'Compte 1' },
-            { idx: 2, label: player.secondary_account || 'Compte 2' },
-          ].map(({ idx, label }) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => d.setSelectedSoloqAccount(idx)}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors truncate max-w-[180px] ${
-                d.selectedSoloqAccount === idx
-                  ? 'bg-accent-blue text-white border border-accent-blue'
-                  : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
-              }`}
-              title={label}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Sélecteur compte — uniquement si le joueur a un compte secondaire configuré */}
+        {player.secondary_account && (
+          <div className="flex gap-2">
+            {[
+              { idx: 1, label: player.pseudo || 'Compte 1' },
+              { idx: 2, label: player.secondary_account },
+              { idx: 0, label: 'Combiné' },
+            ].map(({ idx, label }) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => d.setSelectedSoloqAccount(idx)}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors truncate max-w-[180px] ${
+                  d.selectedSoloqAccount === idx
+                    ? 'bg-accent-blue text-white border border-accent-blue'
+                    : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
+                }`}
+                title={label}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Bloc identité */}
