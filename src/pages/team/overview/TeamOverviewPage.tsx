@@ -87,10 +87,6 @@ function bestRank(player: { rank?: string | null; rank_secondary?: string | null
   return b > a ? (player.rank_secondary ?? null) : (player.rank ?? null)
 }
 
-/** Vrai si le meilleur rang vient du compte secondaire */
-function bestRankIsSecondary(player: { rank?: string | null; rank_secondary?: string | null }): boolean {
-  return rankToSortValue(player.rank_secondary) > rankToSortValue(player.rank)
-}
 
 // ── Role config ────────────────────────────────────────────────────────────────
 
@@ -901,7 +897,6 @@ export const TeamOverviewPage = () => {
             <div className="space-y-4">
               {sortedPlayersByLP.map((p, idx) => {
                 const best = bestRank(p)
-                const isAlt = bestRankIsSecondary(p)
                 const lp = parseLP(best)
                 const sortVal = rankToSortValue(best)
                 const barPct = maxSortValue > 0 ? Math.round((sortVal / maxSortValue) * 100) : 0
@@ -916,16 +911,9 @@ export const TeamOverviewPage = () => {
                     <span className="text-xs font-bold text-gray-600 w-4 shrink-0 text-center">
                       {idx + 1}
                     </span>
-                    <div className="w-24 shrink-0 flex items-center gap-1.5 min-w-0">
-                      <span className="text-sm font-medium text-white truncate">
-                        {p.player_name}
-                      </span>
-                      {isAlt && (
-                        <span className="text-[9px] font-semibold text-gray-500 bg-dark-bg border border-dark-border rounded px-1 py-0.5 shrink-0 leading-none">
-                          alt
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-sm font-medium text-white w-24 shrink-0 truncate">
+                      {p.player_name}
+                    </span>
                     <div className="flex-1 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden">
                         <div
@@ -1052,11 +1040,6 @@ export const TeamOverviewPage = () => {
                           <>
                             <p className={`text-xs font-semibold ${getRankColorText(best)}`}>
                               {rankLabel}
-                              {bestRankIsSecondary(p) && (
-                                <span className="ml-1 text-[9px] font-semibold text-gray-500 bg-dark-bg border border-dark-border rounded px-1 py-0.5 leading-none align-middle">
-                                  alt
-                                </span>
-                              )}
                             </p>
                             <p className="text-[11px] text-gray-600">{lp > 0 ? `${lp} LP` : ''}</p>
                           </>
