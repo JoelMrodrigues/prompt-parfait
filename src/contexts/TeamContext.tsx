@@ -55,6 +55,7 @@ export interface Player {
   pseudo: string
   position: string | null
   rank: string | null
+  rank_secondary?: string | null
   rank_updated_at?: string | null
   peak_lp_s16?: number | null
   peak_rank_s16?: string | null

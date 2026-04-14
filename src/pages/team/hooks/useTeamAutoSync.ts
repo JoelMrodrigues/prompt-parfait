@@ -468,6 +468,22 @@ export function useTeamAutoSync() {
             }
 
             await updatePlayerFn(player.id, { soloq_total_match_ids_secondary: totalRiot })
+
+            // ─── Rang compte secondaire ───────────────────────────────────────
+            await delay(DELAY_BETWEEN_REQUESTS_MS)
+            let rankSecRes = await apiFetch(`/api/riot/sync-rank?${buildParams()}`, { signal })
+            let rankSecData = await rankSecRes.json().catch(() => ({}))
+            if (rankSecRes.status === 429 && (rankSecData.retry_after ?? rankSecData.retryAfter)) {
+              await delay(Math.max(2000, (rankSecData.retry_after ?? rankSecData.retryAfter) * 1000))
+              rankSecRes = await apiFetch(`/api/riot/sync-rank?${buildParams()}`, { signal })
+              rankSecData = await rankSecRes.json().catch(() => ({}))
+            }
+            if (rankSecData.success && rankSecData.rank != null) {
+              await updatePlayerFn(player.id, { rank_secondary: rankSecData.rank })
+            } else {
+              logger.warn(LOG_PREFIX, name, '(alt) | sync-rank erreur:', rankSecData.error || rankSecRes.status)
+            }
+
             await delay(DELAY_BETWEEN_PLAYERS_MS)
           } catch (e) {
             if (e instanceof Error && e.name === 'AbortError') break

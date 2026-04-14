@@ -60,10 +60,11 @@ export function usePlayerSoloqData({
   const matchHistoryPlayerIdRef = useRef<string | null>(null)
   const { lastCycleAt } = useSyncStatus()
 
-  // ─── LP curve — uniquement sur le compte primary (le rang stocké est celui du compte 1) ──
+  // ─── LP curve — primary ou secondary (combiné non supporté — pas de rang combiné) ──
   const lpCurvePoints = useMemo(() => {
-    if (soloqAccountSource !== 'primary') return []
-    const currentLp = parseLpFromRank(player?.rank)
+    if (soloqAccountSource === 'combined') return []
+    const rankForAccount = soloqAccountSource === 'secondary' ? player?.rank_secondary : player?.rank
+    const currentLp = parseLpFromRank(rankForAccount)
     if (currentLp == null || !lpGraphMatches.length) return []
     const sorted = [...lpGraphMatches].sort(
       (a: any, b: any) => (a.game_creation ?? 0) - (b.game_creation ?? 0)
@@ -77,7 +78,7 @@ export function usePlayerSoloqData({
     }
     points.push({ date: new Date(), lp: currentLp })
     return points
-  }, [player?.rank, lpGraphMatches])
+  }, [player?.rank, player?.rank_secondary, soloqAccountSource, lpGraphMatches])
 
   // ─── Reset on player/account change ──────────────────────────────────────
   useEffect(() => {

@@ -80,6 +80,18 @@ function stripLP(rank: string | null | undefined): string {
   return rank.replace(/\s*\d+\s*LP/i, '').trim()
 }
 
+/** Retourne le rang le plus élevé entre compte principal et secondaire */
+function bestRank(player: { rank?: string | null; rank_secondary?: string | null }): string | null {
+  const a = rankToSortValue(player.rank)
+  const b = rankToSortValue(player.rank_secondary)
+  return b > a ? (player.rank_secondary ?? null) : (player.rank ?? null)
+}
+
+/** Vrai si le meilleur rang vient du compte secondaire */
+function bestRankIsSecondary(player: { rank?: string | null; rank_secondary?: string | null }): boolean {
+  return rankToSortValue(player.rank_secondary) > rankToSortValue(player.rank)
+}
+
 // ── Role config ────────────────────────────────────────────────────────────────
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -201,17 +213,17 @@ export const TeamOverviewPage = () => {
 
   // ── Computed data ────────────────────────────────────────────────────────────
   const sortedPlayersByLP = useMemo(
-    () => [...players].sort((a, b) => rankToSortValue(b.rank) - rankToSortValue(a.rank)),
+    () => [...players].sort((a, b) => rankToSortValue(bestRank(b)) - rankToSortValue(bestRank(a))),
     [players],
   )
 
   const maxSortValue = useMemo(() => {
-    const vals = players.map((p) => rankToSortValue(p.rank)).filter((v) => v > 0)
+    const vals = players.map((p) => rankToSortValue(bestRank(p))).filter((v) => v > 0)
     return vals.length ? Math.max(...vals) : 1
   }, [players])
 
   const totalLP = useMemo(
-    () => players.reduce((sum, p) => sum + parseLP(p.rank), 0),
+    () => players.reduce((sum, p) => sum + parseLP(bestRank(p)), 0),
     [players],
   )
 
@@ -321,11 +333,11 @@ export const TeamOverviewPage = () => {
   }, [teamMatches])
 
   const soloqStats = useMemo(() => {
-    const synced = players.filter((p) => p.rank)
+    const synced = players.filter((p) => bestRank(p))
     const avgLP = synced.length ? Math.round(totalLP / synced.length) : 0
     const tierCounts: Record<string, number> = {}
     for (const p of synced) {
-      const r = p.rank?.toLowerCase() || ''
+      const r = (bestRank(p) ?? '').toLowerCase()
       const tiers = ['challenger','grandmaster','master','diamond','emerald','platinum','gold','silver','bronze','iron']
       const tier = tiers.find((t) => r.includes(t)) || 'unknown'
       tierCounts[tier] = (tierCounts[tier] || 0) + 1
@@ -888,10 +900,12 @@ export const TeamOverviewPage = () => {
 
             <div className="space-y-4">
               {sortedPlayersByLP.map((p, idx) => {
-                const lp = parseLP(p.rank)
-                const sortVal = rankToSortValue(p.rank)
+                const best = bestRank(p)
+                const isAlt = bestRankIsSecondary(p)
+                const lp = parseLP(best)
+                const sortVal = rankToSortValue(best)
                 const barPct = maxSortValue > 0 ? Math.round((sortVal / maxSortValue) * 100) : 0
-                const rankLabel = stripLP(p.rank)
+                const rankLabel = stripLP(best)
                 return (
                   <button
                     key={p.id}
@@ -902,9 +916,16 @@ export const TeamOverviewPage = () => {
                     <span className="text-xs font-bold text-gray-600 w-4 shrink-0 text-center">
                       {idx + 1}
                     </span>
-                    <span className="text-sm font-medium text-white w-24 shrink-0 truncate">
-                      {p.player_name}
-                    </span>
+                    <div className="w-24 shrink-0 flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm font-medium text-white truncate">
+                        {p.player_name}
+                      </span>
+                      {isAlt && (
+                        <span className="text-[9px] font-semibold text-gray-500 bg-dark-bg border border-dark-border rounded px-1 py-0.5 shrink-0 leading-none">
+                          alt
+                        </span>
+                      )}
+                    </div>
                     <div className="flex-1 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden">
                         <div
@@ -912,7 +933,7 @@ export const TeamOverviewPage = () => {
                           style={{ width: `${Math.max(barPct, 3)}%` }}
                         />
                       </div>
-                      <span className={`text-xs shrink-0 ${getRankColorText(p.rank)}`}>
+                      <span className={`text-xs shrink-0 ${getRankColorText(best)}`}>
                         {rankLabel}
                       </span>
                       <span className="text-xs text-gray-600 shrink-0 w-12 text-right">
@@ -922,7 +943,7 @@ export const TeamOverviewPage = () => {
                   </button>
                 )
               })}
-              {sortedPlayersByLP.every((p) => !p.rank) && (
+              {sortedPlayersByLP.every((p) => !bestRank(p)) && (
                 <p className="text-gray-600 text-sm">
                   Aucun rang synchronisé. Utilisez le bouton Sync sur la fiche joueur.
                 </p>
@@ -974,8 +995,9 @@ export const TeamOverviewPage = () => {
                     )
                   : sortedPlayersByLP
                 return sorted.map((p) => {
-                  const lp = parseLP(p.rank)
-                  const rankLabel = stripLP(p.rank)
+                  const best = bestRank(p)
+                  const lp = parseLP(best)
+                  const rankLabel = stripLP(best)
                   const pos = p.position?.toUpperCase()
                   const role = pos === 'BOT' ? 'ADC' : pos
                   const cfg = role ? ROLE_CONFIG[role] : null
@@ -1026,10 +1048,15 @@ export const TeamOverviewPage = () => {
                       </div>
                       {/* Rank — largeur fixe pour aligner toutes les lignes */}
                       <div className="shrink-0 w-28 text-right">
-                        {p.rank ? (
+                        {best ? (
                           <>
-                            <p className={`text-xs font-semibold ${getRankColorText(p.rank)}`}>
+                            <p className={`text-xs font-semibold ${getRankColorText(best)}`}>
                               {rankLabel}
+                              {bestRankIsSecondary(p) && (
+                                <span className="ml-1 text-[9px] font-semibold text-gray-500 bg-dark-bg border border-dark-border rounded px-1 py-0.5 leading-none align-middle">
+                                  alt
+                                </span>
+                              )}
                             </p>
                             <p className="text-[11px] text-gray-600">{lp > 0 ? `${lp} LP` : ''}</p>
                           </>
