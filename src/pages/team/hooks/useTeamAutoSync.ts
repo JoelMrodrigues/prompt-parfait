@@ -312,20 +312,26 @@ export function useTeamAutoSync() {
               )
               rankData = await rankRes.json().catch(() => ({}))
             }
-            if (rankData.success && rankData.rank != null) {
-              const newRank: string = rankData.rank
-              const lpMatch = newRank.match(/(\d+)\s*LP/i)
-              const currentLp = lpMatch ? parseInt(lpMatch[1], 10) : null
-              const peakLp: number | null | undefined = (player as any).peak_lp_s16
-              const updates: Record<string, unknown> = {
-                rank: newRank,
-                rank_updated_at: new Date().toISOString(),
+            if (rankData.success) {
+              const updates: Record<string, unknown> = {}
+              if (rankData.rank != null) {
+                const newRank: string = rankData.rank
+                const lpMatch = newRank.match(/(\d+)\s*LP/i)
+                const currentLp = lpMatch ? parseInt(lpMatch[1], 10) : null
+                const peakLp: number | null | undefined = (player as any).peak_lp_s16
+                updates.rank = newRank
+                updates.rank_updated_at = new Date().toISOString()
+                if (currentLp != null && (peakLp == null || currentLp > peakLp)) {
+                  updates.peak_lp_s16 = currentLp
+                  updates.peak_rank_s16 = newRank
+                }
               }
-              if (currentLp != null && (peakLp == null || currentLp > peakLp)) {
-                updates.peak_lp_s16 = currentLp
-                updates.peak_rank_s16 = newRank
+              // Détection automatique de changement de pseudo
+              if (rankData.currentPseudo && rankData.currentPseudo.toLowerCase() !== (player.pseudo || '').toLowerCase()) {
+                logger.info(LOG_PREFIX, name, '| Changement de pseudo détecté:', player.pseudo, '→', rankData.currentPseudo)
+                updates.pseudo = rankData.currentPseudo
               }
-              await updatePlayerFn(player.id, updates)
+              if (Object.keys(updates).length > 0) await updatePlayerFn(player.id, updates)
             } else {
               logger.warn(LOG_PREFIX, name, '| sync-rank erreur:', rankData.error || rankRes.status)
             }
@@ -478,8 +484,15 @@ export function useTeamAutoSync() {
               rankSecRes = await apiFetch(`/api/riot/sync-rank?${buildParams()}`, { signal })
               rankSecData = await rankSecRes.json().catch(() => ({}))
             }
-            if (rankSecData.success && rankSecData.rank != null) {
-              await updatePlayerFn(player.id, { rank_secondary: rankSecData.rank })
+            if (rankSecData.success) {
+              const secUpdates: Record<string, unknown> = {}
+              if (rankSecData.rank != null) secUpdates.rank_secondary = rankSecData.rank
+              // Détection automatique de changement de pseudo secondaire
+              if (rankSecData.currentPseudo && rankSecData.currentPseudo.toLowerCase() !== (player.secondary_account || '').toLowerCase()) {
+                logger.info(LOG_PREFIX, name, '(alt) | Changement de pseudo détecté:', player.secondary_account, '→', rankSecData.currentPseudo)
+                secUpdates.secondary_account = rankSecData.currentPseudo
+              }
+              if (Object.keys(secUpdates).length > 0) await updatePlayerFn(player.id, secUpdates)
             } else {
               logger.warn(LOG_PREFIX, name, '(alt) | sync-rank erreur:', rankSecData.error || rankSecRes.status)
             }

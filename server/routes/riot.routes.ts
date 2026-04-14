@@ -6,6 +6,7 @@ import {
   getPuuidByRiotId,
   getPuuidAndSummonerId,
   getRankFromPuuid,
+  getAccountByPuuid,
   fetchTopChampionsSoloq,
   fetchRankAndMatches,
   fetchMatchHistory,
@@ -114,8 +115,13 @@ router.get('/sync-rank', requireApiKey, requirePseudo, async (req: Request, res:
     const resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
     if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const rank = await getRankFromPuuid(region, resolved.puuid, getApiKey())
-    res.json({ success: true, rank, puuid: resolved.puuid })
+    // Parallélise rang + nom actuel (détection de changement de pseudo)
+    const [rank, accountInfo] = await Promise.all([
+      getRankFromPuuid(region, resolved.puuid, getApiKey()),
+      getAccountByPuuid(resolved.puuid, getApiKey(), region).catch(() => null),
+    ])
+    const currentPseudo = accountInfo ? `${accountInfo.gameName}#${accountInfo.tagLine}` : null
+    res.json({ success: true, rank, puuid: resolved.puuid, currentPseudo })
   } catch (err: unknown) {
     const error = err as { response?: { data?: { status?: { message?: string } }; status?: number }; code?: string; message?: string }
     const detail = error.response?.data?.status?.message || error.message

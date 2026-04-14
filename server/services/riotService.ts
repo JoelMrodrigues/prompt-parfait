@@ -56,6 +56,24 @@ export async function getPuuidAndSummonerId(
   return { puuid: res.data.puuid, summonerId: res.data.id }
 }
 
+/**
+ * Lookup inverse : PUUID → nom actuel du compte Riot.
+ * Utilisé pour détecter les changements de pseudo sans action de l'utilisateur.
+ */
+export async function getAccountByPuuid(
+  puuid: string,
+  apiKey: string,
+  region = 'euw1',
+): Promise<{ gameName: string; tagLine: string } | null> {
+  const cluster = getCluster(region)
+  const res = await riotFetch<{ gameName?: string; tagLine?: string }>(
+    `https://${cluster}.api.riotgames.com/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`,
+    apiKey,
+  )
+  if (!res.ok || !res.data?.gameName || !res.data?.tagLine) return null
+  return { gameName: res.data.gameName, tagLine: res.data.tagLine }
+}
+
 export async function getPuuidByRiotId(
   gameName: string,
   tagLine: string,
