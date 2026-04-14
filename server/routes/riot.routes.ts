@@ -399,4 +399,21 @@ router.get('/weekly-games', requireApiKey, requirePseudo, async (req: Request, r
   }
 })
 
+// ─── Proxy minimap SR (évite les problèmes CORS côté client) ─────────────────
+router.get('/minimap', async (_req: Request, res: Response) => {
+  const URLS = [
+    'https://raw.communitydragon.org/latest/game/assets/maps/minimap/minimap.png',
+    'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/loadouts/summonersrift/environment/summoners-rift-update-minimap.png',
+  ]
+  for (const url of URLS) {
+    try {
+      const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 })
+      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Cache-Control', 'public, max-age=86400')
+      return res.send(Buffer.from(resp.data))
+    } catch { /* essaie l'url suivante */ }
+  }
+  res.status(503).json({ error: 'minimap unavailable' })
+})
+
 export default router

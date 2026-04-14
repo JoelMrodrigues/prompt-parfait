@@ -33,6 +33,7 @@ const CoachingPage = lazy(() => import('./pages/team/coaching/CoachingPage').the
 const TeamMembersPage = lazy(() => import('./pages/team/members/TeamMembersPage').then(m => ({ default: m.TeamMembersPage })))
 const ImportPage = lazy(() => import('./pages/team/import/ImportPage').then(m => ({ default: m.ImportPage })))
 const PlanningPage = lazy(() => import('./pages/team/planning/PlanningPage').then(m => ({ default: m.PlanningPage })))
+const PlansPage = lazy(() => import('./pages/team/plans/PlansPage').then(m => ({ default: m.PlansPage })))
 
 // Pages annexes (lazy)
 const UpdatePasswordPage = lazy(() => import('./pages/UpdatePasswordPage').then(m => ({ default: m.UpdatePasswordPage })))
@@ -98,6 +99,7 @@ function AppRoutes() {
             <Route path="coaching" element={<CoachingPage />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="members" element={<TeamMembersPage />} />
+            <Route path="plans" element={<PlansPage />} />
           </Route>
           <Route path="stats" element={<Stats />} />
           <Route path="stats/pro/champions" element={<ProChampions />} />

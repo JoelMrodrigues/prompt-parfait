@@ -23,6 +23,7 @@ import {
   LineChart,
   PanelLeftOpen,
   ShieldCheck,
+  Map,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
@@ -55,6 +56,7 @@ const SIDEBAR_GROUPS = [
       { id: 'drafts', label: 'Drafts', icon: FileText, path: '/team/drafts', hideForSpectateur: true },
       { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching', hideForSpectateur: true },
       { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning', hideForSpectateur: true },
+      { id: 'plans', label: 'Plans', icon: Map, path: '/team/plans', hideForSpectateur: true },
     ],
   },
 ]
