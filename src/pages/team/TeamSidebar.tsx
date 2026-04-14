@@ -175,7 +175,15 @@ export const TeamSidebar = () => {
           aria-expanded={switcherOpen}
           className="flex-1 flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-dark-bg/60 transition-colors"
         >
-          <div className={`w-7 h-7 rounded-md shrink-0 flex items-center justify-center overflow-hidden ${team?.logo_url ? 'bg-white' : 'bg-accent-blue/20'}`}>
+          <div
+            className={`w-7 h-7 rounded-md shrink-0 flex items-center justify-center overflow-hidden ${team?.logo_url ? '' : 'bg-accent-blue/20'}`}
+            style={team?.logo_url ? {
+              backgroundColor: team.logo_bg_color === 'transparent' ? undefined : (team.logo_bg_color || '#ffffff'),
+              backgroundImage: team.logo_bg_color === 'transparent'
+                ? 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 8px 8px'
+                : undefined,
+            } : undefined}
+          >
             {team?.logo_url ? (
               <img src={team.logo_url} alt={team.team_name} width={28} height={28} className="w-full h-full object-contain p-0.5" />
             ) : team?.team_name ? (
@@ -218,7 +226,15 @@ export const TeamSidebar = () => {
                       onClick={() => handleSwitch(t.id)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-dark-card transition-colors"
                     >
-                      <div className={`w-5 h-5 rounded shrink-0 flex items-center justify-center overflow-hidden ${t.logo_url ? 'bg-white' : 'bg-accent-blue/15'}`}>
+                      <div
+                        className={`w-5 h-5 rounded shrink-0 flex items-center justify-center overflow-hidden ${t.logo_url ? '' : 'bg-accent-blue/15'}`}
+                        style={t.logo_url ? {
+                          backgroundColor: t.logo_bg_color === 'transparent' ? undefined : (t.logo_bg_color || '#ffffff'),
+                          backgroundImage: t.logo_bg_color === 'transparent'
+                            ? 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 8px 8px'
+                            : undefined,
+                        } : undefined}
+                      >
                         {t.logo_url ? (
                           <img src={t.logo_url} alt={t.team_name} width={20} height={20} className="w-full h-full object-contain p-0.5" />
                         ) : (

@@ -62,6 +62,15 @@ const TEAM_TYPES = [
   { id: 'fun', label: 'Fun', icon: Gamepad2, color: 'text-pink-400', border: 'border-pink-500/30', selBorder: 'border-pink-400', selBg: 'bg-pink-500/15' },
 ] as const
 
+// ── Logo background presets ──────────────────────────────────────────────────
+
+const LOGO_BG_PRESETS = [
+  { label: 'Blanc', value: '#ffffff' },
+  { label: 'Noir', value: '#000000' },
+  { label: 'Gris', value: '#374151' },
+  { label: 'Transparent', value: 'transparent' },
+]
+
 // ── Color presets ────────────────────────────────────────────────────────────
 
 const COLOR_PRESETS = [
@@ -85,6 +94,12 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
   const [logoUploading, setLogoUploading] = useState(false)
   const [suggestedColor, setSuggestedColor] = useState<string | null>(null)
   const [colorApplying, setColorApplying] = useState(false)
+  const [logoBgSaving, setLogoBgSaving] = useState(false)
+  const [customBgColor, setCustomBgColor] = useState(
+    team?.logo_bg_color && !LOGO_BG_PRESETS.find((p) => p.value === team.logo_bg_color)
+      ? team.logo_bg_color
+      : '#8b5cf6'
+  )
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [typeSaving, setTypeSaving] = useState(false)
@@ -147,6 +162,18 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const handleSaveLogoBg = async (bgColor: string) => {
+    if (!team?.id || logoBgSaving || team.logo_bg_color === bgColor) return
+    setLogoBgSaving(true)
+    try {
+      await updateTeam(team.id, { logo_bg_color: bgColor })
+    } catch (e: any) {
+      toastError(`Erreur : ${e.message}`)
+    } finally {
+      setLogoBgSaving(false)
+    }
+  }
+
   const handleSaveType = async (typeId: string) => {
     if (!team?.id || typeSaving || team.team_type === typeId) return
     setTypeSaving(true)
@@ -163,7 +190,10 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
   if (!team) return null
 
   const modal = (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -186,9 +216,15 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
                 type="button"
                 disabled={!isTeamOwner || logoUploading}
                 onClick={() => logoInputRef.current?.click()}
-                className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center overflow-hidden transition-all ${
-                  team.logo_url ? 'border-dark-border bg-white' : 'border-dashed border-dark-border bg-dark-bg/80'
+                className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center overflow-hidden transition-all shrink-0 ${
+                  team.logo_url ? 'border-dark-border' : 'border-dashed border-dark-border bg-dark-bg/80'
                 } ${isTeamOwner ? 'cursor-pointer hover:border-accent-blue/60' : 'cursor-default'}`}
+                style={team.logo_url ? {
+                  backgroundColor: team.logo_bg_color === 'transparent' ? undefined : (team.logo_bg_color || '#ffffff'),
+                  backgroundImage: team.logo_bg_color === 'transparent'
+                    ? 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 10px 10px'
+                    : undefined,
+                } : undefined}
               >
                 {logoUploading ? (
                   <Loader2 className="w-6 h-6 text-accent-blue animate-spin" />
@@ -210,6 +246,51 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
                 <p className="text-xs text-gray-600 mt-1">PNG, JPG ou SVG recommandé</p>
               </div>
             </div>
+
+            {/* Fond du logo — affiché uniquement si un logo existe */}
+            {team.logo_url && isTeamOwner && (
+              <div className="mt-3">
+                <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Fond du logo</p>
+                <div className="flex items-center gap-2">
+                  {LOGO_BG_PRESETS.map((preset) => {
+                    const isSelected = (team.logo_bg_color || '#ffffff') === preset.value
+                    return (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        disabled={logoBgSaving}
+                        onClick={() => handleSaveLogoBg(preset.value)}
+                        title={preset.label}
+                        className={`w-7 h-7 rounded-lg border-2 transition-all disabled:opacity-50 shrink-0 overflow-hidden ${
+                          isSelected ? 'border-accent-blue scale-110' : 'border-dark-border hover:border-gray-500'
+                        }`}
+                        style={preset.value === 'transparent' ? {
+                          backgroundImage: 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 10px 10px',
+                        } : { backgroundColor: preset.value }}
+                      />
+                    )
+                  })}
+                  {/* Custom color picker */}
+                  <label
+                    title="Couleur personnalisée"
+                    className={`w-7 h-7 rounded-lg border-2 transition-all cursor-pointer shrink-0 overflow-hidden relative ${
+                      team.logo_bg_color && !LOGO_BG_PRESETS.find((p) => p.value === team.logo_bg_color)
+                        ? 'border-accent-blue scale-110'
+                        : 'border-dark-border hover:border-gray-500'
+                    }`}
+                    style={{ backgroundColor: customBgColor }}
+                  >
+                    <input
+                      type="color"
+                      value={customBgColor}
+                      onChange={(e) => setCustomBgColor(e.target.value)}
+                      onBlur={(e) => handleSaveLogoBg(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
             <input
               ref={logoInputRef}
               type="file"

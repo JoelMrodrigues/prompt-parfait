@@ -257,9 +257,15 @@ export const JoueursPage = () => {
           <div className="flex items-center gap-5">
             {/* Logo équipe — mêmes classes que Vue d'ensemble (bg-white si logo) */}
             <div
-              className={`shrink-0 w-20 h-20 rounded-full border-2 flex items-center justify-center overflow-hidden ${
-                team.logo_url ? 'border-dark-border bg-white' : 'border-dark-border bg-dark-bg/80'
+              className={`shrink-0 w-20 h-20 rounded-full border-2 border-dark-border flex items-center justify-center overflow-hidden ${
+                team.logo_url ? '' : 'bg-dark-bg/80'
               }`}
+              style={team.logo_url ? {
+                backgroundColor: team.logo_bg_color === 'transparent' ? undefined : (team.logo_bg_color || '#ffffff'),
+                backgroundImage: team.logo_bg_color === 'transparent'
+                  ? 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 10px 10px'
+                  : undefined,
+              } : undefined}
             >
               {team.logo_url ? (
                 <img

@@ -35,7 +35,7 @@ import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useToast } from '../../../contexts/ToastContext'
 import { PlayerModal } from '../components/PlayerModal'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
-import { supabase } from '../../../lib/supabase'
+import { TeamEditModal } from '../components/TeamEditModal'
 import { getChampionImage } from '../../../lib/championImages'
 import { fetchWeeklySoloqCounts } from '../../../services/supabase/playerQueries'
 import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
@@ -45,45 +45,6 @@ const ROLE_ORDER: Record<string, number> = {
 }
 const byRoleOrder = (pos?: string) => ROLE_ORDER[(pos ?? '').toUpperCase()] ?? 9
 import { getRankColorText } from '../joueurs/utils/playerDetailHelpers'
-
-// ── Color extraction ──────────────────────────────────────────────────────────
-
-async function extractDominantColor(imgUrl: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas')
-        canvas.width = 50
-        canvas.height = 50
-        const ctx = canvas.getContext('2d')
-        if (!ctx) { resolve(null); return }
-        ctx.drawImage(img, 0, 0, 50, 50)
-        const data = ctx.getImageData(0, 0, 50, 50).data
-        const colorMap: Record<string, number> = {}
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3]
-          if (a < 100) continue
-          if (r > 210 && g > 210 && b > 210) continue // near-white
-          if (r < 30 && g < 30 && b < 30) continue // near-black
-          const rb = Math.round(r / 32) * 32
-          const gb = Math.round(g / 32) * 32
-          const bb = Math.round(b / 32) * 32
-          if (Math.max(rb, gb, bb) - Math.min(rb, gb, bb) < 30) continue // gray
-          const key = `${rb} ${gb} ${bb}`
-          colorMap[key] = (colorMap[key] || 0) + 1
-        }
-        const sorted = Object.entries(colorMap).sort((a, b) => b[1] - a[1])
-        resolve(sorted.length ? sorted[0][0] : null)
-      } catch {
-        resolve(null)
-      }
-    }
-    img.onerror = () => resolve(null)
-    img.src = imgUrl
-  })
-}
 
 function applyAccentColor(rgbStr: string) {
   document.documentElement.style.setProperty('--color-accent', rgbStr)
@@ -159,8 +120,7 @@ export const TeamOverviewPage = () => {
   const [inviteEmailSent, setInviteEmailSent] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
-  const [logoUploading, setLogoUploading] = useState(false)
-  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const inviteRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -172,9 +132,6 @@ export const TeamOverviewPage = () => {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
-  const [suggestedColor, setSuggestedColor] = useState<string | null>(null)
-  const [colorApplying, setColorApplying] = useState(false)
-
   // ── Weekly SoloQ ─────────────────────────────────────────────────────────────
   const [weeklyGames, setWeeklyGames] = useState<Record<string, number | null>>({})
   const [weeklyLoading, setWeeklyLoading] = useState(false)
@@ -234,59 +191,6 @@ export const TeamOverviewPage = () => {
       toastError(`Erreur: ${e.message}`)
     } finally {
       setGoalSaving(false)
-    }
-  }
-
-  // ── Logo upload ──────────────────────────────────────────────────────────────
-  const handleLogoUpload = async (file: File) => {
-    if (!team?.id || !supabase) return
-    setLogoUploading(true)
-    try {
-      const ext = file.name.split('.').pop() || 'jpg'
-      const path = `${team.id}/logo.${ext}`
-      // Convertir en ArrayBuffer pour éviter que Supabase stocke le multipart form entier
-      const arrayBuffer = await file.arrayBuffer()
-      const { error: uploadError } = await supabase.storage
-        .from('team-logos')
-        .upload(path, arrayBuffer, { upsert: true, contentType: file.type })
-      if (uploadError) {
-        if (uploadError.message?.toLowerCase().includes('bucket') || (uploadError as any).statusCode === '400') {
-          toastError("Bucket introuvable. Dans Supabase : Storage → New bucket → Nom : \"team-logos\" → cocher Public → Save.")
-        } else {
-          toastError(`Erreur upload : ${uploadError.message}`)
-        }
-        return
-      }
-      const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path)
-      try {
-        await updateTeam(team.id, { logo_url: urlData.publicUrl })
-        toastSuccess('Logo uploadé !')
-        // Extract dominant color from logo
-        const color = await extractDominantColor(urlData.publicUrl)
-        if (color) setSuggestedColor(color)
-      } catch {
-        toastError("Image uploadée mais non sauvegardée. Exécutez supabase/supabase-team-logo.sql dans le SQL Editor Supabase pour ajouter la colonne logo_url.")
-      }
-    } catch (e: any) {
-      toastError(`Erreur : ${e.message}`)
-    } finally {
-      setLogoUploading(false)
-    }
-  }
-
-  // ── Accent color ─────────────────────────────────────────────────────────────
-  const handleApplyColor = async (rgbStr: string) => {
-    if (!team?.id) return
-    setColorApplying(true)
-    applyAccentColor(rgbStr)
-    try {
-      await updateTeam(team.id, { accent_color: rgbStr })
-      toastSuccess('Couleur appliquée !')
-      setSuggestedColor(null)
-    } catch {
-      toastError("Couleur appliquée localement mais non sauvegardée (colonne accent_color manquante).")
-    } finally {
-      setColorApplying(false)
     }
   }
 
@@ -639,14 +543,18 @@ export const TeamOverviewPage = () => {
             <div className="relative shrink-0">
               <button
                 type="button"
-                disabled={!isTeamOwner || logoUploading}
-                onClick={() => logoInputRef.current?.click()}
-                className={`w-20 h-20 rounded-full border-2 flex items-center justify-center overflow-hidden transition-all ${team.logo_url ? 'border-dark-border bg-white' : 'border-dashed border-dark-border bg-dark-bg/80'} ${isTeamOwner ? 'cursor-pointer hover:border-accent-blue/60' : 'cursor-default'}`}
-                title={isTeamOwner ? 'Changer le logo' : ''}
+                disabled={!isTeamOwner}
+                onClick={() => isTeamOwner && setEditModalOpen(true)}
+                className={`w-20 h-20 rounded-full border-2 flex items-center justify-center overflow-hidden transition-all ${team.logo_url ? 'border-dark-border' : 'border-dashed border-dark-border bg-dark-bg/80'} ${isTeamOwner ? 'cursor-pointer hover:border-accent-blue/60' : 'cursor-default'}`}
+                style={team.logo_url ? {
+                  backgroundColor: team.logo_bg_color === 'transparent' ? undefined : (team.logo_bg_color || '#ffffff'),
+                  backgroundImage: team.logo_bg_color === 'transparent'
+                    ? 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 10px 10px'
+                    : undefined,
+                } : undefined}
+                title={isTeamOwner ? "Paramètres de l'équipe" : ''}
               >
-                {logoUploading ? (
-                  <Loader2 className="w-7 h-7 text-accent-blue animate-spin" />
-                ) : team.logo_url ? (
+                {team.logo_url ? (
                   <img
                     src={team.logo_url}
                     alt={team.team_name}
@@ -656,23 +564,16 @@ export const TeamOverviewPage = () => {
                   <Camera className="w-7 h-7 text-gray-500" />
                 )}
               </button>
-              {isTeamOwner && !logoUploading && (
+              {isTeamOwner && (
                 <button
                   type="button"
-                  onClick={() => logoInputRef.current?.click()}
+                  onClick={() => setEditModalOpen(true)}
                   className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-accent-blue flex items-center justify-center shadow-lg hover:bg-accent-blue/80 transition-colors"
-                  title="Importer un logo"
+                  title="Paramètres de l'équipe"
                 >
                   <Edit3 className="w-3 h-3 text-white" />
                 </button>
               )}
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
-              />
             </div>
 
             {/* Team name + meta */}
@@ -685,31 +586,6 @@ export const TeamOverviewPage = () => {
                 {' · '}
                 {players.length} joueur{players.length > 1 ? 's' : ''}
               </p>
-              {/* Suggested color from logo */}
-              {suggestedColor && isTeamOwner && (
-                <div className="flex items-center gap-2 mt-2">
-                  <div
-                    className="w-5 h-5 rounded border border-white/20 shrink-0"
-                    style={{ backgroundColor: `rgb(${suggestedColor})` }}
-                  />
-                  <span className="text-xs text-gray-400">Couleur détectée du logo</span>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyColor(suggestedColor)}
-                    disabled={colorApplying}
-                    className="text-xs text-accent-blue hover:text-accent-blue/80 font-medium disabled:opacity-50 transition-colors"
-                  >
-                    {colorApplying ? 'Application...' : 'Appliquer comme thème'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSuggestedColor(null)}
-                    className="text-gray-600 hover:text-gray-400"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              )}
             </div>
         </div>
 
@@ -1573,6 +1449,7 @@ export const TeamOverviewPage = () => {
           onCancel={() => setConfirmDelete(null)}
         />
       )}
+      {editModalOpen && <TeamEditModal onClose={() => setEditModalOpen(false)} />}
     </div>
   )
 }

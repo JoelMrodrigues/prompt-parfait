@@ -38,6 +38,7 @@ export interface Team {
   team_type?: string
   logo_url?: string | null
   accent_color?: string | null
+  logo_bg_color?: string | null
   invite_token?: string | null
   created_at?: string
   lp_goal?: number | null
@@ -132,10 +133,12 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.id, profile?.active_team_id])
 
-  const fetchTeam = async () => {
+  const fetchTeam = async (overrideTeamId?: string) => {
     if (!supabase) { setLoading(false); return }
     // Dédupliquer : ignorer si un fetch est déjà en cours ou si les params n'ont pas changé
-    const params = `${user?.id}|${profile?.active_team_id ?? ''}`
+    // overrideTeamId bypasse la closure React (important pour switchTeam)
+    const effectiveTeamId = overrideTeamId ?? profile?.active_team_id ?? null
+    const params = `${user?.id}|${effectiveTeamId ?? ''}`
     if (fetchingRef.current) return
     if (params === lastParamsRef.current && initializedRef.current) return
     fetchingRef.current = true
@@ -144,7 +147,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     perf.start('TeamContext.fetchTeam')
     try {
       // Parallélisation : teams + players (si active_team_id connu) partent en même temps
-      const knownTeamId = profile?.active_team_id ?? null
+      const knownTeamId = effectiveTeamId
       const [
         { data: teamsData, error: teamsError },
         prefetchedPlayers,
@@ -220,12 +223,17 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
 
   const switchTeam = async (teamId: string) => {
     if (!user) return
-    perf.start('switchTeam.upsertProfile')
+    // Écriture en DB
     await upsertProfile(user.id, { active_team_id: teamId })
-    perf.end('switchTeam.upsertProfile')
-    perf.start('switchTeam.refreshProfile')
-    await refreshProfile()
-    perf.end('switchTeam.refreshProfile')
+    // Reset des guards de déduplication pour que le fetch parte immédiatement,
+    // sans attendre que le useEffect se déclenche (qui dépend de profile?.active_team_id
+    // mis à jour par refreshProfile, potentiellement bloqué si un fetch est en cours)
+    fetchingRef.current = false
+    lastParamsRef.current = ''
+    // Fetch direct avec le nouvel ID — bypasse la closure React stale
+    await fetchTeam(teamId)
+    // Sync AuthContext en arrière-plan (non-bloquant)
+    refreshProfile().catch(() => {})
   }
 
   const createTeam = async (teamName: string, teamType = 'scrim') => {

@@ -637,7 +637,15 @@ export const ImportPage = () => {
       {/* Header équipe */}
       <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
         <div className="flex items-center gap-5">
-          <div className={`shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center overflow-hidden ${team.logo_url ? 'border-dark-border bg-white' : 'border-dark-border bg-dark-bg/80'}`}>
+          <div
+            className={`shrink-0 w-16 h-16 rounded-full border-2 border-dark-border flex items-center justify-center overflow-hidden ${team.logo_url ? '' : 'bg-dark-bg/80'}`}
+            style={team.logo_url ? {
+              backgroundColor: team.logo_bg_color === 'transparent' ? undefined : (team.logo_bg_color || '#ffffff'),
+              backgroundImage: team.logo_bg_color === 'transparent'
+                ? 'repeating-conic-gradient(#374151 0% 25%, #1f2937 0% 50%) 0 0 / 10px 10px'
+                : undefined,
+            } : undefined}
+          >
             {team.logo_url
               ? <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-contain p-1.5" />
               : <span className="text-xl font-bold text-gray-600">{(team.team_name || 'E').charAt(0)}</span>}
