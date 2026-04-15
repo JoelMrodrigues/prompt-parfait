@@ -486,7 +486,17 @@ export function useTeamAutoSync() {
             }
             if (rankSecData.success) {
               const secUpdates: Record<string, unknown> = {}
-              if (rankSecData.rank != null) secUpdates.rank_secondary = rankSecData.rank
+              if (rankSecData.rank != null) {
+                const newRankSec: string = rankSecData.rank
+                const lpMatchSec = newRankSec.match(/(\d+)\s*LP/i)
+                const currentLpSec = lpMatchSec ? parseInt(lpMatchSec[1], 10) : null
+                const peakLpSec: number | null | undefined = (player as any).peak_lp_s16_secondary
+                secUpdates.rank_secondary = newRankSec
+                if (currentLpSec != null && (peakLpSec == null || currentLpSec > peakLpSec)) {
+                  secUpdates.peak_lp_s16_secondary = currentLpSec
+                  secUpdates.peak_rank_s16_secondary = newRankSec
+                }
+              }
               // Détection automatique de changement de pseudo secondaire
               if (rankSecData.currentPseudo && rankSecData.currentPseudo.toLowerCase() !== (player.secondary_account || '').toLowerCase()) {
                 logger.info(LOG_PREFIX, name, '(alt) | Changement de pseudo détecté:', player.secondary_account, '→', rankSecData.currentPseudo)

@@ -59,6 +59,8 @@ export interface Player {
   rank_updated_at?: string | null
   peak_lp_s16?: number | null
   peak_rank_s16?: string | null
+  peak_lp_s16_secondary?: number | null
+  peak_rank_s16_secondary?: string | null
   player_type?: 'starter' | 'sub'
   puuid?: string | null
   puuid_secondary?: string | null

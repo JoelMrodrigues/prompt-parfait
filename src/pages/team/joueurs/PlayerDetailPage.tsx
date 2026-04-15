@@ -1023,9 +1023,13 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
   const rankTextColor = getRankColorText(activeRank)
   const rankLabel = activeRank ? activeRank.replace(/\s*\d+\s*LP/i, '').trim() : null
 
-  // ── Card 2 — Peak S16 — uniquement suivi pour le compte principal ───────
-  const peakLp: number | null = isSecondary ? null : (player.peak_lp_s16 ?? null)
-  const peakRankBase = isSecondary ? null : (player.peak_rank_s16 ?? player.rank)
+  // ── Card 2 — Peak S16 (principal ou secondaire selon sélection) ─────────
+  const peakLp: number | null = isSecondary
+    ? (player.peak_lp_s16_secondary ?? null)
+    : (player.peak_lp_s16 ?? null)
+  const peakRankBase = isSecondary
+    ? (player.peak_rank_s16_secondary ?? activeRank)
+    : (player.peak_rank_s16 ?? player.rank)
   const peakRankImg = getRankImage(peakRankBase)
   const peakRankTextColor = getRankColorText(peakRankBase)
   const peakRankLabel = peakRankBase
@@ -1056,21 +1060,15 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
       <div className="flex-1 flex flex-col items-center gap-4 p-6 rounded-2xl bg-dark-bg border border-dark-border">
         <div className="self-start">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Peak Elo — Saison 16</p>
-          <p className="text-[10px] text-gray-600 mt-0.5">
-            {isSecondary ? 'Compte secondaire — non suivi' : 'Comptabilisé depuis l\'inscription sur le site'}
-          </p>
+          <p className="text-[10px] text-gray-600 mt-0.5">Comptabilisé depuis l'inscription sur le site</p>
         </div>
-        {isSecondary ? (
-          <div className="w-24 h-24 rounded-full bg-dark-card border border-dashed border-dark-border flex items-center justify-center text-3xl text-gray-700">—</div>
-        ) : peakRankImg ? (
+        {peakRankImg ? (
           <img src={peakRankImg} alt={peakRankLabel ?? ''} className="w-24 h-24 object-contain drop-shadow-lg opacity-90" />
         ) : (
           <div className="w-24 h-24 rounded-full bg-dark-card border border-dark-border flex items-center justify-center text-3xl">—</div>
         )}
         <div className="text-center">
-          {isSecondary ? (
-            <p className="text-sm text-gray-600 italic">Non disponible</p>
-          ) : peakLp != null ? (
+          {peakLp != null ? (
             <>
               <p className={`text-2xl font-bold ${peakRankTextColor}`}>{peakRankLabel ?? '—'}</p>
               <p className="text-sm text-gray-400 mt-1">{peakLp} LP</p>
