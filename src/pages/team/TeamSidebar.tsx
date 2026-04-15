@@ -44,7 +44,7 @@ const SIDEBAR_GROUPS = [
   {
     label: 'Analyse',
     items: [
-      { id: 'import', label: 'Import', icon: Upload, path: '/team/import', hideForSpectateur: true },
+      { id: 'import', label: 'Import', icon: Upload, path: '/team/import', hideForSpectateur: true, hideForFlex: true },
       { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
       { id: 'analyse', label: 'Analyse', icon: LineChart, path: '/team/analyse', hideForSpectateur: true },
       { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
@@ -63,6 +63,7 @@ const SIDEBAR_GROUPS = [
 
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
+  const isFlexTeam = team?.team_type === 'flex'
   const { sidebarOpen, setSidebarOpen } = useLayout()
   const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
   const [, setTick] = useState(0)
@@ -76,6 +77,7 @@ export const TeamSidebar = () => {
   const filterItem = (item: any) => {
     if (item.managerOnly && !canManageTeam) return false
     if (item.hideForSpectateur && myRole === 'spectateur') return false
+    if (item.hideForFlex && isFlexTeam) return false
     return true
   }
 

@@ -207,14 +207,26 @@ export const TeamOverviewPage = () => {
     if (team?.accent_color) applyAccentColor(team.accent_color)
   }, [team?.accent_color])
 
+  const isFlexTeam = team?.team_type === 'flex'
+
   // ── Computed data ────────────────────────────────────────────────────────────
   const sortedPlayersByLP = useMemo(
     () => [...players].sort((a, b) => rankToSortValue(bestRank(b)) - rankToSortValue(bestRank(a))),
     [players],
   )
 
+  const sortedPlayersByFlexLP = useMemo(
+    () => [...players].sort((a, b) => rankToSortValue(b.rank_flex) - rankToSortValue(a.rank_flex)),
+    [players],
+  )
+
   const maxSortValue = useMemo(() => {
     const vals = players.map((p) => rankToSortValue(bestRank(p))).filter((v) => v > 0)
+    return vals.length ? Math.max(...vals) : 1
+  }, [players])
+
+  const maxFlexSortValue = useMemo(() => {
+    const vals = players.map((p) => rankToSortValue(p.rank_flex)).filter((v) => v > 0)
     return vals.length ? Math.max(...vals) : 1
   }, [players])
 
@@ -729,8 +741,69 @@ export const TeamOverviewPage = () => {
         )}
       </motion.div>
 
-      {/* ── Row 2 : LP Ranking + Activité SoloQ ─────────────────────────────── */}
-      {players.length > 0 && (
+      {/* ── Row 2 : LP Ranking + Activité SoloQ (soloq) / Classement Flex ───── */}
+      {players.length > 0 && isFlexTeam && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-dark-card border border-dark-border rounded-2xl p-5"
+        >
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-yellow-400" />
+              <h3 className="font-semibold text-white text-sm uppercase tracking-wider">
+                Classement Flex
+              </h3>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {sortedPlayersByFlexLP.map((p, idx) => {
+              const flexRank = p.rank_flex ?? null
+              const lp = parseLP(flexRank)
+              const sortVal = rankToSortValue(flexRank)
+              const barPct = maxFlexSortValue > 0 ? Math.round((sortVal / maxFlexSortValue) * 100) : 0
+              const rankLabel = stripLP(flexRank)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
+                  className="w-full flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+                >
+                  <span className="text-xs font-bold text-gray-600 w-4 shrink-0 text-center">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm font-medium text-white w-24 shrink-0 truncate">
+                    {p.player_name}
+                  </span>
+                  <div className="flex-1 flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-accent-blue to-violet-500 transition-all duration-500"
+                        style={{ width: `${Math.max(barPct, 3)}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs shrink-0 ${getRankColorText(flexRank)}`}>
+                      {rankLabel || '—'}
+                    </span>
+                    <span className="text-xs text-gray-600 shrink-0 w-12 text-right">
+                      {lp > 0 ? `${lp} LP` : '—'}
+                    </span>
+                  </div>
+                </button>
+              )
+            })}
+            {sortedPlayersByFlexLP.every((p) => !p.rank_flex) && (
+              <p className="text-gray-600 text-sm">
+                Aucun rang Flex synchronisé — la sync démarrera automatiquement.
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {players.length > 0 && !isFlexTeam && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
           {/* LP Ranking */}
