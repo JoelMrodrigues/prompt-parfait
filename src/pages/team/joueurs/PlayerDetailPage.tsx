@@ -757,7 +757,7 @@ export const PlayerDetailPage = () => {
 
         {/* ── Général ── */}
         {d.selectedCard === 'general' && (
-          <GeneralSection player={player} teamId={d.team?.id ?? ''} teamStats={d.teamStats} teamStatsLoading={d.teamStatsLoading} allTeamMatches={d.allTeamMatches} playerId={player.id} onNavigate={d.setSelectedCard} />
+          <GeneralSection player={player} teamId={d.team?.id ?? ''} teamStats={d.teamStats} teamStatsLoading={d.teamStatsLoading} allTeamMatches={d.allTeamMatches} playerId={player.id} onNavigate={d.setSelectedCard} selectedSoloqAccount={d.selectedSoloqAccount} />
         )}
 
         {/* ── Solo Q ── */}
@@ -1004,7 +1004,7 @@ export const PlayerDetailPage = () => {
 
 // ─── Général ──────────────────────────────────────────────────────────────────
 
-function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMatches, playerId, onNavigate }: {
+function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMatches, playerId, onNavigate, selectedSoloqAccount }: {
   player: any
   teamId: string
   teamStats: any[]
@@ -1012,19 +1012,24 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
   allTeamMatches: any[]
   playerId: string
   onNavigate: (tab: string) => void
+  selectedSoloqAccount: number
 }) {
-  // ── Card 1 — Rang actuel ────────────────────────────────────────────────
-  const currentLp = parseLpFromRank(player.rank)
-  const rankImg = getRankImage(player.rank)
-  const rankTextColor = getRankColorText(player.rank)
-  const rankLabel = player.rank ? player.rank.replace(/\s*\d+\s*LP/i, '').trim() : null
+  const isSecondary = selectedSoloqAccount === 2
 
-  // ── Card 2 — Peak S16 (stocké en DB, mis à jour par l'auto-sync) ───────
-  const peakLp: number | null = player.peak_lp_s16 ?? null
-  const peakRankImg = getRankImage(player.peak_rank_s16 ?? player.rank)
-  const peakRankTextColor = getRankColorText(player.peak_rank_s16 ?? player.rank)
-  const peakRankLabel = player.peak_rank_s16
-    ? player.peak_rank_s16.replace(/\s*\d+\s*LP/i, '').trim()
+  // ── Card 1 — Rang actuel (suit le compte sélectionné) ──────────────────
+  const activeRank = isSecondary ? (player.rank_secondary ?? null) : player.rank
+  const currentLp = parseLpFromRank(activeRank)
+  const rankImg = getRankImage(activeRank)
+  const rankTextColor = getRankColorText(activeRank)
+  const rankLabel = activeRank ? activeRank.replace(/\s*\d+\s*LP/i, '').trim() : null
+
+  // ── Card 2 — Peak S16 — uniquement suivi pour le compte principal ───────
+  const peakLp: number | null = isSecondary ? null : (player.peak_lp_s16 ?? null)
+  const peakRankBase = isSecondary ? null : (player.peak_rank_s16 ?? player.rank)
+  const peakRankImg = getRankImage(peakRankBase)
+  const peakRankTextColor = getRankColorText(peakRankBase)
+  const peakRankLabel = peakRankBase
+    ? peakRankBase.replace(/\s*\d+\s*LP/i, '').trim()
     : rankLabel
 
   return (
@@ -1051,15 +1056,21 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
       <div className="flex-1 flex flex-col items-center gap-4 p-6 rounded-2xl bg-dark-bg border border-dark-border">
         <div className="self-start">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Peak Elo — Saison 16</p>
-          <p className="text-[10px] text-gray-600 mt-0.5">Comptabilisé depuis l'inscription sur le site</p>
+          <p className="text-[10px] text-gray-600 mt-0.5">
+            {isSecondary ? 'Compte secondaire — non suivi' : 'Comptabilisé depuis l\'inscription sur le site'}
+          </p>
         </div>
-        {peakRankImg ? (
+        {isSecondary ? (
+          <div className="w-24 h-24 rounded-full bg-dark-card border border-dashed border-dark-border flex items-center justify-center text-3xl text-gray-700">—</div>
+        ) : peakRankImg ? (
           <img src={peakRankImg} alt={peakRankLabel ?? ''} className="w-24 h-24 object-contain drop-shadow-lg opacity-90" />
         ) : (
           <div className="w-24 h-24 rounded-full bg-dark-card border border-dark-border flex items-center justify-center text-3xl">—</div>
         )}
         <div className="text-center">
-          {peakLp != null ? (
+          {isSecondary ? (
+            <p className="text-sm text-gray-600 italic">Non disponible</p>
+          ) : peakLp != null ? (
             <>
               <p className={`text-2xl font-bold ${peakRankTextColor}`}>{peakRankLabel ?? '—'}</p>
               <p className="text-sm text-gray-400 mt-1">{peakLp} LP</p>
