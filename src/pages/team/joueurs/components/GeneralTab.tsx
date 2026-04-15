@@ -97,11 +97,16 @@ export function GeneralTab({ d, player }: { d: any; player: any }) {
             <div className="w-1.5 h-5 rounded-full bg-accent-blue" />
             <span className="font-semibold text-white text-sm">Solo Q · Saison en cours</span>
           </div>
-          {player.rank && (
-            <span className="text-xs font-semibold text-violet-400 bg-violet-400/10 border border-violet-400/20 px-2.5 py-1 rounded-full">
-              {player.rank}
-            </span>
-          )}
+          {(() => {
+            const rank = d.selectedSoloqAccount === 2
+              ? (player.rank_secondary ?? player.rank)
+              : player.rank
+            return rank ? (
+              <span className="text-xs font-semibold text-violet-400 bg-violet-400/10 border border-violet-400/20 px-2.5 py-1 rounded-full">
+                {rank}
+              </span>
+            ) : null
+          })()}
         </div>
 
         {d.lpGraphLoading ? (

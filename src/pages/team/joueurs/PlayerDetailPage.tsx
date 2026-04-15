@@ -520,6 +520,14 @@ export const PlayerDetailPage = () => {
 
   const { player } = d
   const roleLabel = ROLE_LABELS[player.position] || player.position
+
+  // Rang et pseudo du compte actuellement sélectionné
+  const displayedRank = d.selectedSoloqAccount === 2
+    ? (player.rank_secondary ?? player.rank)
+    : player.rank
+  const displayedPseudo = d.selectedSoloqAccount === 2
+    ? (player.secondary_account ?? player.pseudo)
+    : player.pseudo
   const dpmLink = player.pseudo ? generateDpmLink(player.pseudo) : null
 
   let topChampions = player.top_champions
@@ -556,24 +564,32 @@ export const PlayerDetailPage = () => {
         {player.secondary_account && (
           <div className="flex gap-2">
             {[
-              { idx: 1, label: player.pseudo || 'Compte 1' },
-              { idx: 2, label: player.secondary_account },
-              { idx: 0, label: 'Combiné' },
-            ].map(({ idx, label }) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => d.setSelectedSoloqAccount(idx)}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors truncate max-w-[180px] ${
-                  d.selectedSoloqAccount === idx
-                    ? 'bg-accent-blue text-white border border-accent-blue'
-                    : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
-                }`}
-                title={label}
-              >
-                {label}
-              </button>
-            ))}
+              { idx: 1, label: player.pseudo || 'Compte 1', rank: player.rank },
+              { idx: 2, label: player.secondary_account, rank: player.rank_secondary ?? null },
+              { idx: 0, label: 'Combiné', rank: null },
+            ].map(({ idx, label, rank }) => {
+              const isActive = d.selectedSoloqAccount === idx
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => d.setSelectedSoloqAccount(idx)}
+                  className={`flex flex-col items-start px-3 py-2 rounded-xl text-sm font-medium transition-colors max-w-[180px] ${
+                    isActive
+                      ? 'bg-accent-blue/15 text-white border border-accent-blue/60'
+                      : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
+                  }`}
+                  title={label}
+                >
+                  <span className="truncate w-full">{label}</span>
+                  {rank && (
+                    <span className={`text-[11px] font-semibold mt-0.5 ${isActive ? 'text-accent-blue' : 'text-gray-600'}`}>
+                      {rank}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
@@ -603,11 +619,11 @@ export const PlayerDetailPage = () => {
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-off-white">
                   {player.player_name || 'Joueur'}
                 </h1>
-                <p className="text-off-white/80 mt-1">{player.pseudo || '—'}</p>
+                <p className="text-off-white/80 mt-1">{displayedPseudo || '—'}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{roleLabel}</span>
-                  {player.rank && (
-                    <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{player.rank}</span>
+                  {displayedRank && (
+                    <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{displayedRank}</span>
                   )}
                 </div>
               </div>
