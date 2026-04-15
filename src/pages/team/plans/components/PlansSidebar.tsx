@@ -147,8 +147,7 @@ export function PlansSidebar({
         initial={{ width: '14rem' }}
         animate={{ width: '2.75rem' }}
         transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-        className="shrink-0 flex flex-col items-center border-r border-white/6 overflow-hidden"
-        style={{ background: 'linear-gradient(180deg, #0c1320 0%, #0a1019 100%)' }}
+        className="shrink-0 flex flex-col items-center bg-dark-card border-r border-dark-border overflow-hidden"
       >
         <div className="flex flex-col items-center py-3 gap-1.5">
           <button
@@ -158,7 +157,7 @@ export function PlansSidebar({
           >
             <PanelLeftOpen size={15} />
           </button>
-          <div className="w-5 h-px bg-white/6 my-1" />
+          <div className="w-5 h-px bg-dark-border my-1" />
           <div className="w-7 h-7 rounded-lg bg-accent-blue/10 flex items-center justify-center">
             <Map size={13} className="text-accent-blue/70" />
           </div>
@@ -175,14 +174,13 @@ export function PlansSidebar({
         initial={{ width: '2.75rem' }}
         animate={{ width: '15rem' }}
         transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-        className="shrink-0 flex flex-col border-r border-white/6 overflow-hidden"
-        style={{ background: 'linear-gradient(180deg, #0c1320 0%, #0a1019 100%)' }}
+        className="shrink-0 flex flex-col bg-dark-card border-r border-dark-border overflow-hidden"
       >
         {/* Header */}
-        <div className="shrink-0 px-3 pt-3 pb-2.5 border-b border-white/6">
+        <div className="shrink-0 px-3 pt-3 pb-2.5 border-b border-dark-border">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.25) 0%, rgba(139,92,246,0.15) 100%)', border: '1px solid rgba(59,130,246,0.2)' }}
+              style={{ background: 'linear-gradient(135deg, rgba(var(--color-accent),0.25) 0%, rgba(139,92,246,0.15) 100%)', border: '1px solid rgba(var(--color-accent),0.2)' }}
             >
               <Map size={13} className="text-accent-blue" />
             </div>
@@ -216,6 +214,7 @@ export function PlansSidebar({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.18 }}
                 onSubmit={submitCreateFolder}
+                onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { setNewFolderMode(false); setNewFolderName('') } }}
                 className="overflow-hidden mb-1"
               >
                 <div className="flex gap-1.5 p-1">
@@ -227,12 +226,12 @@ export function PlansSidebar({
                     placeholder="Nom du dossier…"
                     className="flex-1 min-w-0 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
-                    onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(59,130,246,0.6)' }}
+                    onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = `rgba(var(--color-accent),0.6)` }}
                     onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.1)' }}
                   />
                   <button type="submit"
                     className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:brightness-110"
-                    style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
+                    style={{ background: 'linear-gradient(135deg, rgb(var(--color-accent)), #6366f1)' }}
                   >
                     OK
                   </button>
@@ -249,7 +248,7 @@ export function PlansSidebar({
               className="flex flex-col items-center gap-3 py-10 px-3 text-center"
             >
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.12)' }}
+                style={{ background: 'rgba(var(--color-accent),0.08)', border: '1px solid rgba(var(--color-accent),0.12)' }}
               >
                 <FolderPlus size={18} className="text-accent-blue/50" />
               </div>
@@ -285,7 +284,7 @@ export function PlansSidebar({
                       ? 'text-white'
                       : 'text-gray-500 hover:text-gray-300 hover:bg-white/4'
                   }`}
-                  style={isFolderOpen ? { background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.12)' } : { border: '1px solid transparent' }}
+                  style={isFolderOpen ? { background: 'rgba(var(--color-accent),0.08)', border: '1px solid rgba(var(--color-accent),0.12)' } : { border: '1px solid transparent' }}
                 >
                   <motion.div
                     animate={{ rotate: isFolderOpen ? 90 : 0 }}
@@ -344,11 +343,9 @@ export function PlansSidebar({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                      style={{ overflow: 'visible' }}
+                      className="overflow-hidden"
                     >
-                      <div className="ml-5 mt-1 mb-1 space-y-0.5 pl-2"
-                        style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}
-                      >
+                      <div className="ml-5 mt-1 mb-1 space-y-0.5 pl-2 border-l border-dark-border">
                         {files.map((file) => {
                           const isSelected = file.id === selectedFileId
 
@@ -360,7 +357,7 @@ export function PlansSidebar({
                                 isSelected ? 'text-accent-blue' : 'text-gray-500 hover:text-gray-300'
                               }`}
                               style={isSelected
-                                ? { background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.18)' }
+                                ? { background: 'rgba(var(--color-accent),0.12)', border: '1px solid rgba(var(--color-accent),0.18)' }
                                 : { border: '1px solid transparent', background: 'transparent' }
                               }
                               onMouseEnter={(e) => {
@@ -374,7 +371,7 @@ export function PlansSidebar({
                                 <motion.div
                                   layoutId="file-indicator"
                                   className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
-                                  style={{ background: 'linear-gradient(180deg, #3b82f6, #6366f1)' }}
+                                  style={{ background: 'linear-gradient(180deg, rgb(var(--color-accent)), #6366f1)' }}
                                 />
                               )}
 
@@ -416,7 +413,8 @@ export function PlansSidebar({
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.15 }}
                               onSubmit={submitCreateFile}
-                              style={{ overflow: 'visible' }}
+                              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { setNewFileFolder(null); setNewFileName('') } }}
+                              className="overflow-hidden"
                             >
                               <div className="flex gap-1 py-1">
                                 <input
@@ -430,7 +428,7 @@ export function PlansSidebar({
                                 />
                                 <button type="submit"
                                   className="shrink-0 px-2 py-1 rounded-lg text-xs font-semibold text-white transition-all hover:brightness-110"
-                                  style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
+                                  style={{ background: 'linear-gradient(135deg, rgb(var(--color-accent)), #6366f1)' }}
                                 >OK</button>
                               </div>
                             </motion.form>
@@ -457,7 +455,7 @@ export function PlansSidebar({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 px-2 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="shrink-0 px-2 py-2 border-t border-dark-border">
           <button
             onClick={() => { setNewFolderMode(true); closeMenu() }}
             className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs text-gray-600 hover:text-gray-300 transition-all"
