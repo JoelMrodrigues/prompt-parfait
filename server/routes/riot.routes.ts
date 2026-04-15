@@ -14,6 +14,8 @@ import {
   fetchMatchIdsOnly,
   fetchMatchDetailsByIds,
   fetchWeeklyMatchCount,
+  QUEUE_SOLO_DUO,
+  QUEUE_FLEX,
 } from '../services/riotService.js'
 import { getCluster } from '../lib/riotClient.js'
 import type { PuuidResult } from '../types/index.js'
@@ -110,6 +112,7 @@ router.get('/soloq-top-champions', requireApiKey, requirePseudo, async (req: Req
 router.get('/sync-rank', requireApiKey, requirePseudo, async (req: Request, res: Response) => {
   const region = (req.query.region as string || 'euw1').trim().toLowerCase()
   const puuidOverride = (req.query.puuid as string || '').trim()
+  const queueType = (req.query.queueType as string || 'solo') === 'flex' ? 'flex' : 'solo'
 
   try {
     const resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
@@ -117,7 +120,7 @@ router.get('/sync-rank', requireApiKey, requirePseudo, async (req: Request, res:
 
     // Parallélise rang + nom actuel (détection de changement de pseudo)
     const [rank, accountInfo] = await Promise.all([
-      getRankFromPuuid(region, resolved.puuid, getApiKey()),
+      getRankFromPuuid(region, resolved.puuid, getApiKey(), queueType),
       getAccountByPuuid(resolved.puuid, getApiKey(), region).catch(() => null),
     ])
     const currentPseudo = accountInfo ? `${accountInfo.gameName}#${accountInfo.tagLine}` : null
@@ -229,19 +232,20 @@ router.get('/match-ids', requireApiKey, requirePseudo, async (req: Request, res:
   const puuidOverride = (req.query.puuid as string || '').trim()
   const start = Math.max(0, parseInt(req.query.start as string, 10) || 0)
   const count = Math.min(100, Math.max(1, parseInt(req.query.count as string, 10) || 100))
+  const queue = (req.query.queue as string || '') === 'flex' ? QUEUE_FLEX : QUEUE_SOLO_DUO
 
   try {
     let resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
     if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    let result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region)
+    let result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region, queue)
 
     // PUUID invalide en cache (Exception decrypting) → fresh lookup Riot côté serveur
     if ('error' in result && puuidOverride && /decrypt/i.test(result.error)) {
       console.warn(`[match-ids] PUUID invalide pour ${req.pseudo} — fresh lookup Riot`)
       resolved = await resolvePuuid(req.pseudo!, region, '')
       if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
-      result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region)
+      result = await fetchMatchIdsOnly(resolved.puuid, start, count, getApiKey(), region, queue)
     }
 
     if ('error' in result) return res.status(result.status || 500).json({ success: false, error: result.error })
@@ -260,6 +264,7 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req: Request, 
   const puuidOverride = (req.query.puuid as string || '').trim()
   const matchIdsRaw = (req.query.matchIds as string || req.query.match_ids as string || '').trim()
   const matchIds = matchIdsRaw ? matchIdsRaw.split(/[\s,]+/).filter(Boolean) : []
+  const queue = (req.query.queue as string || '') === 'flex' ? QUEUE_FLEX : QUEUE_SOLO_DUO
   if (matchIds.length === 0) {
     return res.status(400).json({ success: false, error: 'Paramètre matchIds requis (ids séparés par des virgules)' })
   }
@@ -276,7 +281,7 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req: Request, 
     const resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
     if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    const matches = await fetchMatchDetailsByIds(resolved.puuid, matchIds, getApiKey(), region)
+    const matches = await fetchMatchDetailsByIds(resolved.puuid, matchIds, getApiKey(), region, queue)
     res.json({ success: true, matches, puuid: resolved.puuid })
   } catch (err: unknown) {
     console.error('match-details error:', (err as Error).message)
@@ -289,19 +294,20 @@ router.get('/match-details', requireApiKey, requirePseudo, async (req: Request, 
 router.get('/match-count', requireApiKey, requirePseudo, async (req: Request, res: Response) => {
   const region = (req.query.region as string || 'euw1').trim().toLowerCase()
   const puuidOverride = (req.query.puuid as string || '').trim()
+  const queue = (req.query.queue as string || '') === 'flex' ? QUEUE_FLEX : QUEUE_SOLO_DUO
 
   try {
     let resolved = await resolvePuuid(req.pseudo!, region, puuidOverride)
     if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
 
-    let result = await fetchMatchCount(resolved.puuid, getApiKey(), region)
+    let result = await fetchMatchCount(resolved.puuid, getApiKey(), region, queue)
 
     // PUUID invalide en cache (Exception decrypting) → fresh lookup Riot côté serveur
     if ('error' in result && puuidOverride && /decrypt/i.test(result.error)) {
       console.warn(`[match-count] PUUID invalide pour ${req.pseudo} — fresh lookup Riot`)
       resolved = await resolvePuuid(req.pseudo!, region, '')
       if ('error' in resolved) return res.status(resolved.status).json({ success: false, error: resolved.error })
-      result = await fetchMatchCount(resolved.puuid, getApiKey(), region)
+      result = await fetchMatchCount(resolved.puuid, getApiKey(), region, queue)
     }
 
     if ('error' in result) return res.status(result.status || 500).json({ success: false, error: result.error })

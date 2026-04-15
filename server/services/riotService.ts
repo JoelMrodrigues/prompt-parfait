@@ -19,6 +19,7 @@ import type {
 export const SEASON_16_START_SEC = 1767830400
 export const SEASON_16_START_MS = 1767830400000
 export const QUEUE_SOLO_DUO = 420
+export const QUEUE_FLEX     = 440
 
 // ─── PUUID ───────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ export async function getRankFromPuuid(
   platform: string,
   puuid: string,
   apiKey: string,
+  queueType: 'solo' | 'flex' = 'solo',
 ): Promise<string | null> {
   const res = await riotFetch<RankEntry[]>(
     `https://${(platform || 'euw1').toLowerCase()}.api.riotgames.com/lol/league/v4/entries/by-puuid/${encodeURIComponent(puuid)}`,
@@ -111,9 +113,10 @@ export async function getRankFromPuuid(
     if (res.status === 404) return null
     throw new Error(`League API ${res.status}`)
   }
-  const solo = Array.isArray(res.data) ? res.data.find((e) => e.queueType === 'RANKED_SOLO_5x5') : null
-  if (!solo) return null
-  return formatRank(solo.tier, solo.rank, solo.leaguePoints ?? 0)
+  const riotQueueType = queueType === 'flex' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5'
+  const entry = Array.isArray(res.data) ? res.data.find((e) => e.queueType === riotQueueType) : null
+  if (!entry) return null
+  return formatRank(entry.tier, entry.rank, entry.leaguePoints ?? 0)
 }
 
 // ─── TOP CHAMPIONS SOLO Q ────────────────────────────────────────────────────
@@ -303,11 +306,12 @@ export async function fetchMatchIdsOnly(
   count: number,
   apiKey: string,
   region = 'euw1',
+  queue = QUEUE_SOLO_DUO,
 ): Promise<{ matchIds: string[]; hasMore: boolean } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const limit = Math.min(Math.max(1, count || 20), MATCH_IDS_PAGE_MAX)
   const res = await riotFetch<string[]>(
-    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=${start}&count=${limit}&startTime=${SEASON_16_START_SEC}`,
+    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${queue}&start=${start}&count=${limit}&startTime=${SEASON_16_START_SEC}`,
     apiKey,
   )
   if (!res.ok) {
@@ -327,6 +331,7 @@ export async function fetchMatchDetailsByIds(
   matchIds: string[],
   apiKey: string,
   region = 'euw1',
+  queue = QUEUE_SOLO_DUO,
 ): Promise<Array<{ matchId: string } & ParticipantData>> {
   const cluster = getCluster(region)
   const matches: Array<{ matchId: string } & ParticipantData> = []
@@ -339,7 +344,7 @@ export async function fetchMatchDetailsByIds(
       )
       if (!res.ok || !res.data?.info) continue
       const { info } = res.data
-      if ((info.queueId ?? 0) !== QUEUE_SOLO_DUO || (info.gameCreation ?? 0) < SEASON_16_START_MS) continue
+      if ((info.queueId ?? 0) !== queue || (info.gameCreation ?? 0) < SEASON_16_START_MS) continue
       const participant = extractParticipantData(info, puuid)
       if (!participant) continue
       matches.push({ matchId, ...participant })
@@ -401,6 +406,7 @@ export async function fetchMatchCount(
   puuid: string,
   apiKey: string,
   region = 'euw1',
+  queue = QUEUE_SOLO_DUO,
 ): Promise<{ total: number; puuid?: string } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const BATCH = 100
@@ -409,7 +415,7 @@ export async function fetchMatchCount(
 
   while (true) {
     const res = await riotFetch<string[]>(
-      `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${QUEUE_SOLO_DUO}&start=${start}&count=${BATCH}&startTime=${SEASON_16_START_SEC}`,
+      `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${queue}&start=${start}&count=${BATCH}&startTime=${SEASON_16_START_SEC}`,
       apiKey,
     )
     if (!res.ok) {
