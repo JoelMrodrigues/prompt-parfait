@@ -43,6 +43,7 @@ interface FetchSoloqMatchesParams {
   offset?: number
   limit?: number
   withCount?: boolean
+  queueType?: string
 }
 
 export async function fetchSoloqMatches({
@@ -52,6 +53,7 @@ export async function fetchSoloqMatches({
   offset = 0,
   limit = 20,
   withCount = false,
+  queueType,
 }: FetchSoloqMatchesParams) {
   let query = supabase
     .from('player_soloq_matches')
@@ -65,19 +67,22 @@ export async function fetchSoloqMatches({
   if (accountSource !== 'combined') {
     query = query.eq('account_source', accountSource)
   }
+  if (queueType) query = query.eq('queue_type', queueType)
 
   const { data, error, count } = await query
   return { data, error, count }
 }
 
 /** Liste des riot_match_id déjà en base (S16) pour un joueur — pour diff avec Riot */
-export async function fetchSoloqMatchIds(playerId: string, accountSource: string, seasonStart: number) {
-  const { data, error } = await supabase
+export async function fetchSoloqMatchIds(playerId: string, accountSource: string, seasonStart: number, queueType?: string) {
+  let query = supabase
     .from('player_soloq_matches')
     .select('riot_match_id')
     .eq('player_id', playerId)
     .eq('account_source', accountSource)
     .gte('game_creation', seasonStart)
+  if (queueType) query = query.eq('queue_type', queueType)
+  const { data, error } = await query
   if (error) return { data: [], error }
   const ids = (data || []).map((r: { riot_match_id: string }) => r.riot_match_id).filter(Boolean)
   return { data: ids, error: null }
@@ -88,6 +93,7 @@ interface FetchSoloqChampionStatsParams {
   accountSource: string
   seasonStart: number
   minDuration?: number
+  queueType?: string
 }
 
 export async function fetchSoloqChampionStats({
@@ -95,6 +101,7 @@ export async function fetchSoloqChampionStats({
   accountSource,
   seasonStart,
   minDuration = undefined,
+  queueType,
 }: FetchSoloqChampionStatsParams) {
   let query = supabase
     .from('player_soloq_matches')
@@ -106,6 +113,7 @@ export async function fetchSoloqChampionStats({
     query = query.eq('account_source', accountSource)
   }
   if (minDuration) query = query.gte('game_duration', minDuration)
+  if (queueType) query = query.eq('queue_type', queueType)
 
   const { data, error } = await query
   return { data, error }
@@ -192,8 +200,9 @@ export async function fetchUnenrichedMatchIds(
   accountSource: string,
   seasonStart: number,
   limit = 60,
+  queueType?: string,
 ): Promise<{ data: string[]; error: unknown }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('player_soloq_matches')
     .select('riot_match_id')
     .eq('player_id', playerId)
@@ -202,6 +211,8 @@ export async function fetchUnenrichedMatchIds(
     .or('match_json.is.null,runes.is.null')
     .order('game_creation', { ascending: false })
     .limit(limit)
+  if (queueType) query = query.eq('queue_type', queueType)
+  const { data, error } = await query
   if (error) return { data: [], error }
   return { data: (data || []).map((r: { riot_match_id: string }) => r.riot_match_id).filter(Boolean), error: null }
 }

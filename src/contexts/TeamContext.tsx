@@ -57,10 +57,14 @@ export interface Player {
   rank: string | null
   rank_secondary?: string | null
   rank_updated_at?: string | null
+  rank_flex?: string | null
+  rank_flex_updated_at?: string | null
   peak_lp_s16?: number | null
   peak_rank_s16?: string | null
   peak_lp_s16_secondary?: number | null
   peak_rank_s16_secondary?: string | null
+  peak_lp_flex_s16?: number | null
+  peak_rank_flex_s16?: string | null
   player_type?: 'starter' | 'sub'
   puuid?: string | null
   puuid_secondary?: string | null
@@ -69,6 +73,7 @@ export interface Player {
   team_mood_last_5?: Record<string, unknown> | null
   soloq_total_match_ids?: number | null
   soloq_total_match_ids_secondary?: number | null
+  soloq_total_match_ids_flex?: number | null
   top_champions?: string | unknown[] | null
   champion_pools?: unknown[]
   opgg_link?: string | null

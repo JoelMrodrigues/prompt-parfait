@@ -7,6 +7,7 @@ export interface SoloqMatchRow {
   player_id: string
   riot_match_id: string
   account_source: string
+  queue_type: string
   champion_id: number | null
   champion_name: string | null
   opponent_champion: string | null
@@ -28,12 +29,14 @@ export interface SoloqMatchRow {
 export function buildSoloqMatchRow(
   m: any,
   playerId: string,
-  accountSource: string
+  accountSource: string,
+  queueType = 'soloq'
 ): SoloqMatchRow {
   return {
     player_id: playerId,
     riot_match_id: m.matchId,
     account_source: accountSource,
+    queue_type: queueType,
     champion_id: m.championId ?? null,
     champion_name: m.championName ?? null,
     opponent_champion: m.opponentChampionName ?? null,
