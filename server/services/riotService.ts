@@ -89,7 +89,7 @@ export async function getPuuidByRiotId(
   if (!res.ok) {
     return {
       error: res.data?.status?.message || `Joueur introuvable (${res.status})`,
-      status: res.status === 404 ? 404 : 400,
+      status: 400,  // 404 Riot → 400 côté API (pseudo incorrect, pas une route manquante)
     }
   }
   const puuid = res.data?.puuid
