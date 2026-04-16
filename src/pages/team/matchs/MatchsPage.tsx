@@ -1,8 +1,9 @@
 /**
  * Page Matchs — Vue Blocs (sessions groupées) ou Vue Plate (liste simple)
+ * Pour les équipes flex : affiche les parties flex SoloQ multi-joueurs.
  */
-import { useState, useMemo, useCallback, useTransition } from 'react'
-import { LayoutList, FolderOpen, Swords, Trophy, Plus, RefreshCw } from 'lucide-react'
+import { useState, useMemo, useCallback, useTransition, useEffect } from 'react'
+import { LayoutList, FolderOpen, Swords, Trophy, Plus, RefreshCw, Users } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useTeamBlocks } from '../hooks/useTeamBlocks'
@@ -13,6 +14,9 @@ import { BlockCard } from './components/BlockCard'
 import { CreateBlockModal } from './components/CreateBlockModal'
 import { AssignMatchesModal } from './components/AssignMatchesModal'
 import type { TeamMatchBlock } from '../../../types/matchBlocks'
+import { fetchMultiPlayerSoloqMatches } from '../../../services/supabase/playerQueries'
+import { getChampionImage } from '../../../lib/championImages'
+import { SEASON_16_START_MS } from '../../../lib/constants'
 
 type MatchType = 'all' | 'scrim' | 'tournament'
 type ViewMode  = 'flat' | 'blocks'
@@ -24,7 +28,8 @@ const TYPE_FILTERS: { id: MatchType; label: string; Icon: React.ElementType }[] 
 ]
 
 export const MatchsPage = () => {
-  const { team } = useTeam()
+  const { team, players } = useTeam()
+  const isFlexTeam = team?.team_type === 'flex'
   const { matches, loading: matchesLoading, refetch: refetchMatches } = useTeamMatches(team?.id)
   const { blocks, refetch: refetchBlocks }                            = useTeamBlocks(team?.id)
 
@@ -96,6 +101,19 @@ export const MatchsPage = () => {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
         <p className="text-gray-400">Créez d'abord une équipe depuis la Vue d'ensemble.</p>
+      </div>
+    )
+  }
+
+  // Flex teams: show multi-player flex match history
+  if (isFlexTeam) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-4">
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
+          <h2 className="font-display text-2xl font-bold">Parties Flex</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Parties où plusieurs joueurs de l'équipe ont joué ensemble en Flex</p>
+        </div>
+        <FlexMatchesView players={players} />
       </div>
     )
   }
@@ -251,6 +269,171 @@ export const MatchsPage = () => {
         />
       )}
 
+    </div>
+  )
+}
+
+// ─── Vue Flex — parties multi-joueurs ────────────────────────────────────────
+
+function FlexMatchesView({ players }: { players: any[] }) {
+  const [allMatches, setAllMatches] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [minPlayers, setMinPlayers] = useState(2)
+
+  const playerIdsKey = players.map((p) => p.id).join(',')
+
+  useEffect(() => {
+    if (!players.length) { setLoading(false); return }
+    let cancelled = false
+    setLoading(true)
+    fetchMultiPlayerSoloqMatches({
+      playerIds: players.map((p) => p.id),
+      accountSource: 'primary',
+      seasonStart: SEASON_16_START_MS,
+      queueType: 'flex',
+      columns: 'player_id,riot_match_id,win,kills,deaths,assists,champion_name,game_creation,game_duration',
+    }).then(({ data }) => {
+      if (!cancelled) setAllMatches(data ?? [])
+    }).finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [playerIdsKey])
+
+  const playerById = useMemo(() => {
+    const map: Record<string, any> = {}
+    for (const p of players) map[p.id] = p
+    return map
+  }, [players])
+
+  const groupedGames = useMemo(() => {
+    const map = new Map<string, any[]>()
+    for (const m of allMatches) {
+      if (!m.riot_match_id) continue
+      const arr = map.get(m.riot_match_id)
+      if (arr) arr.push(m)
+      else map.set(m.riot_match_id, [m])
+    }
+    return [...map.entries()]
+      .filter(([, rows]) => rows.length >= minPlayers)
+      .map(([matchId, rows]) => ({
+        matchId,
+        rows: [...rows].sort((a, b) => {
+          const pa = players.findIndex((p) => p.id === a.player_id)
+          const pb = players.findIndex((p) => p.id === b.player_id)
+          return (pa === -1 ? 99 : pa) - (pb === -1 ? 99 : pb)
+        }),
+        date: rows[0]?.game_creation ?? 0,
+        duration: rows[0]?.game_duration ?? 0,
+        win: rows[0]?.win ?? false,
+      }))
+      .sort((a, b) => b.date - a.date)
+  }, [allMatches, minPlayers, players])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filtre min joueurs */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500">Minimum de joueurs ensemble :</span>
+        {[2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            onClick={() => setMinPlayers(n)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              minPlayers === n
+                ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+            }`}
+          >
+            <Users size={11} />
+            {n}+
+          </button>
+        ))}
+        {groupedGames.length > 0 && (
+          <span className="ml-auto text-xs text-gray-500">{groupedGames.length} partie{groupedGames.length > 1 ? 's' : ''}</span>
+        )}
+      </div>
+
+      {groupedGames.length === 0 ? (
+        <div className="bg-dark-card border border-dark-border rounded-2xl p-12 text-center text-gray-400">
+          {allMatches.length === 0
+            ? 'Aucune partie flex enregistrée. La sync automatique va les charger progressivement.'
+            : `Aucune partie avec ${minPlayers}+ joueurs de l'équipe. Réduisez le filtre.`}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {groupedGames.map(({ matchId, rows, date, duration, win }) => {
+            const dateStr = date
+              ? new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+              : '—'
+            const durStr = duration ? `${Math.round(duration / 60)} min` : '—'
+            return (
+              <div
+                key={matchId}
+                className={`bg-dark-card border rounded-2xl p-4 flex flex-wrap items-center gap-4 ${
+                  win ? 'border-emerald-500/20' : 'border-rose-500/20'
+                }`}
+              >
+                {/* Badge V/D */}
+                <span
+                  className={`px-3 py-1.5 rounded-xl text-sm font-bold shrink-0 ${
+                    win
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                  }`}
+                >
+                  {win ? 'V' : 'D'}
+                </span>
+
+                {/* Date + durée */}
+                <div className="shrink-0 text-sm">
+                  <p className="text-gray-300">{dateStr}</p>
+                  <p className="text-gray-600 text-xs">{durStr}</p>
+                </div>
+
+                {/* Joueurs */}
+                <div className="flex flex-wrap gap-3 flex-1">
+                  {rows.map((row: any) => {
+                    const p = playerById[row.player_id]
+                    return (
+                      <div key={row.player_id} className="flex items-center gap-2">
+                        <div className="relative">
+                          <img
+                            src={getChampionImage(row.champion_name)}
+                            alt={row.champion_name ?? ''}
+                            className="w-9 h-9 rounded-lg object-cover border border-dark-border"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-white leading-tight">
+                            {p?.player_name ?? '—'}
+                          </p>
+                          <p className="text-[10px] text-gray-500 font-mono leading-tight">
+                            {row.kills}/{row.deaths}/{row.assists}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Nb joueurs badge */}
+                <span className="text-xs text-gray-600 shrink-0 tabular-nums">
+                  {rows.length}/{players.length}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
