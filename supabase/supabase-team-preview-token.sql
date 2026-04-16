@@ -2,8 +2,9 @@
 -- Accepte TEXT (token brut OU URL complète) — extrait l'UUID via regex
 -- SECURITY DEFINER pour contourner RLS (l'invité n'est pas encore membre)
 
--- Supprimer l'ancienne version UUID si elle existe
+-- Supprimer toutes les versions existantes (UUID ou TEXT, retour différent)
 DROP FUNCTION IF EXISTS public.get_team_preview_by_token(UUID);
+DROP FUNCTION IF EXISTS public.get_team_preview_by_token(TEXT);
 
 CREATE OR REPLACE FUNCTION public.get_team_preview_by_token(p_token TEXT)
 RETURNS JSONB
