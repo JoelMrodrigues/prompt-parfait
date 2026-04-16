@@ -32,6 +32,8 @@ export function usePlayerDetail(playerSlug: string | undefined) {
   const player = players.find((p) => p.player_name === playerSlug)
   const playerId = player?.id  // UUID réel pour les requêtes Supabase
 
+  const isFlexTeam = team?.team_type === 'flex'
+
   const { stats: teamStats, teamTotalsByMatch, loading: teamStatsLoading } = usePlayerTeamStats(playerId)
   // 0 = combiné, 1 = primary, 2 = secondary
   const activeSoloqPseudo =
@@ -92,6 +94,8 @@ export function usePlayerDetail(playerSlug: string | undefined) {
     refetch,
     toastError,
     toastInfo,
+    queueType: isFlexTeam ? 'flex' : 'soloq',
+    isFlexTeam,
   })
 
   const countInDb = soloq.matchHistoryCountInDb
@@ -106,7 +110,7 @@ export function usePlayerDetail(playerSlug: string | undefined) {
 
   return {
     // player
-    player, team,
+    player, team, isFlexTeam,
     // tab navigation
     selectedCard, setSelectedCard,
     selectedSoloqSub, setSelectedSoloqSub,

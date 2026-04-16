@@ -124,6 +124,7 @@ interface FetchSoloqMatchesByChampionParams {
   accountSource: string
   championName: string
   minDuration?: number
+  queueType?: string
 }
 
 export async function fetchSoloqMatchesByChampion({
@@ -131,6 +132,7 @@ export async function fetchSoloqMatchesByChampion({
   accountSource,
   championName,
   minDuration,
+  queueType,
 }: FetchSoloqMatchesByChampionParams) {
   let query = supabase
     .from('player_soloq_matches')
@@ -143,6 +145,7 @@ export async function fetchSoloqMatchesByChampion({
     query = query.eq('account_source', accountSource)
   }
   if (minDuration) query = query.gte('game_duration', minDuration)
+  if (queueType) query = query.eq('queue_type', queueType)
 
   const { data, error } = await query
   return { data, error }

@@ -518,13 +518,15 @@ export const PlayerDetailPage = () => {
     )
   }
 
-  const { player } = d
+  const { player, isFlexTeam } = d
   const roleLabel = ROLE_LABELS[player.position] || player.position
 
   // Rang et pseudo du compte actuellement sélectionné
-  const displayedRank = d.selectedSoloqAccount === 2
-    ? (player.rank_secondary ?? player.rank)
-    : player.rank
+  const displayedRank = isFlexTeam
+    ? (player.rank_flex ?? null)
+    : d.selectedSoloqAccount === 2
+      ? (player.rank_secondary ?? player.rank)
+      : player.rank
   const displayedPseudo = d.selectedSoloqAccount === 2
     ? (player.secondary_account ?? player.pseudo)
     : player.pseudo
@@ -560,8 +562,8 @@ export const PlayerDetailPage = () => {
           <ArrowLeft size={18} />
           Retour aux joueurs
         </button>
-        {/* Sélecteur compte — uniquement si le joueur a un compte secondaire configuré */}
-        {player.secondary_account && (
+        {/* Sélecteur compte — uniquement si le joueur a un compte secondaire configuré et équipe non-flex */}
+        {!isFlexTeam && player.secondary_account && (
           <div className="flex gap-2">
             {[
               { idx: 1, label: player.pseudo || 'Compte 1', rank: player.rank },
@@ -596,7 +598,7 @@ export const PlayerDetailPage = () => {
 
       {/* Bloc identité */}
       <div
-        className={`relative rounded-2xl overflow-hidden ${bigChampBg ? '' : `bg-gradient-to-r ${getRankColor(player.rank)}`}`}
+        className={`relative rounded-2xl overflow-hidden ${bigChampBg ? '' : `bg-gradient-to-r ${getRankColor(isFlexTeam ? player.rank_flex : player.rank)}`}`}
         style={
           bigChampBg
             ? {
@@ -646,11 +648,11 @@ export const PlayerDetailPage = () => {
               )}
             </div>
           </div>
-          {player.rank_updated_at != null && (
+          {(isFlexTeam ? player.rank_flex_updated_at : player.rank_updated_at) != null && (
             <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-off-white/10">
               <span className="text-sm text-off-white/80">
                 Dernière MAJ rang :{' '}
-                {new Date(player.rank_updated_at).toLocaleDateString('fr-FR', {
+                {new Date(isFlexTeam ? player.rank_flex_updated_at : player.rank_updated_at).toLocaleDateString('fr-FR', {
                   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                 })}
               </span>
@@ -662,6 +664,7 @@ export const PlayerDetailPage = () => {
       {/* 5 cartes principales */}
       <div className="grid grid-cols-5 gap-3">
         {MAIN_CARDS.map((card) => {
+          const label = (card.id === 'soloq' && isFlexTeam) ? 'Flex' : card.label
           const Icon = card.icon
           const isActive = d.selectedCard === card.id
           return (
@@ -675,7 +678,7 @@ export const PlayerDetailPage = () => {
             >
               <Icon size={22} className={isActive ? 'text-accent-blue' : 'text-gray-400'} />
               <span className={`font-display font-semibold text-sm ${isActive ? 'text-white' : 'text-gray-400'}`}>
-                {card.label}
+                {label}
               </span>
             </button>
           )
@@ -757,7 +760,7 @@ export const PlayerDetailPage = () => {
 
         {/* ── Général ── */}
         {d.selectedCard === 'general' && (
-          <GeneralSection player={player} teamId={d.team?.id ?? ''} teamStats={d.teamStats} teamStatsLoading={d.teamStatsLoading} allTeamMatches={d.allTeamMatches} playerId={player.id} onNavigate={d.setSelectedCard} selectedSoloqAccount={d.selectedSoloqAccount} />
+          <GeneralSection player={player} teamId={d.team?.id ?? ''} teamStats={d.teamStats} teamStatsLoading={d.teamStatsLoading} allTeamMatches={d.allTeamMatches} playerId={player.id} onNavigate={d.setSelectedCard} selectedSoloqAccount={d.selectedSoloqAccount} isFlexTeam={isFlexTeam} />
         )}
 
         {/* ── Solo Q ── */}
@@ -1004,7 +1007,7 @@ export const PlayerDetailPage = () => {
 
 // ─── Général ──────────────────────────────────────────────────────────────────
 
-function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMatches, playerId, onNavigate, selectedSoloqAccount }: {
+function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMatches, playerId, onNavigate, selectedSoloqAccount, isFlexTeam = false }: {
   player: any
   teamId: string
   teamStats: any[]
@@ -1013,23 +1016,30 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
   playerId: string
   onNavigate: (tab: string) => void
   selectedSoloqAccount: number
+  isFlexTeam?: boolean
 }) {
-  const isSecondary = selectedSoloqAccount === 2
+  const isSecondary = !isFlexTeam && selectedSoloqAccount === 2
 
   // ── Card 1 — Rang actuel (suit le compte sélectionné) ──────────────────
-  const activeRank = isSecondary ? (player.rank_secondary ?? null) : player.rank
+  const activeRank = isFlexTeam
+    ? (player.rank_flex ?? null)
+    : isSecondary ? (player.rank_secondary ?? null) : player.rank
   const currentLp = parseLpFromRank(activeRank)
   const rankImg = getRankImage(activeRank)
   const rankTextColor = getRankColorText(activeRank)
   const rankLabel = activeRank ? activeRank.replace(/\s*\d+\s*LP/i, '').trim() : null
 
   // ── Card 2 — Peak S16 (principal ou secondaire selon sélection) ─────────
-  const peakLp: number | null = isSecondary
-    ? (player.peak_lp_s16_secondary ?? null)
-    : (player.peak_lp_s16 ?? null)
-  const peakRankBase = isSecondary
-    ? (player.peak_rank_s16_secondary ?? activeRank)
-    : (player.peak_rank_s16 ?? player.rank)
+  const peakLp: number | null = isFlexTeam
+    ? (player.peak_lp_flex_s16 ?? null)
+    : isSecondary
+      ? (player.peak_lp_s16_secondary ?? null)
+      : (player.peak_lp_s16 ?? null)
+  const peakRankBase = isFlexTeam
+    ? (player.peak_rank_flex_s16 ?? activeRank)
+    : isSecondary
+      ? (player.peak_rank_s16_secondary ?? activeRank)
+      : (player.peak_rank_s16 ?? player.rank)
   const peakRankImg = getRankImage(peakRankBase)
   const peakRankTextColor = getRankColorText(peakRankBase)
   const peakRankLabel = peakRankBase
@@ -1042,7 +1052,9 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
 
       {/* Card 1 — Rang actuel */}
       <div className="flex-1 flex flex-col items-center gap-4 p-6 rounded-2xl bg-dark-bg border border-dark-border">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest self-start">Rang actuel</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest self-start">
+          {isFlexTeam ? 'Rang Flex actuel' : 'Rang actuel'}
+        </p>
         {rankImg ? (
           <img src={rankImg} alt={rankLabel ?? ''} className="w-24 h-24 object-contain drop-shadow-lg" />
         ) : (
@@ -1059,7 +1071,9 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
       {/* Card 2 — Peak Elo S16 */}
       <div className="flex-1 flex flex-col items-center gap-4 p-6 rounded-2xl bg-dark-bg border border-dark-border">
         <div className="self-start">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Peak Elo — Saison 16</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+            Peak Elo {isFlexTeam ? 'Flex' : ''} — Saison 16
+          </p>
           <p className="text-[10px] text-gray-600 mt-0.5">Comptabilisé depuis l'inscription sur le site</p>
         </div>
         {peakRankImg ? (

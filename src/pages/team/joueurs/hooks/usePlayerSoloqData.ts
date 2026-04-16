@@ -27,6 +27,8 @@ interface Params {
   refetch: () => Promise<void>
   toastError: (msg: string) => void
   toastInfo: (msg: string) => void
+  queueType?: string
+  isFlexTeam?: boolean
 }
 
 export function usePlayerSoloqData({
@@ -39,6 +41,8 @@ export function usePlayerSoloqData({
   refetch,
   toastError,
   toastInfo,
+  queueType = 'soloq',
+  isFlexTeam = false,
 }: Params) {
   const [syncing, setSyncing] = useState(false)
   const [matchHistory, setMatchHistory] = useState<any[]>([])
@@ -62,6 +66,7 @@ export function usePlayerSoloqData({
 
   // ─── LP curve — primary ou secondary (combiné non supporté — pas de rang combiné) ──
   const lpCurvePoints = useMemo(() => {
+    if (isFlexTeam) return []  // LP flex non tracké en courbe
     if (soloqAccountSource === 'combined') return []
     const rankForAccount = soloqAccountSource === 'secondary' ? player?.rank_secondary : player?.rank
     const currentLp = parseLpFromRank(rankForAccount)
@@ -117,6 +122,7 @@ export function usePlayerSoloqData({
       seasonStart: SEASON_16_START_MS,
       offset: 0,
       limit: 300,
+      queueType,
     })
       .then(({ data }) => {
         if (!cancelled && Array.isArray(data))
@@ -125,7 +131,7 @@ export function usePlayerSoloqData({
       .catch(() => { if (!cancelled) setLpGraphMatches([]) })
       .finally(() => { if (!cancelled) setLpGraphLoading(false) })
     return () => { cancelled = true }
-  }, [player?.id, soloqAccountSource])
+  }, [player?.id, soloqAccountSource, queueType])
 
   // ─── Rafraîchissement silencieux après chaque cycle auto-sync ────────────
   // Quand l'auto-sync enrichit des parties (items/runes), lpGraphMatches doit
@@ -138,6 +144,7 @@ export function usePlayerSoloqData({
       seasonStart: SEASON_16_START_MS,
       offset: 0,
       limit: 300,
+      queueType,
     }).then(({ data }) => {
       if (Array.isArray(data))
         setLpGraphMatches(data.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC))
@@ -158,6 +165,7 @@ export function usePlayerSoloqData({
         offset,
         limit,
         withCount: offset === 0,
+        queueType,
       })
       if (error) throw error
       if (offset === 0 && count != null) setMatchHistoryCountInDb(count)
@@ -187,6 +195,7 @@ export function usePlayerSoloqData({
         accountSource: soloqAccountSource,
         seasonStart: SEASON_16_START_MS,
         minDuration: REMAKE_THRESHOLD_SEC,
+        queueType,
       })
       if (error) throw error
       const list = aggregateChampionStats(
@@ -216,6 +225,7 @@ export function usePlayerSoloqData({
         accountSource: soloqAccountSource,
         championName,
         minDuration: REMAKE_THRESHOLD_SEC,
+        queueType,
       })
       if (error) throw error
       setChampionModalMatches((rows || []).map(rowToMatch))
