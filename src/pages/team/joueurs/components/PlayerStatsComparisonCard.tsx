@@ -37,10 +37,12 @@ export function PlayerStatsComparisonCard({
   players,
   teamStats,
   soloqStats,
+  isFlexTeam,
 }: {
   players: any[]
   teamStats: DetailedStats
   soloqStats: DetailedStats
+  isFlexTeam?: boolean
 }) {
   const [mode, setMode] = useState<'team' | 'soloq'>('team')
   const stats = mode === 'team' ? teamStats : soloqStats
@@ -111,7 +113,7 @@ export function PlayerStatsComparisonCard({
               mode === 'soloq' ? 'bg-accent-blue !text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
-            Solo Q
+            {isFlexTeam ? 'Flex' : 'Solo Q'}
           </button>
         </div>
       </div>
@@ -221,13 +223,13 @@ export function PlayerStatsComparisonCard({
 
       {active.length === 0 && (
         <p className="text-center text-gray-600 text-sm py-4">
-          {mode === 'team' ? 'Aucune partie team enregistrée' : 'Aucune donnée Solo Q disponible'}
+          {mode === 'team' ? 'Aucune partie team enregistrée' : `Aucune donnée ${isFlexTeam ? 'Flex' : 'Solo Q'} disponible`}
         </p>
       )}
 
       <p className="text-[10px] text-gray-700 text-center mt-3">
         ★ = meilleur · Dég./min & Or/min = global sur la période{mode === 'team' ? ' · Pinks/p = contrôles par partie' : ' (parties enrichies uniquement)'} · Win% B/R = winrate côté bleu / rouge ·{' '}
-        {mode === 'team' ? 'Toutes les parties team' : 'Toutes les parties SoloQ S16 · Dég/Or/B/R = parties avec données Riot complètes'}
+        {mode === 'team' ? 'Toutes les parties team' : `Toutes les parties ${isFlexTeam ? 'Flex' : 'SoloQ'} S16 · Dég/Or/B/R = parties avec données Riot complètes`}
       </p>
     </div>
   )

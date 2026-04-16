@@ -18,6 +18,7 @@ import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants
 export const JoueursPage = () => {
   const { error: toastError } = useToast()
   const { team, players, loading, createPlayer, updatePlayer, deletePlayer } = useTeam()
+  const isFlexTeam = team?.team_type === 'flex'
   const { matches: teamMatches } = useTeamMatchesFull(team?.id)
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
@@ -55,6 +56,7 @@ export const JoueursPage = () => {
           seasonStart: SEASON_16_START_MS,
           minDuration: REMAKE_THRESHOLD_SEC,
           columns: 'player_id,win,kills,deaths,assists,game_duration',
+          queueType: isFlexTeam ? 'flex' : 'soloq',
         })
         if (cancelled) return
         // Grouper par joueur, prendre les 5 premières (déjà triées desc)
@@ -91,6 +93,7 @@ export const JoueursPage = () => {
         seasonStart: SEASON_16_START_MS,
         minDuration: REMAKE_THRESHOLD_SEC,
         columns: 'player_id,win,kills,deaths,assists,game_duration,total_damage,gold_earned,match_json',
+        queueType: isFlexTeam ? 'flex' : 'soloq',
       })
       if (cancelled) return
       const next: DetailedStats = {}
@@ -290,7 +293,7 @@ export const JoueursPage = () => {
               <p className="text-gray-500 text-sm mt-0.5">Gérez les joueurs de votre équipe</p>
               {(() => {
                 const lastSync = players
-                  .map((p) => p.rank_updated_at)
+                  .map((p) => isFlexTeam ? p.rank_flex_updated_at : p.rank_updated_at)
                   .filter(Boolean)
                   .sort()
                   .pop()
@@ -329,6 +332,7 @@ export const JoueursPage = () => {
         onEdit={handleEditPlayer}
         onDelete={handleRequestDelete}
         onAdd={handleAddPlayer}
+        isFlexTeam={isFlexTeam}
       />
 
       {/* Comparaison des stats moyennes */}
@@ -337,13 +341,18 @@ export const JoueursPage = () => {
           players={players}
           teamStats={teamDetailedStats}
           soloqStats={soloqDetailedStats}
+          isFlexTeam={isFlexTeam}
         />
       )}
 
       {/* Mood des joueurs — 2 cartes (Solo Q + Team) en dessous des cards joueurs */}
       {players.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <MoodSoloQCard players={players} mood={soloqMood} />
+          <MoodSoloQCard
+            players={players}
+            mood={soloqMood}
+            title={isFlexTeam ? 'Mood des joueurs (Flex)' : undefined}
+          />
           <MoodTeamCard players={players} mood={teamMood} />
         </div>
       )}

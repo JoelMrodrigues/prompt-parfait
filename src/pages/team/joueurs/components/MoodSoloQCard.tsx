@@ -33,16 +33,18 @@ function sortPlayersByRole(players: any[]) {
 export const MoodSoloQCard = ({
   players,
   mood,
+  title,
 }: {
   players: any[]
   mood: Record<string, MoodRow>
+  title?: string
 }) => {
   return (
     <div className="bg-dark-card border border-dark-border rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <Swords className="w-4 h-4 text-yellow-400" />
         <h3 className="font-semibold text-white text-sm uppercase tracking-wider">
-          Mood des joueurs (Solo Q)
+          {title ?? 'Mood des joueurs (Solo Q)'}
         </h3>
       </div>
       <p className="text-xs text-gray-500 mb-4">5 dernières parties — W/L + KDA</p>

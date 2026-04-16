@@ -41,16 +41,19 @@ export const PlayerCard = memo(({
   onEdit,
   onDelete,
   onClick,
+  isFlexTeam,
 }: {
   player: any
   onEdit: (p: any) => void
   onDelete: (p: any) => void
   onClick?: (p: any) => void
+  isFlexTeam?: boolean
 }) => {
   const navigate = useNavigate()
   const role = (player.position || '').toUpperCase() === 'BOT' ? 'ADC' : (player.position || '').toUpperCase()
   const roleLabel = ROLE_LABELS[role] || player.position || '—'
-  const rankImage = getRankImage(player.rank)
+  const displayRank = isFlexTeam ? player.rank_flex : player.rank
+  const rankImage = getRankImage(displayRank)
 
   const handleCardClick = () => {
     if (onClick) onClick(player)
@@ -122,9 +125,9 @@ export const PlayerCard = memo(({
                 SUB
               </span>
             )}
-            {player.rank && (
+            {displayRank && (
               <span className="px-2 py-0.5 rounded text-xs font-medium text-white bg-black/10 dark:bg-off-white/10 truncate max-w-[110px]">
-                {formatRankDisplay(player.rank)}
+                {formatRankDisplay(displayRank)}
               </span>
             )}
           </div>

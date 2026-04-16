@@ -226,12 +226,14 @@ export async function fetchMultiPlayerSoloqMatches({
   seasonStart,
   minDuration,
   columns = '*',
+  queueType,
 }: {
   playerIds: string[]
   accountSource: string
   seasonStart: number
   minDuration?: number
   columns?: string
+  queueType?: string
 }) {
   if (!playerIds.length) return { data: [] as any[], error: null }
   let query = supabase
@@ -242,6 +244,7 @@ export async function fetchMultiPlayerSoloqMatches({
     .gte('game_creation', seasonStart)
     .order('game_creation', { ascending: false })
   if (minDuration) query = query.gte('game_duration', minDuration)
+  if (queueType) query = query.eq('queue_type', queueType)
   const { data, error } = await query
   return { data: data ?? [], error }
 }

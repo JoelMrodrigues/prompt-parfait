@@ -16,11 +16,13 @@ export const PlayerList = ({
   onEdit,
   onDelete,
   onAdd,
+  isFlexTeam,
 }: {
   players: any[]
   onEdit: (p: any) => void
   onDelete: (p: any) => void
   onAdd?: () => void
+  isFlexTeam?: boolean
 }) => {
   const starters = useMemo(() => players.filter((p) => p.player_type !== 'sub'), [players])
   const subs = useMemo(() => players.filter((p) => p.player_type === 'sub'), [players])
@@ -89,6 +91,7 @@ export const PlayerList = ({
                   player={player}
                   onEdit={() => onEdit(player)}
                   onDelete={() => onDelete(player)}
+                  isFlexTeam={isFlexTeam}
                 />
               ))}
               {startersByRole[role].length === 0 && (
@@ -118,6 +121,7 @@ export const PlayerList = ({
                 player={player}
                 onEdit={() => onEdit(player)}
                 onDelete={() => onDelete(player)}
+                isFlexTeam={isFlexTeam}
               />
             ))}
           </div>
