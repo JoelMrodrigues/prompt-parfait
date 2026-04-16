@@ -13,7 +13,7 @@ import { EmptyStats, StatTooltip } from './TeamStatsPage'
 
 // ─── Hook : charge les matches SoloQ d'un joueur ─────────────────────────────
 
-function useSoloqStats(playerId: string | null, accountSource = 'primary') {
+function useSoloqStats(playerId: string | null, accountSource = 'primary', queueType?: string) {
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -31,32 +31,35 @@ function useSoloqStats(playerId: string | null, accountSource = 'primary') {
     if (accountSource !== 'combined') {
       query = query.eq('account_source', accountSource)
     }
+    if (queueType) query = query.eq('queue_type', queueType)
     query.then(({ data }) => {
       if (!cancelled) { setRows(data ?? []); setLoading(false) }
     })
     return () => { cancelled = true }
-  }, [playerId, accountSource])
+  }, [playerId, accountSource, queueType])
 
   return { rows, loading }
 }
 
-function useSoloqAllPlayers(players: any[]) {
+function useSoloqAllPlayers(players: any[], queueType?: string) {
   const [statsByPlayer, setStatsByPlayer] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(false)
 
+  const playerIdsKey = players.map((p) => p.id).join(',')
   useEffect(() => {
     if (!players.length) return undefined
     let cancelled = false
     setLoading(true)
     const ids = players.map((p) => p.id)
-    supabase
+    let query = supabase
       .from('player_soloq_matches')
       .select('player_id, win, kills, deaths, assists, game_duration, cs, champion_name, total_damage, vision_score, gold_earned')
       .in('player_id', ids)
       .eq('account_source', 'primary')
       .gte('game_creation', SEASON_16_START_MS)
       .gte('game_duration', REMAKE_THRESHOLD_SEC)
-      .then(({ data }) => {
+    if (queueType) query = query.eq('queue_type', queueType)
+    query.then(({ data }) => {
         if (cancelled) return
         const byPlayer: Record<string, any[]> = {}
         for (const r of data ?? []) {
@@ -67,7 +70,7 @@ function useSoloqAllPlayers(players: any[]) {
         setLoading(false)
       })
     return () => { cancelled = true }
-  }, [players.map((p) => p.id).join(',')])
+  }, [playerIdsKey, queueType])
 
   return { statsByPlayer, loading }
 }
@@ -509,10 +512,11 @@ const SOLOQ_TABS: { id: SoloqTab; label: string }[] = [
   { id: 'timeline', label: 'Timeline' },
 ]
 
-function PlayerSoloQStats({ playerId, player }: { playerId: string; player?: any }) {
-  const hasSecondary = !!player?.secondary_account
+function PlayerSoloQStats({ playerId, player, queueType }: { playerId: string; player?: any; queueType?: string }) {
+  const isFlexMode = queueType === 'flex'
+  const hasSecondary = !isFlexMode && !!player?.secondary_account
   const [accountSource, setAccountSource] = useState('primary')
-  const { rows, loading } = useSoloqStats(playerId, accountSource)
+  const { rows, loading } = useSoloqStats(playerId, accountSource, queueType)
   const [tab, setTab] = useState<SoloqTab>('stats')
 
   // Sélecteur de compte (affiché uniquement si le joueur a un compte secondaire)
@@ -592,8 +596,8 @@ function PlayerSoloQStats({ playerId, player }: { playerId: string; player?: any
 
 // ─── Vue ALL ─────────────────────────────────────────────────────────────────
 
-function AllPlayersSoloQStats({ players }: { players: any[] }) {
-  const { statsByPlayer, loading } = useSoloqAllPlayers(players)
+function AllPlayersSoloQStats({ players, queueType }: { players: any[]; queueType?: string }) {
+  const { statsByPlayer, loading } = useSoloqAllPlayers(players, queueType)
 
   if (loading) {
     return (
@@ -697,8 +701,8 @@ function AllPlayersSoloQStats({ players }: { players: any[] }) {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export function SoloQStatsSection({ selectedId, players }: { selectedId: string; players: any[] }) {
-  if (selectedId === ALL_ID) return <AllPlayersSoloQStats players={players} />
+export function SoloQStatsSection({ selectedId, players, queueType }: { selectedId: string; players: any[]; queueType?: string }) {
+  if (selectedId === ALL_ID) return <AllPlayersSoloQStats players={players} queueType={queueType} />
   const player = players.find((p) => p.id === selectedId)
-  return <PlayerSoloQStats playerId={selectedId} player={player} />
+  return <PlayerSoloQStats playerId={selectedId} player={player} queueType={queueType} />
 }

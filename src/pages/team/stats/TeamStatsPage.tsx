@@ -1509,6 +1509,7 @@ const STALE_THRESHOLD_MS = 3 * 60 * 1000
 
 export const TeamStatsPage = () => {
   const { team, players = [] } = useTeam()
+  const isFlexTeam = team?.team_type === 'flex'
   const { matches, loading: matchesLoading, refetch: refetchMatches } = useTeamMatchesFull(team?.id)
 
   // Rafraîchit silencieusement si l'utilisateur revient sur l'onglet
@@ -1530,6 +1531,11 @@ export const TeamStatsPage = () => {
   const [statsMode, setStatsMode] = useState(STATS_MODE_TEAM)
   const [teamStatsSub, setTeamStatsSub] = useState('resume')
 
+  // Pour les équipes flex : forcer le mode SoloQ (pas de données scrim/tournoi)
+  useEffect(() => {
+    if (isFlexTeam) setStatsMode(STATS_MODE_SOLOQ)
+  }, [isFlexTeam])
+
   const selectedPlayer = players.find((p) => p.id === selectedId)
   const selectedLabel =
     selectedId === ALL_ID
@@ -1545,7 +1551,7 @@ export const TeamStatsPage = () => {
   }, [matches, selectedId])
 
   const renderContent = () => {
-    if (statsMode === STATS_MODE_SOLOQ) return <SoloQStatsSection selectedId={selectedId} players={players} />
+    if (statsMode === STATS_MODE_SOLOQ) return <SoloQStatsSection selectedId={selectedId} players={players} queueType={isFlexTeam ? 'flex' : 'soloq'} />
 
     if (teamStatsSub === 'timeline') {
       if (selectedId === ALL_ID) {
@@ -1586,7 +1592,7 @@ export const TeamStatsPage = () => {
           <p className="text-gray-400 text-lg">Choisissez une catégorie à analyser.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {STATS_CARDS.map((card) => {
+          {(isFlexTeam ? STATS_CARDS.filter((c) => c.id === STATS_CATEGORY_JOUEURS) : STATS_CARDS).map((card) => {
             const Icon = card.icon
             return (
               <button
@@ -1647,19 +1653,21 @@ export const TeamStatsPage = () => {
           Retour au choix
         </button>
 
-        {/* Mode Team / Solo Q */}
+        {/* Mode Team / Solo Q (masqué pour les équipes flex — uniquement Flex) */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => setStatsMode(STATS_MODE_TEAM)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              statsMode === STATS_MODE_TEAM
-                ? 'bg-primary text-white'
-                : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
-            }`}
-          >
-            Team
-          </button>
+          {!isFlexTeam && (
+            <button
+              type="button"
+              onClick={() => setStatsMode(STATS_MODE_TEAM)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                statsMode === STATS_MODE_TEAM
+                  ? 'bg-primary text-white'
+                  : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
+              }`}
+            >
+              Team
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setStatsMode(STATS_MODE_SOLOQ)}
@@ -1669,7 +1677,7 @@ export const TeamStatsPage = () => {
                 : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
             }`}
           >
-            Solo Q
+            {isFlexTeam ? 'Flex' : 'Solo Q'}
           </button>
         </div>
 
