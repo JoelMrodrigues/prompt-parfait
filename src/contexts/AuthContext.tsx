@@ -11,6 +11,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>
   signUp: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>
   signOut: () => Promise<void>
+  resetPasswordForEmail: (email: string) => Promise<{ error: unknown }>
 }
 
 const AuthContext = createContext<AuthContextValue>({} as AuthContextValue)
@@ -123,8 +124,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase!.auth.signOut()
   }
 
+  const resetPasswordForEmail = async (email: string) => {
+    if (!isSupabaseConfigured) return { error: { message: 'Supabase non configuré' } }
+    return supabase!.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    })
+  }
+
   const value = useMemo(() => ({
-    user, profile, loading, refreshProfile, signIn, signUp, signOut,
+    user, profile, loading, refreshProfile, signIn, signUp, signOut, resetPasswordForEmail,
   }), [user, profile, loading])
 
   return (
