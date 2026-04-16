@@ -58,6 +58,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
+      // Refresh token invalide (session expirée côté Supabase) → nettoyer proprement
+      if (event === 'SIGNED_OUT' && !session) {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+
       // SIGNED_IN fires during _recoverAndRefresh before the Supabase client is fully ready.
       // At that point DB queries hang. Wait for INITIAL_SESSION instead.
       if (event === 'SIGNED_IN' && !initialSessionReceived.current) {
