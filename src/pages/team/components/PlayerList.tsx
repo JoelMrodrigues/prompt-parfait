@@ -38,8 +38,26 @@ export const PlayerList = ({
     return map
   }, [starters])
 
-  const hasFlexStarters = startersByRole['FLEX'].length > 0
-  const starterCols = hasFlexStarters ? [...ROSTER_ROLES, 'FLEX' as const] : ROSTER_ROLES
+  // Colonnes à afficher :
+  // 1. Rôles standard avec au moins un joueur (dans l'ordre TOP→JNG→MID→ADC→SUP)
+  // 2. Une colonne individuelle par joueur FLEX
+  const starterCols = useMemo(() => {
+    const cols: Array<{ key: string; label: string; players: any[] }> = []
+    ROSTER_ROLES.forEach((role) => {
+      if (startersByRole[role].length > 0) {
+        cols.push({ key: role, label: ROLE_LABELS[role] || role, players: startersByRole[role] })
+      }
+    })
+    startersByRole['FLEX'].forEach((player, i) => {
+      cols.push({ key: `FLEX_${i}`, label: 'Flex', players: [player] })
+    })
+    return cols
+  }, [startersByRole])
+
+  // Classes Tailwind littérales pour que le JIT ne les purge pas
+  const LG_COLS = ['lg:grid-cols-1', 'lg:grid-cols-1', 'lg:grid-cols-2', 'lg:grid-cols-3', 'lg:grid-cols-4', 'lg:grid-cols-5', 'lg:grid-cols-6']
+  const lgColsClass = LG_COLS[Math.min(starterCols.length, 6)] ?? 'lg:grid-cols-5'
+
 
   if (players.length === 0) {
     return (
@@ -77,15 +95,15 @@ export const PlayerList = ({
 
   return (
     <div className="space-y-6">
-      {/* Titulaires — grille par rôle */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${hasFlexStarters ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
-        {starterCols.map((role) => (
-          <div key={role}>
+      {/* Titulaires — grille : rôles remplis + une colonne par joueur FLEX */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${lgColsClass} gap-5`}>
+        {starterCols.map((col) => (
+          <div key={col.key}>
             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              {ROLE_LABELS[role] || role}
+              {col.label}
             </h4>
             <div className="space-y-4">
-              {startersByRole[role].map((player) => (
+              {col.players.map((player) => (
                 <PlayerCard
                   key={player.id}
                   player={player}
@@ -94,11 +112,6 @@ export const PlayerList = ({
                   isFlexTeam={isFlexTeam}
                 />
               ))}
-              {startersByRole[role].length === 0 && (
-                <div className="rounded-xl border border-dashed border-dark-border/50 p-6 text-center">
-                  <p className="text-gray-600 text-sm">Aucun joueur</p>
-                </div>
-              )}
             </div>
           </div>
         ))}
