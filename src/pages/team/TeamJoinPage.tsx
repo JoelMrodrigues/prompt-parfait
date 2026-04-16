@@ -45,7 +45,10 @@ type Step = 'loading-preview' | 'confirm' | 'role' | 'joining' | 'success' | 'er
 // ─── Composant principal ───────────────────────────────────────────────────────
 
 export const TeamJoinPage = () => {
-  const { token } = useParams()
+  const { token: rawToken } = useParams()
+  // Extraire l'UUID nu même si l'URL complète se retrouve dans le paramètre
+  const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+  const token = rawToken ? (UUID_RE.exec(rawToken)?.[0] ?? rawToken) : undefined
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
   const { joinTeamByToken } = useTeam()
