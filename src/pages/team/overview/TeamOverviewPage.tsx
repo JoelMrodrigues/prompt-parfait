@@ -118,6 +118,13 @@ export const TeamOverviewPage = () => {
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
   const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  // Charger le dismiss persistant depuis localStorage (clé par équipe)
+  useEffect(() => {
+    if (team?.id && localStorage.getItem(`onboarding-dismissed-${team.id}`)) {
+      setBannerDismissed(true)
+    }
+  }, [team?.id])
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -208,6 +215,11 @@ export const TeamOverviewPage = () => {
   }, [team?.accent_color])
 
   const isFlexTeam = team?.team_type === 'flex'
+
+  const dismissPermanently = () => {
+    if (team?.id) localStorage.setItem(`onboarding-dismissed-${team.id}`, '1')
+    setBannerDismissed(true)
+  }
 
   // ── Computed data ────────────────────────────────────────────────────────────
   const sortedPlayersByLP = useMemo(
@@ -444,7 +456,8 @@ export const TeamOverviewPage = () => {
   const hasPlayers = (players?.length ?? 0) > 0
   const hasPseudos = (players ?? []).some((p) => p.pseudo?.includes('#'))
   const hasMatches = (teamMatches?.length ?? 0) > 0
-  const allDone    = hasPlayers && hasPseudos && hasMatches
+  // Pour les équipes flex : pas de matchs à importer, seulement étapes 1 & 2
+  const allDone    = isFlexTeam ? (hasPlayers && hasPseudos) : (hasPlayers && hasPseudos && hasMatches)
   const showBanner = !allDone && !bannerDismissed
 
   const ONBOARDING_STEPS = [
@@ -461,12 +474,12 @@ export const TeamOverviewPage = () => {
       num: 2,
       done: hasPseudos,
       icon: Zap,
-      title: 'Configurer les pseudos SoloQ',
-      desc: 'Format requis : Pseudo#TAG (ex: Shayn#EUW1). Permet la sync automatique des stats SoloQ.',
+      title: isFlexTeam ? 'Configurer les pseudos Flex' : 'Configurer les pseudos SoloQ',
+      desc: 'Format requis : Pseudo#TAG (ex: Shayn#EUW1). Permet la sync automatique des stats.',
       action: () => navigate('joueurs'),
       label: 'Gérer les joueurs',
     },
-    {
+    ...(!isFlexTeam ? [{
       num: 3,
       done: hasMatches,
       icon: Swords,
@@ -474,7 +487,7 @@ export const TeamOverviewPage = () => {
       desc: 'Importe vos scrims et tournois depuis la page Import pour débloquer toutes les statistiques.',
       action: () => navigate('import'),
       label: 'Importer des matchs',
-    },
+    }] : []),
   ]
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -502,7 +515,7 @@ export const TeamOverviewPage = () => {
             <p className="text-sm font-semibold text-accent-blue">Par où commencer ?</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className={`grid grid-cols-1 gap-3 ${isFlexTeam ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}>
             {ONBOARDING_STEPS.map((step) => {
               const Icon = step.icon
               const isNext = !step.done && ONBOARDING_STEPS.filter((s) => !s.done)[0]?.num === step.num
@@ -546,6 +559,15 @@ export const TeamOverviewPage = () => {
                 </div>
               )
             })}
+          </div>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={dismissPermanently}
+              className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              Ne plus afficher
+            </button>
           </div>
         </motion.div>
       )}
