@@ -21,7 +21,6 @@ import {
   X,
   Swords,
   Zap,
-  CalendarClock,
   RefreshCw,
   Mail,
   Send,
@@ -30,15 +29,15 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useTeam } from '../hooks/useTeam'
-import { usePlayerSync } from '../hooks/usePlayerSync'
 import { useTeamMatches } from '../hooks/useTeamMatches'
 import { useToast } from '../../../contexts/ToastContext'
 import { PlayerModal } from '../components/PlayerModal'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { TeamEditModal } from '../components/TeamEditModal'
 import { getChampionImage } from '../../../lib/championImages'
-import { fetchWeeklySoloqCounts } from '../../../services/supabase/playerQueries'
+import { fetchWeeklySoloqCounts, fetchMultiPlayerSoloqMatches } from '../../../services/supabase/playerQueries'
 import { ROLE_CONFIG, ROSTER_ROLES } from '../constants/roles'
+import { SEASON_16_START_MS } from '../../../lib/constants'
 
 const ROLE_ORDER: Record<string, number> = {
   TOP: 0, JNG: 1, JUNGLE: 1, MID: 2, ADC: 3, BOT: 3, SUP: 4, SUPPORT: 4,
@@ -106,7 +105,6 @@ export const TeamOverviewPage = () => {
     getInviteLink,
     isTeamOwner,
   } = useTeam()
-  const { syncExistingPlayer } = usePlayerSync()
   const { matches: teamMatches, refetch: refetchMatches } = useTeamMatches(team?.id)
 
   // Refetch matches quand la page reprend le focus (retour après import)
@@ -178,6 +176,25 @@ export const TeamOverviewPage = () => {
     }
   }
 
+  const isFlexTeam = team?.team_type === 'flex'
+
+  // ── Flex soloq matches ───────────────────────────────────────────────────────
+  const [flexMatches, setFlexMatches] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!isFlexTeam || !players.length) return
+    const playerIds = players.map((p) => p.id)
+    fetchMultiPlayerSoloqMatches({
+      playerIds,
+      accountSource: 'primary',
+      seasonStart: SEASON_16_START_MS,
+      queueType: 'flex',
+      columns: 'id,player_id,champion_name,win,kills,deaths,assists,game_creation,game_duration',
+    }).then(({ data }) => {
+      setFlexMatches(data ?? [])
+    })
+  }, [isFlexTeam, players.length, team?.id])
+
   // ── LP Goal ──────────────────────────────────────────────────────────────────
   const [editingGoal, setEditingGoal] = useState(false)
   const [goalLPInput, setGoalLPInput] = useState('')
@@ -213,8 +230,6 @@ export const TeamOverviewPage = () => {
   useEffect(() => {
     if (team?.accent_color) applyAccentColor(team.accent_color)
   }, [team?.accent_color])
-
-  const isFlexTeam = team?.team_type === 'flex'
 
   const dismissPermanently = () => {
     if (team?.id) localStorage.setItem(`onboarding-dismissed-${team.id}`, '1')
@@ -351,6 +366,74 @@ export const TeamOverviewPage = () => {
 
     return { top5Overall, top3PerPlayer, hasData: Object.keys(overall).length > 0 }
   }, [teamMatches])
+
+  // ── Flex computed stats ───────────────────────────────────────────────────────
+
+  const playersById = useMemo(() => {
+    const m: Record<string, any> = {}
+    for (const p of players) m[p.id] = p
+    return m
+  }, [players])
+
+  /** Last 8 flex games across all players, sorted by date (flexMatches already sorted desc) */
+  const recentFlexMatches = useMemo(() => flexMatches.slice(0, 8), [flexMatches])
+
+  const flexRecentStreak = useMemo(() => {
+    if (!recentFlexMatches.length) return null
+    const first = recentFlexMatches[0]?.win
+    let count = 0
+    for (const m of recentFlexMatches) {
+      if (m.win !== first) break
+      count++
+    }
+    return count >= 2 ? { count, win: first } : null
+  }, [recentFlexMatches])
+
+  /** Top champions from flex matches — overall top 5 + top 3 per player */
+  const flexChampionStats = useMemo(() => {
+    const byPlayer: Record<string, Record<string, { games: number; wins: number }>> = {}
+    const overall: Record<string, { games: number; wins: number }> = {}
+
+    for (const m of flexMatches) {
+      if (!m.champion_name) continue
+      const key = m.champion_name
+
+      // Overall
+      if (!overall[key]) overall[key] = { games: 0, wins: 0 }
+      overall[key].games++
+      if (m.win) overall[key].wins++
+
+      // Per player
+      if (!byPlayer[m.player_id]) byPlayer[m.player_id] = {}
+      if (!byPlayer[m.player_id][key]) byPlayer[m.player_id][key] = { games: 0, wins: 0 }
+      byPlayer[m.player_id][key].games++
+      if (m.win) byPlayer[m.player_id][key].wins++
+    }
+
+    const toEntry = ([name, s]: [string, { games: number; wins: number }]) => ({
+      name,
+      games: s.games,
+      winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
+    })
+
+    const top5Overall = Object.entries(overall)
+      .sort((a, b) => b[1].games - a[1].games)
+      .slice(0, 5)
+      .map(toEntry)
+
+    const top3PerPlayer: Record<string, ReturnType<typeof toEntry>[]> = {}
+    for (const [pid, champs] of Object.entries(byPlayer)) {
+      top3PerPlayer[pid] = Object.entries(champs)
+        .sort((a, b) => b[1].games - a[1].games)
+        .slice(0, 3)
+        .map(toEntry)
+    }
+
+    return { top5Overall, top3PerPlayer, hasData: Object.keys(overall).length > 0 }
+  }, [flexMatches])
+
+  // Keep alias for roster cards (uses top3PerPlayer)
+  const flexChampionsByPlayer = flexChampionStats.top3PerPlayer
 
   const soloqStats = useMemo(() => {
     const synced = players.filter((p) => bestRank(p))
@@ -1191,102 +1274,194 @@ export const TeamOverviewPage = () => {
                 <h3 className="font-semibold text-white text-sm uppercase tracking-wider">
                   Forme récente
                 </h3>
+                {isFlexTeam && (
+                  <span className="text-[10px] text-gray-600 bg-dark-bg px-1.5 py-0.5 rounded-md border border-dark-border/40">
+                    Flex
+                  </span>
+                )}
               </div>
-              {recentStreak && (
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    recentStreak.win
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
-                  }`}
-                >
-                  🔥 {recentStreak.count} {recentStreak.win ? 'victoires' : 'défaites'} d'affilée
-                </span>
-              )}
+              {(() => {
+                const streak = isFlexTeam ? flexRecentStreak : recentStreak
+                return streak ? (
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      streak.win
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                    }`}
+                  >
+                    🔥 {streak.count} {streak.win ? 'victoires' : 'défaites'} d'affilée
+                  </span>
+                ) : null
+              })()}
             </div>
 
-            {recentMatches.length > 0 ? (
-              <div className="space-y-4">
-                {/* V/D pills */}
-                <div className="flex gap-1.5 flex-wrap">
-                  {recentMatches.map((m: any, i: number) => (
-                    <div
-                      key={m.id || i}
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
-                        m.our_win
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                      }`}
-                      title={m.our_win ? 'Victoire' : 'Défaite'}
-                    >
-                      {m.our_win ? 'V' : 'D'}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Last 5 matches detail */}
-                <div className="space-y-1.5">
-                  {recentMatches.slice(0, 5).map((m: any, i: number) => {
-                    const our = (m.team_match_participants || []).filter(
-                      (p: any) => p.team_side === 'our' || !p.team_side,
-                    )
-                    const duration = m.game_duration
-                      ? `${Math.round(m.game_duration / 60)} min`
-                      : ''
-                    const date = m.created_at
-                      ? new Date(m.created_at).toLocaleDateString('fr-FR', {
-                          day: 'numeric',
-                          month: 'short',
-                        })
-                      : ''
-                    return (
-                      <button
+            {isFlexTeam ? (
+              /* ── Flex : même format que les scrims ── */
+              recentFlexMatches.length > 0 ? (
+                <div className="space-y-4">
+                  {/* V/D pills */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {recentFlexMatches.map((m: any, i: number) => (
+                      <div
                         key={m.id || i}
-                        type="button"
-                        onClick={() => m.id && navigate(`/team/matchs/${m.id}`)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all hover:brightness-125 active:scale-[0.99] ${
-                          m.our_win
-                            ? 'bg-emerald-500/5 border-emerald-500/20'
-                            : 'bg-rose-500/5 border-rose-500/20'
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                          m.win
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                         }`}
+                        title={`${m.win ? 'Victoire' : 'Défaite'}${m.champion_name ? ` — ${m.champion_name}` : ''}`}
                       >
-                        <span
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                            m.our_win
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-rose-500/20 text-rose-400'
+                        {m.win ? 'V' : 'D'}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Last 5 detail rows */}
+                  <div className="space-y-1.5">
+                    {recentFlexMatches.slice(0, 5).map((m: any, i: number) => {
+                      const player = playersById[m.player_id]
+                      const duration = m.game_duration
+                        ? `${Math.round(m.game_duration / 60)} min`
+                        : ''
+                      const date = m.game_creation
+                        ? new Date(m.game_creation).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short',
+                          })
+                        : ''
+                      return (
+                        <div
+                          key={m.id || i}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
+                            m.win
+                              ? 'bg-emerald-500/5 border-emerald-500/20'
+                              : 'bg-rose-500/5 border-rose-500/20'
                           }`}
                         >
-                          {m.our_win ? 'V' : 'D'}
-                        </span>
-                        <div className="flex items-center gap-1.5 flex-1">
-                          {[...our]
-                            .sort((a, b) => byRoleOrder(a.position || a.role) - byRoleOrder(b.position || b.role))
-                            .slice(0, 5)
-                            .map((p: any, pi: number) => (
-                            <img
-                              key={pi}
-                              src={getChampionImage(p.champion_name)}
-                              alt={p.champion_name}
-                              title={p.champion_name}
-                              className="w-9 h-9 rounded-lg border border-dark-border/60 object-cover"
-                            />
-                          ))}
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                              m.win
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-rose-500/20 text-rose-400'
+                            }`}
+                          >
+                            {m.win ? 'V' : 'D'}
+                          </span>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {m.champion_name && (
+                              <img
+                                src={getChampionImage(m.champion_name)}
+                                alt={m.champion_name}
+                                title={m.champion_name}
+                                className="w-9 h-9 rounded-lg border border-dark-border/60 object-cover shrink-0"
+                              />
+                            )}
+                            {player && (
+                              <span className="text-sm font-medium text-white truncate">
+                                {player.player_name}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-gray-500 text-xs shrink-0 text-right leading-tight">
+                            {date && <span className="block">{date}</span>}
+                            {duration && <span className="block text-gray-600">{duration}</span>}
+                          </span>
                         </div>
-                        <span className="text-gray-500 text-xs shrink-0 text-right leading-tight">
-                          {date && <span className="block">{date}</span>}
-                          {duration && <span className="block text-gray-600">{duration}</span>}
-                        </span>
-                      </button>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-gray-600 text-sm">
+                  Aucune partie Flex enregistrée — la sync démarrera automatiquement.
+                </p>
+              )
             ) : (
-              <p className="text-gray-600 text-sm">
-                Aucun match enregistré. Ajoutez des parties depuis{' '}
-                <strong className="text-gray-400">Matchs</strong>.
-              </p>
+              /* ── Scrim : matchs d'équipe ── */
+              recentMatches.length > 0 ? (
+                <div className="space-y-4">
+                  {/* V/D pills */}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {recentMatches.map((m: any, i: number) => (
+                      <div
+                        key={m.id || i}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                          m.our_win
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}
+                        title={m.our_win ? 'Victoire' : 'Défaite'}
+                      >
+                        {m.our_win ? 'V' : 'D'}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Last 5 matches detail */}
+                  <div className="space-y-1.5">
+                    {recentMatches.slice(0, 5).map((m: any, i: number) => {
+                      const our = (m.team_match_participants || []).filter(
+                        (p: any) => p.team_side === 'our' || !p.team_side,
+                      )
+                      const duration = m.game_duration
+                        ? `${Math.round(m.game_duration / 60)} min`
+                        : ''
+                      const date = m.created_at
+                        ? new Date(m.created_at).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short',
+                          })
+                        : ''
+                      return (
+                        <button
+                          key={m.id || i}
+                          type="button"
+                          onClick={() => m.id && navigate(`/team/matchs/${m.id}`)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all hover:brightness-125 active:scale-[0.99] ${
+                            m.our_win
+                              ? 'bg-emerald-500/5 border-emerald-500/20'
+                              : 'bg-rose-500/5 border-rose-500/20'
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                              m.our_win
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-rose-500/20 text-rose-400'
+                            }`}
+                          >
+                            {m.our_win ? 'V' : 'D'}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-1">
+                            {[...our]
+                              .sort((a, b) => byRoleOrder(a.position || a.role) - byRoleOrder(b.position || b.role))
+                              .slice(0, 5)
+                              .map((p: any, pi: number) => (
+                              <img
+                                key={pi}
+                                src={getChampionImage(p.champion_name)}
+                                alt={p.champion_name}
+                                title={p.champion_name}
+                                className="w-9 h-9 rounded-lg border border-dark-border/60 object-cover"
+                              />
+                            ))}
+                          </div>
+                          <span className="text-gray-500 text-xs shrink-0 text-right leading-tight">
+                            {date && <span className="block">{date}</span>}
+                            {duration && <span className="block text-gray-600">{duration}</span>}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-600 text-sm">
+                  Aucun match enregistré. Ajoutez des parties depuis{' '}
+                  <strong className="text-gray-400">Matchs</strong>.
+                </p>
+              )
             )}
           </motion.div>
 
@@ -1303,101 +1478,194 @@ export const TeamOverviewPage = () => {
                 Top Champions
               </h3>
               <span className="text-[10px] text-gray-600 bg-dark-bg px-1.5 py-0.5 rounded-md border border-dark-border/40">
-                Games team
+                {isFlexTeam ? 'Ranked Flex' : 'Games team'}
               </span>
             </div>
 
-            {teamChampionStats.hasData ? (
-              <>
-                {/* ── Top 5 équipe ── */}
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-3">
-                    Top 5 équipe — tous rôles
-                  </p>
-                  <div className="flex gap-2">
-                    {teamChampionStats.top5Overall.map((ch, i) => (
-                      <div key={ch.name} className="flex flex-col items-center gap-1 flex-1">
-                        <div className="relative">
-                          <img
-                            src={getChampionImage(ch.name)}
-                            alt={ch.name}
-                            title={ch.name}
-                            className={`w-14 h-14 rounded-xl object-cover border-2 ${
-                              i === 0 ? 'border-yellow-400/60' : 'border-dark-border/50'
-                            }`}
-                          />
-                          {i === 0 && (
-                            <span className="absolute -top-1.5 -left-1.5 text-[10px]">👑</span>
-                          )}
-                          <span className="absolute -bottom-1 -right-1 text-[9px] font-bold text-white bg-dark-bg/90 px-1 rounded border border-dark-border/40">
-                            {ch.games}
+            {isFlexTeam ? (
+              /* ── Flex : même format que les scrims ── */
+              flexChampionStats.hasData ? (
+                <>
+                  {/* ── Top 5 tous joueurs ── */}
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-3">
+                      Top 5 — tous joueurs
+                    </p>
+                    <div className="flex gap-2">
+                      {flexChampionStats.top5Overall.map((ch, i) => (
+                        <div key={ch.name} className="flex flex-col items-center gap-1 flex-1">
+                          <div className="relative">
+                            <img
+                              src={getChampionImage(ch.name)}
+                              alt={ch.name}
+                              title={ch.name}
+                              className={`w-14 h-14 rounded-xl object-cover border-2 ${
+                                i === 0 ? 'border-yellow-400/60' : 'border-dark-border/50'
+                              }`}
+                            />
+                            {i === 0 && (
+                              <span className="absolute -top-1.5 -left-1.5 text-[10px]">👑</span>
+                            )}
+                            <span className="absolute -bottom-1 -right-1 text-[9px] font-bold text-white bg-dark-bg/90 px-1 rounded border border-dark-border/40">
+                              {ch.games}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-semibold mt-1 ${
+                            ch.winrate >= 60 ? 'text-emerald-400'
+                            : ch.winrate >= 50 ? 'text-yellow-400'
+                            : 'text-rose-400'
+                          }`}>
+                            {ch.winrate}%
                           </span>
                         </div>
-                        <span className={`text-[10px] font-semibold mt-1 ${
-                          ch.winrate >= 60 ? 'text-emerald-400'
-                          : ch.winrate >= 50 ? 'text-yellow-400'
-                          : 'text-rose-400'
-                        }`}>
-                          {ch.winrate}%
-                        </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* ── Top 3 par joueur ── */}
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-3">
-                    Top 3 par joueur
-                  </p>
-                  <div className="space-y-2">
-                    {players
-                      .filter((p) => teamChampionStats.top3PerPlayer[p.id]?.length > 0)
-                      .sort((a, b) => byRoleOrder(a.position) - byRoleOrder(b.position))
-                      .map((p) => {
-                        const champs = teamChampionStats.top3PerPlayer[p.id] || []
-                        return (
-                          <div key={p.id} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 font-medium w-16 shrink-0 truncate">
-                              {p.player_name}
-                            </span>
-                            <div className="flex gap-1.5 flex-1">
-                              {champs.map((ch) => (
-                                <div key={ch.name} className="flex items-center gap-1.5 bg-dark-bg rounded-lg px-2 py-1.5 border border-dark-border/40 flex-1 min-w-0">
-                                  <img
-                                    src={getChampionImage(ch.name)}
-                                    alt={ch.name}
-                                    title={`${ch.name} — ${ch.games} parties, ${ch.winrate}% WR`}
-                                    className="w-8 h-8 rounded-lg object-cover shrink-0"
-                                  />
-                                  <div className="min-w-0">
-                                    <p className="text-[10px] text-gray-300 leading-none truncate">
-                                      {ch.name}
-                                    </p>
-                                    <p className={`text-[10px] font-semibold leading-none mt-0.5 ${
-                                      ch.winrate >= 60 ? 'text-emerald-400'
-                                      : ch.winrate >= 50 ? 'text-yellow-400'
-                                      : 'text-rose-400'
-                                    }`}>
-                                      {ch.games} · {ch.winrate}%
-                                    </p>
+                  {/* ── Top 3 par joueur ── */}
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-3">
+                      Top 3 par joueur
+                    </p>
+                    <div className="space-y-2">
+                      {players
+                        .filter((p) => flexChampionStats.top3PerPlayer[p.id]?.length > 0)
+                        .map((p) => {
+                          const champs = flexChampionStats.top3PerPlayer[p.id] || []
+                          return (
+                            <div key={p.id} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400 font-medium w-16 shrink-0 truncate">
+                                {p.player_name}
+                              </span>
+                              <div className="flex gap-1.5 flex-1">
+                                {champs.map((ch) => (
+                                  <div key={ch.name} className="flex items-center gap-1.5 bg-dark-bg rounded-lg px-2 py-1.5 border border-dark-border/40 flex-1 min-w-0">
+                                    <img
+                                      src={getChampionImage(ch.name)}
+                                      alt={ch.name}
+                                      title={`${ch.name} — ${ch.games} parties, ${ch.winrate}% WR`}
+                                      className="w-8 h-8 rounded-lg object-cover shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="text-[10px] text-gray-300 leading-none truncate">
+                                        {ch.name}
+                                      </p>
+                                      <p className={`text-[10px] font-semibold leading-none mt-0.5 ${
+                                        ch.winrate >= 60 ? 'text-emerald-400'
+                                        : ch.winrate >= 50 ? 'text-yellow-400'
+                                        : 'text-rose-400'
+                                      }`}>
+                                        {ch.games} · {ch.winrate}%
+                                      </p>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                    </div>
                   </div>
-                </div>
-              </>
+                </>
+              ) : (
+                <p className="text-gray-600 text-sm">
+                  Aucune partie Flex enregistrée — la sync démarrera automatiquement.
+                </p>
+              )
             ) : (
-              <p className="text-gray-600 text-sm">
-                Aucune game enregistrée. Importez des matchs depuis{' '}
-                <strong className="text-gray-400">Matchs</strong>.
-              </p>
+              /* ── Scrim : top champions depuis les matchs d'équipe ── */
+              teamChampionStats.hasData ? (
+                <>
+                  {/* ── Top 5 équipe ── */}
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-3">
+                      Top 5 équipe — tous rôles
+                    </p>
+                    <div className="flex gap-2">
+                      {teamChampionStats.top5Overall.map((ch, i) => (
+                        <div key={ch.name} className="flex flex-col items-center gap-1 flex-1">
+                          <div className="relative">
+                            <img
+                              src={getChampionImage(ch.name)}
+                              alt={ch.name}
+                              title={ch.name}
+                              className={`w-14 h-14 rounded-xl object-cover border-2 ${
+                                i === 0 ? 'border-yellow-400/60' : 'border-dark-border/50'
+                              }`}
+                            />
+                            {i === 0 && (
+                              <span className="absolute -top-1.5 -left-1.5 text-[10px]">👑</span>
+                            )}
+                            <span className="absolute -bottom-1 -right-1 text-[9px] font-bold text-white bg-dark-bg/90 px-1 rounded border border-dark-border/40">
+                              {ch.games}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-semibold mt-1 ${
+                            ch.winrate >= 60 ? 'text-emerald-400'
+                            : ch.winrate >= 50 ? 'text-yellow-400'
+                            : 'text-rose-400'
+                          }`}>
+                            {ch.winrate}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Top 3 par joueur ── */}
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider font-semibold mb-3">
+                      Top 3 par joueur
+                    </p>
+                    <div className="space-y-2">
+                      {players
+                        .filter((p) => teamChampionStats.top3PerPlayer[p.id]?.length > 0)
+                        .sort((a, b) => byRoleOrder(a.position) - byRoleOrder(b.position))
+                        .map((p) => {
+                          const champs = teamChampionStats.top3PerPlayer[p.id] || []
+                          return (
+                            <div key={p.id} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400 font-medium w-16 shrink-0 truncate">
+                                {p.player_name}
+                              </span>
+                              <div className="flex gap-1.5 flex-1">
+                                {champs.map((ch) => (
+                                  <div key={ch.name} className="flex items-center gap-1.5 bg-dark-bg rounded-lg px-2 py-1.5 border border-dark-border/40 flex-1 min-w-0">
+                                    <img
+                                      src={getChampionImage(ch.name)}
+                                      alt={ch.name}
+                                      title={`${ch.name} — ${ch.games} parties, ${ch.winrate}% WR`}
+                                      className="w-8 h-8 rounded-lg object-cover shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="text-[10px] text-gray-300 leading-none truncate">
+                                        {ch.name}
+                                      </p>
+                                      <p className={`text-[10px] font-semibold leading-none mt-0.5 ${
+                                        ch.winrate >= 60 ? 'text-emerald-400'
+                                        : ch.winrate >= 50 ? 'text-yellow-400'
+                                        : 'text-rose-400'
+                                      }`}>
+                                        {ch.games} · {ch.winrate}%
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-600 text-sm">
+                  Aucune game enregistrée. Importez des matchs depuis{' '}
+                  <strong className="text-gray-400">Matchs</strong>.
+                </p>
+              )
             )}
-        </motion.div>
+          </motion.div>
         </div>
       )}
 
@@ -1428,107 +1696,182 @@ export const TeamOverviewPage = () => {
           )}
           </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {ROSTER_ROLES.map((role) => {
-            const rolePlayers = playersByRole[role] || []
-            const cfg = ROLE_CONFIG[role]
-
-            if (rolePlayers.length === 0) {
+        {isFlexTeam ? (
+          /* ── Flex roster : une carte par joueur, sans slots role vides ── */
+          players.length > 0 ? (
+            (() => {
+              const LG_COLS = ['lg:grid-cols-1','lg:grid-cols-1','lg:grid-cols-2','lg:grid-cols-3','lg:grid-cols-4','lg:grid-cols-5','lg:grid-cols-6']
+              const lgClass = LG_COLS[Math.min(players.length, 6)] ?? 'lg:grid-cols-5'
               return (
-                <div
-                  key={role}
-                  className="rounded-xl border border-dashed border-dark-border/40 p-4 flex flex-col items-center justify-center min-h-[170px] text-center"
-                >
-                  <p className={`text-xs font-bold uppercase tracking-wider ${cfg.text} mb-1`}>
-                    {cfg.label}
-                  </p>
-                  <p className="text-gray-700 text-xs">—</p>
+                <div className={`grid grid-cols-2 sm:grid-cols-3 ${lgClass} gap-4`}>
+                  {players.map((p) => {
+                    const flexChamps = flexChampionsByPlayer[p.id] || []
+                    const bgChamp = flexChamps[0]?.name
+                    return (
+                      <motion.button
+                        key={p.id}
+                        type="button"
+                        whileHover={{ scale: 1.03 }}
+                        onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
+                        className="relative rounded-xl border border-dark-border bg-dark-bg/50 overflow-hidden cursor-pointer min-h-[170px] flex flex-col p-4 text-left transition-colors hover:border-accent-blue/50"
+                      >
+                        {/* Champion background blurred */}
+                        {bgChamp && (
+                          <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
+                            <img
+                              src={getChampionImage(bgChamp)}
+                              alt=""
+                              className="w-full h-full object-cover blur-[2px] scale-105"
+                            />
+                          </div>
+                        )}
+
+                        <div className="relative z-10 flex flex-col h-full gap-1">
+                          {/* FLEX badge */}
+                          <span className="self-start text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-dark-bg/60 text-gray-400 mb-1">
+                            FLEX
+                          </span>
+
+                          {/* Player name */}
+                          <p className="font-bold text-white text-sm truncate leading-tight">
+                            {p.player_name}
+                          </p>
+
+                          {/* Pseudo */}
+                          {p.pseudo && (
+                            <p className="text-[11px] text-gray-500 truncate">{p.pseudo}</p>
+                          )}
+
+                          {/* Flex rank */}
+                          {p.rank_flex ? (
+                            <p className={`text-xs truncate mt-0.5 ${getRankColorText(p.rank_flex)}`}>
+                              {stripLP(p.rank_flex)}
+                            </p>
+                          ) : (
+                            <p className="text-xs mt-0.5 text-gray-700">Non classé</p>
+                          )}
+
+                          {/* Top flex champions */}
+                          {flexChamps.length > 0 && (
+                            <div className="flex gap-1.5 mt-auto pt-3">
+                              {flexChamps.map((ch, ci) => (
+                                <img
+                                  key={ci}
+                                  src={getChampionImage(ch.name)}
+                                  alt={ch.name}
+                                  className="w-8 h-8 rounded-md border border-dark-border/40 object-cover"
+                                  title={`${ch.name} — ${ch.games} parties, ${ch.winrate}% WR`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.button>
+                    )
+                  })}
                 </div>
               )
-            }
+            })()
+          ) : (
+            <p className="text-gray-600 text-sm">Aucun joueur dans le roster.</p>
+          )
+        ) : (
+          /* ── Scrim roster : grille par rôle ── */
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {ROSTER_ROLES.map((role) => {
+              const rolePlayers = playersByRole[role] || []
+              const cfg = ROLE_CONFIG[role]
 
-            return rolePlayers.map((p) => {
-              // Champions
-              let topChamps = p.top_champions
-              if (typeof topChamps === 'string') {
-                try { topChamps = JSON.parse(topChamps) } catch { topChamps = [] }
-              }
-              const validChamps: { name: string }[] = []
-              for (const ch of Array.isArray(topChamps) ? topChamps : []) {
-                const name = ch.name || ch
-                if (name && name.length > 1 && name !== 'Pas de données') {
-                  validChamps.push({ name })
-                }
-                if (validChamps.length >= 3) break
-              }
-              const bgChamp = validChamps[0]?.name
-
-              return (
-                <motion.button
-                  key={p.id}
-                  type="button"
-                  whileHover={{ scale: 1.03 }}
-                  onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
-                  className={`relative rounded-xl border border-dark-border bg-gradient-to-b ${cfg.gradient} bg-dark-bg/50 overflow-hidden cursor-pointer min-h-[170px] flex flex-col p-4 text-left transition-colors hover:border-accent-blue/50`}
-                >
-                  {/* Champion background blurred */}
-                  {bgChamp && (
-                    <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
-                      <img
-                        src={getChampionImage(bgChamp)}
-                        alt=""
-                        className="w-full h-full object-cover blur-[2px] scale-105"
-                      />
-                    </div>
-                  )}
-
-                  <div className="relative z-10 flex flex-col h-full gap-1">
-                    {/* Role badge */}
-                    <span
-                      className={`self-start text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-dark-bg/60 ${cfg.text} mb-1`}
-                    >
+              if (rolePlayers.length === 0) {
+                return (
+                  <div
+                    key={role}
+                    className="rounded-xl border border-dashed border-dark-border/40 p-4 flex flex-col items-center justify-center min-h-[170px] text-center"
+                  >
+                    <p className={`text-xs font-bold uppercase tracking-wider ${cfg.text} mb-1`}>
                       {cfg.label}
-                    </span>
-
-                    {/* Player name */}
-                    <p className="font-bold text-white text-sm truncate leading-tight">
-                      {p.player_name}
                     </p>
+                    <p className="text-gray-700 text-xs">—</p>
+                  </div>
+                )
+              }
 
-                    {/* Pseudo */}
-                    {p.pseudo && (
-                      <p className="text-[11px] text-gray-500 truncate">{p.pseudo}</p>
-                    )}
+              return rolePlayers.map((p) => {
+                let topChamps = p.top_champions
+                if (typeof topChamps === 'string') {
+                  try { topChamps = JSON.parse(topChamps) } catch { topChamps = [] }
+                }
+                const validChamps: { name: string }[] = []
+                for (const ch of Array.isArray(topChamps) ? topChamps : []) {
+                  const name = ch.name || ch
+                  if (name && name.length > 1 && name !== 'Pas de données') {
+                    validChamps.push({ name })
+                  }
+                  if (validChamps.length >= 3) break
+                }
+                const bgChamp = validChamps[0]?.name
 
-                    {/* Rank */}
-                    {p.rank ? (
-                      <p className={`text-xs truncate mt-0.5 ${getRankColorText(p.rank)}`}>
-                        {stripLP(p.rank)}
-                      </p>
-                    ) : (
-                      <p className="text-xs mt-0.5 text-gray-700">Non classé</p>
-                    )}
-
-                    {/* Champions */}
-                    {validChamps.length > 0 && (
-                      <div className="flex gap-1.5 mt-auto pt-3">
-                        {validChamps.map((ch, ci) => (
-                          <img
-                            key={ci}
-                            src={getChampionImage(ch.name)}
-                            alt={ch.name}
-                            className="w-8 h-8 rounded-md border border-dark-border/40 object-cover"
-                            title={ch.name}
-                          />
-                        ))}
+                return (
+                  <motion.button
+                    key={p.id}
+                    type="button"
+                    whileHover={{ scale: 1.03 }}
+                    onClick={() => navigate(`/team/joueurs/${encodeURIComponent(p.player_name)}`)}
+                    className={`relative rounded-xl border border-dark-border bg-gradient-to-b ${cfg.gradient} bg-dark-bg/50 overflow-hidden cursor-pointer min-h-[170px] flex flex-col p-4 text-left transition-colors hover:border-accent-blue/50`}
+                  >
+                    {bgChamp && (
+                      <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
+                        <img
+                          src={getChampionImage(bgChamp)}
+                          alt=""
+                          className="w-full h-full object-cover blur-[2px] scale-105"
+                        />
                       </div>
                     )}
-                  </div>
-                </motion.button>
-              )
-            })
-          })}
-        </div>
+
+                    <div className="relative z-10 flex flex-col h-full gap-1">
+                      <span
+                        className={`self-start text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-dark-bg/60 ${cfg.text} mb-1`}
+                      >
+                        {cfg.label}
+                      </span>
+
+                      <p className="font-bold text-white text-sm truncate leading-tight">
+                        {p.player_name}
+                      </p>
+
+                      {p.pseudo && (
+                        <p className="text-[11px] text-gray-500 truncate">{p.pseudo}</p>
+                      )}
+
+                      {p.rank ? (
+                        <p className={`text-xs truncate mt-0.5 ${getRankColorText(p.rank)}`}>
+                          {stripLP(p.rank)}
+                        </p>
+                      ) : (
+                        <p className="text-xs mt-0.5 text-gray-700">Non classé</p>
+                      )}
+
+                      {validChamps.length > 0 && (
+                        <div className="flex gap-1.5 mt-auto pt-3">
+                          {validChamps.map((ch, ci) => (
+                            <img
+                              key={ci}
+                              src={getChampionImage(ch.name)}
+                              alt={ch.name}
+                              className="w-8 h-8 rounded-md border border-dark-border/40 object-cover"
+                              title={ch.name}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.button>
+                )
+              })
+            })}
+          </div>
+        )}
       </motion.div>
 
 
