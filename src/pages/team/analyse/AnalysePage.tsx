@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Lock } from 'lucide-react'
 import { useTheme } from '../../../contexts/ThemeContext'
+import { useTeam } from '../hooks/useTeam'
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 
@@ -216,6 +217,8 @@ function Divider() {
 
 export const AnalysePage = () => {
   const { isDark } = useTheme()
+  const { team } = useTeam()
+  const isFlexTeam = team?.team_type === 'flex'
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Désactive le scroll du main parent uniquement sur cette page
@@ -243,10 +246,16 @@ export const AnalysePage = () => {
     >
       <Panel
         side="left"
-        title="Solo Queue"
+        title={isFlexTeam ? 'Flex Queue' : 'Solo Queue'}
         sub="Analyse individuelle"
-        description="Identifiez les forces et faiblesses d'un joueur à partir de ses vraies stats. Rapport de coaching complet avec axes d'amélioration concrets."
-        tags={['KDA', 'CS / min', 'Gold / min', 'Consistance', 'Vision', 'Champion pool']}
+        description={
+          isFlexTeam
+            ? "Analysez les performances de vos joueurs en Flex Queue. Rang, évolution, champions et statistiques détaillées sur les parties flex."
+            : "Identifiez les forces et faiblesses d'un joueur à partir de ses vraies stats. Rapport de coaching complet avec axes d'amélioration concrets."
+        }
+        tags={isFlexTeam
+          ? ['KDA', 'Rang Flex', 'Winrate', 'Champion pool', 'Consistance']
+          : ['KDA', 'CS / min', 'Gold / min', 'Consistance', 'Vision', 'Champion pool']}
         splash={SPLASH.soloq}
         href="/team/analyse/soloq"
         accent="#60a5fa"
@@ -261,10 +270,15 @@ export const AnalysePage = () => {
         side="right"
         title="Équipe"
         sub="Analyse collective"
-        description="Analysez les performances collectives sur les matchs officiels. Synergies, objectifs, early game et rapport d'équipe complet."
+        description={
+          isFlexTeam
+            ? "L'analyse d'équipe est basée sur les matchs scrim/tournoi importés. Non disponible pour les équipes Flex."
+            : "Analysez les performances collectives sur les matchs officiels. Synergies, objectifs, early game et rapport d'équipe complet."
+        }
         tags={['Objectifs', 'Draft', 'Early game', 'Synergies', 'Timeline', 'Blocs']}
         splash={SPLASH.team}
         href="/team/analyse/team"
+        disabled={isFlexTeam}
         accent="#a78bfa"
         accentDim="#8b5cf6"
         btnBg="#7c3aed"
