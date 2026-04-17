@@ -2,10 +2,12 @@
  * Modal d'édition de l'équipe — Nom · Logo · Couleur accent
  * Autonome : utilise useTeam() et useToast() directement.
  */
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { X, Camera, Loader2, Trash2, Swords, Trophy, Users, Gamepad2 } from 'lucide-react'
+import { X, Camera, Loader2, Trash2, Swords, Trophy, Users, Gamepad2, ZoomIn, ZoomOut, Check } from 'lucide-react'
+import Cropper from 'react-easy-crop'
+import type { Area, Point } from 'react-easy-crop'
 import { useTeam } from '../hooks/useTeam'
 import { useToast } from '../../../contexts/ToastContext'
 import { supabase } from '../../../lib/supabase'
@@ -51,6 +53,34 @@ async function extractDominantColor(imgUrl: string): Promise<string | null> {
 
 function applyAccentColor(rgbStr: string) {
   document.documentElement.style.setProperty('--color-accent', rgbStr)
+}
+
+// ── Crop helpers ─────────────────────────────────────────────────────────────
+
+function createImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.addEventListener('load', () => resolve(img))
+    img.addEventListener('error', (e) => reject(e))
+    img.setAttribute('crossOrigin', 'anonymous')
+    img.src = url
+  })
+}
+
+async function getCroppedBlob(imageSrc: string, pixelCrop: Area, mimeType = 'image/jpeg'): Promise<Blob> {
+  const img = await createImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  const size = Math.min(Math.max(pixelCrop.width, pixelCrop.height), 512)
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(img, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, size, size)
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('Canvas vide'))
+    }, mimeType, 0.92)
+  })
 }
 
 // ── Team types ───────────────────────────────────────────────────────────────
@@ -104,6 +134,16 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
   const [deleting, setDeleting] = useState(false)
   const [typeSaving, setTypeSaving] = useState(false)
 
+  // ── Crop state ─────────────────────────────────────────────────────────────
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
+  const [cropSrcIsLocal, setCropSrcIsLocal] = useState(false) // true = objectURL à révoquer
+  const [cropExt, setCropExt] = useState('jpg')
+  const [cropMime, setCropMime] = useState('image/jpeg')
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
+  const onCropComplete = useCallback((_: Area, pixels: Area) => setCroppedAreaPixels(pixels), [])
+
   useEffect(() => {
     setTeamName(team?.team_name || '')
   }, [team?.team_name])
@@ -121,27 +161,58 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const handleLogoUpload = async (file: File) => {
+  // Ouvre le modal de rognage — appelé quand l'utilisateur sélectionne un fichier
+  const handleFileSelect = (file: File) => {
+    const MIME: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' }
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
+    setCropExt(ext === 'jpg' ? 'jpg' : ext)
+    setCropMime(MIME[ext] || 'image/jpeg')
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    const objectUrl = URL.createObjectURL(file)
+    setCropSrcIsLocal(true)
+    setCropSrc(objectUrl)
+  }
+
+  // Ouvre le modal de rognage sur le logo déjà uploadé
+  const openCropForExisting = () => {
+    if (!team?.logo_url) return
+    setCropExt('jpg')
+    setCropMime('image/jpeg')
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setCropSrcIsLocal(false)
+    setCropSrc(team.logo_url)
+  }
+
+  // Upload le blob rogné vers Supabase Storage (raw fetch, bypasse le SDK)
+  const handleLogoUpload = async (blob: Blob, ext: string, mime: string) => {
     if (!team?.id || !supabase) return
     setLogoUploading(true)
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
-      const MIME: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' }
-      const contentType = MIME[ext] || 'image/jpeg'
-      // Nom unique avec timestamp pour bypasser le cache CDN Supabase
       const path = `${team.id}/${Date.now()}.${ext}`
-      const buffer = await file.arrayBuffer()
-      const { error: uploadError } = await supabase.storage
-        .from('team-logos')
-        .upload(path, buffer, { contentType, upsert: true, cacheControl: '3600' })
-      if (uploadError) {
-        console.error('[TeamEditModal] upload error:', uploadError)
-        toastError(`Erreur upload : ${uploadError.message}`)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Non authentifié')
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const buffer = await blob.arrayBuffer()
+      const res = await fetch(`${supabaseUrl}/storage/v1/object/team-logos/${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': mime,
+          'x-upsert': 'true',
+          'cache-control': 'max-age=3600',
+        },
+        body: buffer,
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        console.error('[TeamEditModal] upload error:', res.status, errText)
+        toastError(`Erreur upload : ${res.status}`)
         return
       }
-      const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path)
-      const publicUrl = urlData.publicUrl
-      // Supprimer l'ancien fichier si l'URL change (évite accumulation de logos orphelins)
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/team-logos/${path}`
+      // Supprimer l'ancien fichier (évite l'accumulation de logos orphelins)
       if (team.logo_url) {
         const oldPath = team.logo_url.split('/team-logos/')[1]?.split('?')[0]
         if (oldPath && oldPath !== path) {
@@ -157,6 +228,25 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
     } finally {
       setLogoUploading(false)
     }
+  }
+
+  // Confirme le rognage et lance l'upload
+  const handleCropConfirm = async () => {
+    if (!cropSrc || !croppedAreaPixels) return
+    try {
+      const blob = await getCroppedBlob(cropSrc, croppedAreaPixels, cropMime)
+      if (cropSrcIsLocal) URL.revokeObjectURL(cropSrc)
+      setCropSrc(null)
+      await handleLogoUpload(blob, cropExt, cropMime)
+    } catch (e: any) {
+      toastError(`Erreur rognage : ${e.message}`)
+    }
+  }
+
+  const handleCropCancel = () => {
+    if (cropSrc && cropSrcIsLocal) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+    if (logoInputRef.current) logoInputRef.current.value = ''
   }
 
   const handleApplyColor = async (rgbStr: string) => {
@@ -246,16 +336,29 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
                   <Camera className="w-6 h-6 text-gray-500" />
                 )}
               </button>
-              <div className="flex-1">
-                <button
-                  type="button"
-                  disabled={!isTeamOwner || logoUploading}
-                  onClick={() => logoInputRef.current?.click()}
-                  className="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm text-gray-300 hover:text-white hover:border-accent-blue/50 transition-colors disabled:opacity-50"
-                >
-                  {logoUploading ? 'Upload en cours…' : 'Changer le logo'}
-                </button>
-                <p className="text-xs text-gray-600 mt-1">PNG, JPG ou SVG recommandé</p>
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!isTeamOwner || logoUploading}
+                    onClick={() => logoInputRef.current?.click()}
+                    className="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm text-gray-300 hover:text-white hover:border-accent-blue/50 transition-colors disabled:opacity-50"
+                  >
+                    {logoUploading ? 'Upload en cours…' : 'Changer le logo'}
+                  </button>
+                  {team.logo_url && isTeamOwner && (
+                    <button
+                      type="button"
+                      disabled={logoUploading}
+                      onClick={openCropForExisting}
+                      className="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-sm text-gray-300 hover:text-white hover:border-accent-blue/50 transition-colors disabled:opacity-50"
+                      title="Rogner / ajuster le cadrage du logo actuel"
+                    >
+                      Rogner
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-600">PNG, JPG ou SVG recommandé</p>
               </div>
             </div>
 
@@ -308,7 +411,7 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
+              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
             />
             {/* Suggested color */}
             {suggestedColor && (
@@ -480,5 +583,87 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
     </div>
   )
 
-  return createPortal(modal, document.body)
+  // ── Modal de rognage ────────────────────────────────────────────────────────
+  const cropModal = cropSrc ? createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-dark-card border border-dark-border rounded-2xl w-full max-w-sm flex flex-col overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-dark-border shrink-0">
+          <h3 className="font-semibold text-white text-sm">Ajuster le logo</h3>
+          <button onClick={handleCropCancel} className="text-gray-500 hover:text-white transition-colors" aria-label="Annuler">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Zone de rognage */}
+        <div className="relative w-full" style={{ height: 300 }}>
+          <Cropper
+            image={cropSrc}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            cropShape="rect"
+            showGrid={false}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+            style={{
+              containerStyle: { borderRadius: 0, background: '#0f0f13' },
+              cropAreaStyle: { border: '2px solid rgb(var(--color-accent))' },
+            }}
+          />
+        </div>
+
+        {/* Slider zoom */}
+        <div className="px-5 py-4 shrink-0 space-y-3">
+          <div className="flex items-center gap-3">
+            <ZoomOut size={14} className="text-gray-500 shrink-0" />
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="flex-1 accent-accent-blue"
+            />
+            <ZoomIn size={14} className="text-gray-500 shrink-0" />
+          </div>
+          <p className="text-[10px] text-gray-600 text-center">Déplace l'image pour cadrer · glisse le curseur pour zoomer</p>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleCropCancel}
+              className="flex-1 py-2.5 rounded-lg text-sm text-gray-400 hover:text-white bg-dark-bg border border-dark-border transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleCropConfirm}
+              disabled={logoUploading}
+              className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-accent-blue hover:bg-accent-blue/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {logoUploading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {logoUploading ? 'Upload…' : 'Appliquer'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>,
+    document.body
+  ) : null
+
+  return (
+    <>
+      {createPortal(modal, document.body)}
+      {cropModal}
+    </>
+  )
 }
