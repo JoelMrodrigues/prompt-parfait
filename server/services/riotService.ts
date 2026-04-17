@@ -226,6 +226,7 @@ function extractParticipantData(info: MatchInfo, puuid: string): ParticipantData
     championId: participant.championId,
     championName: participant.championName || String(participant.championId),
     opponentChampionName: opponent ? opponent.championName || String(opponent.championId ?? '') : undefined,
+    individualPosition: participant.teamPosition || participant.individualPosition || undefined,
     win: !!participant.win,
     kills: participant.kills ?? 0,
     deaths: participant.deaths ?? 0,

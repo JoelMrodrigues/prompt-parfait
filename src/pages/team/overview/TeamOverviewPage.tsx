@@ -189,7 +189,7 @@ export const TeamOverviewPage = () => {
       accountSource: 'combined',
       seasonStart: SEASON_16_START_MS,
       queueType: 'flex',
-      columns: 'id,player_id,riot_match_id,champion_name,win,kills,deaths,assists,game_creation,game_duration',
+      columns: 'id,player_id,riot_match_id,champion_name,individual_position,win,kills,deaths,assists,game_creation,game_duration',
     }).then(({ data }) => {
       setFlexMatches(data ?? [])
     })
@@ -376,17 +376,23 @@ export const TeamOverviewPage = () => {
   }, [players])
 
   /** Last 8 flex games grouped by riot_match_id (1 entry = 1 game with all participants) */
+  // Riot position → ordre d'affichage (TOP=0 … UTILITY=4)
+  const riotPosOrder = (pos?: string | null) => {
+    const m: Record<string, number> = { TOP: 0, JUNGLE: 1, MIDDLE: 2, BOTTOM: 3, UTILITY: 4 }
+    return m[(pos ?? '').toUpperCase()] ?? 9
+  }
+
   const recentFlexGames = useMemo(() => {
     const groups = new Map<string, {
       key: string; win: boolean; game_creation: number; game_duration: number;
-      participants: Array<{ player_id: string; champion_name: string }>
+      participants: Array<{ player_id: string; champion_name: string; individual_position: string | null }>
     }>()
     for (const m of flexMatches) {
       const key = m.riot_match_id ?? String(m.game_creation)
       if (!groups.has(key)) {
         groups.set(key, { key, win: m.win, game_creation: m.game_creation ?? 0, game_duration: m.game_duration ?? 0, participants: [] })
       }
-      groups.get(key)!.participants.push({ player_id: m.player_id, champion_name: m.champion_name })
+      groups.get(key)!.participants.push({ player_id: m.player_id, champion_name: m.champion_name, individual_position: m.individual_position ?? null })
     }
     return Array.from(groups.values())
       .sort((a, b) => b.game_creation - a.game_creation)
@@ -1332,9 +1338,9 @@ export const TeamOverviewPage = () => {
                     ))}
                   </div>
 
-                  {/* Detail rows — 1 row = 1 game, jusqu'à 8 pour remplir la hauteur */}
+                  {/* Detail rows — 1 row = 1 game, jusqu'à 7 pour remplir la hauteur */}
                   <div className="space-y-1.5">
-                    {recentFlexGames.map((g, i) => {
+                    {recentFlexGames.slice(0, 7).map((g, i) => {
                       const duration = g.game_duration
                         ? `${Math.round(g.game_duration / 60)} min`
                         : ''
@@ -1345,7 +1351,7 @@ export const TeamOverviewPage = () => {
                           })
                         : ''
                       const sortedParticipants = [...g.participants].sort(
-                        (a, b) => byRoleOrder(playersById[a.player_id]?.position) - byRoleOrder(playersById[b.player_id]?.position)
+                        (a, b) => riotPosOrder(a.individual_position) - riotPosOrder(b.individual_position)
                       )
                       return (
                         <div

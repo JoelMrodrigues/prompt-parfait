@@ -66,6 +66,7 @@ export interface ParticipantData {
   championId: number
   championName: string
   opponentChampionName?: string
+  individualPosition?: string
   win: boolean
   kills: number
   deaths: number

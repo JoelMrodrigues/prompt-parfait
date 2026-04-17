@@ -11,6 +11,7 @@ export interface SoloqMatchRow {
   champion_id: number | null
   champion_name: string | null
   opponent_champion: string | null
+  individual_position: string | null
   win: boolean
   kills: number
   deaths: number
@@ -40,6 +41,7 @@ export function buildSoloqMatchRow(
     champion_id: m.championId ?? null,
     champion_name: m.championName ?? null,
     opponent_champion: m.opponentChampionName ?? null,
+    individual_position: m.individualPosition ?? null,
     win: !!m.win,
     kills: m.kills ?? 0,
     deaths: m.deaths ?? 0,
