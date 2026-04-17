@@ -113,7 +113,7 @@ const TeamContext = createContext<TeamContextValue>({} as TeamContextValue)
 export const useTeam = () => useContext(TeamContext)
 
 export const TeamProvider = ({ children }: { children: ReactNode }) => {
-  const { user, profile, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth()
   const [team, setTeam] = useState<Team | null>(null)
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [players, setPlayers] = useState<Player[]>([])
@@ -125,6 +125,11 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   const lastParamsRef = useRef<string>('')
 
   useEffect(() => {
+    // Attendre que le profil soit chargé avant de fetcher l'équipe — évite la race
+    // condition où user est défini mais profile.active_team_id est encore undefined,
+    // ce qui écrase l'active_team_id en base avec teamsData[0].
+    if (authLoading) return
+
     if (user && supabase) {
       fetchTeam()
     } else {
@@ -139,7 +144,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
         setMyPlayerId(null)
       }
     }
-  }, [user?.id, profile?.active_team_id])
+  }, [user?.id, profile?.active_team_id, authLoading])
 
   const fetchTeam = async (overrideTeamId?: string) => {
     if (!supabase) { setLoading(false); return }

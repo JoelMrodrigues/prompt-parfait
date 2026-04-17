@@ -68,6 +68,7 @@ export const TeamSidebar = () => {
   const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
   const [, setTick] = useState(0)
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [switchingTeamId, setSwitchingTeamId] = useState<string | null>(null)
   const [creatingTeam, setCreatingTeam] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -109,8 +110,14 @@ export const TeamSidebar = () => {
     : 'En attente de sync…'
 
   const handleSwitch = async (teamId: string) => {
+    if (switchingTeamId || teamId === team?.id) return
+    setSwitchingTeamId(teamId)
     setSwitcherOpen(false)
-    await switchTeam(teamId)
+    try {
+      await switchTeam(teamId)
+    } finally {
+      setSwitchingTeamId(null)
+    }
   }
 
   const handleCreateTeam = async (e: React.FormEvent) => {
@@ -228,7 +235,8 @@ export const TeamSidebar = () => {
                   <li key={t.id}>
                     <button
                       onClick={() => handleSwitch(t.id)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-dark-card transition-colors"
+                      disabled={!!switchingTeamId}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-dark-card transition-colors disabled:opacity-60"
                     >
                       <div
                         className={`w-5 h-5 rounded shrink-0 flex items-center justify-center overflow-hidden ${t.logo_url ? '' : 'bg-accent-blue/15'}`}
@@ -254,9 +262,11 @@ export const TeamSidebar = () => {
                       >
                         {t.team_name}
                       </span>
-                      {t.id === team?.id && (
+                      {switchingTeamId === t.id ? (
+                        <span className="w-3 h-3 border-2 border-accent-blue/40 border-t-accent-blue rounded-full animate-spin shrink-0" />
+                      ) : t.id === team?.id ? (
                         <Check size={13} className="text-accent-blue shrink-0" />
-                      )}
+                      ) : null}
                     </button>
                   </li>
                 ))}

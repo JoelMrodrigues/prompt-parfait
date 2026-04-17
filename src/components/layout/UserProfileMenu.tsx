@@ -36,10 +36,15 @@ export const UserProfileMenu = () => {
 
   const displayName = profile?.display_name || user.email?.split('@')[0] || 'Joueur'
 
+  const [signingOut, setSigningOut] = useState(false)
+
   const handleSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
     setOpen(false)
-    await signOut()
+    // Naviguer immédiatement — ne pas attendre la fin de signOut (qui peut être lent)
     navigate('/')
+    signOut().catch(() => {}).finally(() => setSigningOut(false))
   }
 
   return (
@@ -101,10 +106,11 @@ export const UserProfileMenu = () => {
           <div className="border-t border-dark-border py-1">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+              disabled={signingOut}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
             >
               <LogOut size={15} />
-              Se déconnecter
+              {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
             </button>
           </div>
         </div>
