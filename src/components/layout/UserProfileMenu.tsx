@@ -10,6 +10,7 @@ export const UserProfileMenu = () => {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Fermer au clic extérieur
@@ -35,8 +36,6 @@ export const UserProfileMenu = () => {
   }
 
   const displayName = profile?.display_name || user.email?.split('@')[0] || 'Joueur'
-
-  const [signingOut, setSigningOut] = useState(false)
 
   const handleSignOut = async () => {
     if (signingOut) return
