@@ -136,11 +136,10 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
         return
       }
       const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path)
-      // Suffixe cache-buster pour forcer le navigateur à refetch (évite l'ancienne réponse 400 en cache)
-      const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`
+      const publicUrl = urlData.publicUrl
       await updateTeam(team.id, { logo_url: publicUrl })
       toastSuccess('Logo mis à jour !')
-      const color = await extractDominantColor(urlData.publicUrl)
+      const color = await extractDominantColor(publicUrl)
       if (color) setSuggestedColor(color)
     } catch (e: any) {
       toastError(`Erreur : ${e.message}`)
