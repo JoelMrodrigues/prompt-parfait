@@ -410,12 +410,12 @@ export function useTeamAutoSync() {
           }
         }
 
-        // ─── Passe secondaire : comptes alternatifs (soloq uniquement, ignorée pour flex) ─────
-        const withSecondary = isFlexTeam ? [] : listToSync.filter((p) => {
+        // ─── Passe secondaire : comptes alternatifs (soloq + flex selon type d'équipe) ───────
+        const withSecondary = listToSync.filter((p) => {
           const s = ((p.secondary_account || '') as string).trim()
           return s.length > 0 && (s.includes('#') || s.includes('/'))
         })
-        logger.debug(LOG_PREFIX, isFlexTeam ? '--- Passe secondaire ignorée (équipe flex) ---' : `--- Passe secondaire --- ${withSecondary.length} joueur(s) avec alt`)
+        logger.debug(LOG_PREFIX, `--- Passe secondaire --- ${withSecondary.length} joueur(s) avec alt (queue: ${isFlexTeam ? 'flex' : 'soloq'})`)
 
         for (let i = 0; i < withSecondary.length; i++) {
           if (abortRef.current) break
@@ -436,11 +436,11 @@ export function useTeamAutoSync() {
 
           try {
             // 1) Total S16
-            let countRes = await apiFetch(`/api/riot/match-count?${buildParams()}`, { signal })
+            let countRes = await apiFetch(`/api/riot/match-count?${buildParams()}${queueSuffix}`, { signal })
             let countData = await countRes.json().catch(() => ({}))
             if (countRes.status === 429 && (countData.retry_after ?? countData.retryAfter)) {
               await delay(Math.max(2000, (countData.retry_after ?? countData.retryAfter) * 1000))
-              countRes = await apiFetch(`/api/riot/match-count?${buildParams()}`, { signal })
+              countRes = await apiFetch(`/api/riot/match-count?${buildParams()}${queueSuffix}`, { signal })
               countData = await countRes.json().catch(() => ({}))
             }
             if (!countData.success || typeof countData.total !== 'number') {
@@ -469,7 +469,7 @@ export function useTeamAutoSync() {
             while (allRiotIds.length < totalRiot && pageCount < MAX_PAGES) {
               if (abortRef.current) break
               pageCount++
-              const idsRes = await apiFetch(`/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}`, { signal })
+              const idsRes = await apiFetch(`/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}${queueSuffix}`, { signal })
               const idsData = await idsRes.json().catch(() => ({}))
               if (idsRes.status === 429) { await delay(Math.max(2000, ((idsData.retry_after ?? idsData.retryAfter) || 2) * 1000)); pageCount--; continue }
               if (!idsData.success || !Array.isArray(idsData.matchIds)) { logger.warn(LOG_PREFIX, name, '(alt) | match-ids erreur'); break }
@@ -482,7 +482,7 @@ export function useTeamAutoSync() {
             const idsToSync = allRiotIds.slice(0, totalRiot)
 
             // 3) Diff avec base
-            const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'secondary', SEASON_16_START_MS)
+            const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'secondary', SEASON_16_START_MS, isFlexTeam ? 'flex' : undefined)
             const existingSet = new Set(existingIds || [])
             const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
 
@@ -491,14 +491,14 @@ export function useTeamAutoSync() {
               for (let c = 0; c < missingIds.length; c += DETAILS_CHUNK) {
                 const chunk = missingIds.slice(c, c + DETAILS_CHUNK)
                 try {
-                  const detailsRes = await apiFetch(`/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}`, { signal })
+                  const detailsRes = await apiFetch(`/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}${queueSuffix}`, { signal })
                   const detailsData = await detailsRes.json().catch(() => ({}))
                   if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
                     await delay(Math.max(2000, (detailsData.retry_after ?? detailsData.retryAfter) * 1000))
                     c -= DETAILS_CHUNK; continue
                   }
                   if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0) {
-                    const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'secondary'))
+                    const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'secondary', isFlexTeam ? 'flex' : 'soloq'))
                     await upsertSoloqMatches(rows)
                   }
                 } catch (err) {

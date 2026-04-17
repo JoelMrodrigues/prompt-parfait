@@ -514,8 +514,8 @@ const SOLOQ_TABS: { id: SoloqTab; label: string }[] = [
 
 function PlayerSoloQStats({ playerId, player, queueType }: { playerId: string; player?: any; queueType?: string }) {
   const isFlexMode = queueType === 'flex'
-  const hasSecondary = !isFlexMode && !!player?.secondary_account
-  const [accountSource, setAccountSource] = useState('primary')
+  const hasSecondary = !!player?.secondary_account
+  const [accountSource, setAccountSource] = useState(isFlexMode && hasSecondary ? 'combined' : 'primary')
   const { rows, loading } = useSoloqStats(playerId, accountSource, queueType)
   const [tab, setTab] = useState<SoloqTab>('stats')
 

@@ -288,7 +288,7 @@ function FlexMatchesView({ players }: { players: any[] }) {
     setLoading(true)
     fetchMultiPlayerSoloqMatches({
       playerIds: players.map((p) => p.id),
-      accountSource: 'primary',
+      accountSource: 'combined',
       seasonStart: SEASON_16_START_MS,
       queueType: 'flex',
       columns: 'player_id,riot_match_id,win,kills,deaths,assists,champion_name,game_creation,game_duration',

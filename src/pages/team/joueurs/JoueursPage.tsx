@@ -52,7 +52,7 @@ export const JoueursPage = () => {
       if (toFetch.length > 0) {
         const { data } = await fetchMultiPlayerSoloqMatches({
           playerIds: toFetch.map((p) => p.id),
-          accountSource: 'primary',
+          accountSource: isFlexTeam ? 'combined' : 'primary',
           seasonStart: SEASON_16_START_MS,
           minDuration: REMAKE_THRESHOLD_SEC,
           columns: 'player_id,win,kills,deaths,assists,game_duration',
@@ -89,7 +89,7 @@ export const JoueursPage = () => {
     const load = async () => {
       const { data } = await fetchMultiPlayerSoloqMatches({
         playerIds: players.map((p) => p.id),
-        accountSource: 'primary',
+        accountSource: isFlexTeam ? 'combined' : 'primary',
         seasonStart: SEASON_16_START_MS,
         minDuration: REMAKE_THRESHOLD_SEC,
         columns: 'player_id,win,kills,deaths,assists,game_duration,total_damage,gold_earned,match_json',

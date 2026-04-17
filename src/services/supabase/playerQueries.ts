@@ -243,9 +243,10 @@ export async function fetchMultiPlayerSoloqMatches({
     .from('player_soloq_matches')
     .select(columns)
     .in('player_id', playerIds)
-    .eq('account_source', accountSource)
     .gte('game_creation', seasonStart)
     .order('game_creation', { ascending: false })
+  // 'combined' = pas de filtre account_source (primary + secondary)
+  if (accountSource !== 'combined') query = query.eq('account_source', accountSource)
   if (minDuration) query = query.gte('game_duration', minDuration)
   if (queueType) query = query.eq('queue_type', queueType)
   const { data, error } = await query

@@ -186,7 +186,7 @@ export const TeamOverviewPage = () => {
     const playerIds = players.map((p) => p.id)
     fetchMultiPlayerSoloqMatches({
       playerIds,
-      accountSource: 'primary',
+      accountSource: 'combined',
       seasonStart: SEASON_16_START_MS,
       queueType: 'flex',
       columns: 'id,player_id,champion_name,win,kills,deaths,assists,game_creation,game_duration',
