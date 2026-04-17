@@ -126,7 +126,8 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
     setLogoUploading(true)
     try {
       const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
-      const path = `${team.id}/logo.${ext}`
+      // Nom unique avec timestamp pour bypasser le cache CDN Supabase
+      const path = `${team.id}/${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage
         .from('team-logos')
         .upload(path, file, { upsert: true, cacheControl: '3600' })
@@ -137,6 +138,13 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
       }
       const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path)
       const publicUrl = urlData.publicUrl
+      // Supprimer l'ancien fichier si l'URL change (évite accumulation de logos orphelins)
+      if (team.logo_url) {
+        const oldPath = team.logo_url.split('/team-logos/')[1]?.split('?')[0]
+        if (oldPath && oldPath !== path) {
+          supabase.storage.from('team-logos').remove([oldPath]).catch(() => {})
+        }
+      }
       await updateTeam(team.id, { logo_url: publicUrl })
       toastSuccess('Logo mis à jour !')
       const color = await extractDominantColor(publicUrl)
