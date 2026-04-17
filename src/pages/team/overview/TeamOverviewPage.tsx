@@ -1332,9 +1332,9 @@ export const TeamOverviewPage = () => {
                     ))}
                   </div>
 
-                  {/* Last 5 detail rows — 1 row = 1 game */}
+                  {/* Detail rows — 1 row = 1 game, jusqu'à 8 pour remplir la hauteur */}
                   <div className="space-y-1.5">
-                    {recentFlexGames.slice(0, 5).map((g, i) => {
+                    {recentFlexGames.map((g, i) => {
                       const duration = g.game_duration
                         ? `${Math.round(g.game_duration / 60)} min`
                         : ''
@@ -1344,6 +1344,9 @@ export const TeamOverviewPage = () => {
                             month: 'short',
                           })
                         : ''
+                      const sortedParticipants = [...g.participants].sort(
+                        (a, b) => byRoleOrder(playersById[a.player_id]?.position) - byRoleOrder(playersById[b.player_id]?.position)
+                      )
                       return (
                         <div
                           key={g.key || i}
@@ -1363,7 +1366,7 @@ export const TeamOverviewPage = () => {
                             {g.win ? 'V' : 'D'}
                           </span>
                           <div className="flex items-center gap-1.5 flex-1">
-                            {g.participants.map((p, pi) => (
+                            {sortedParticipants.map((p, pi) => (
                               p.champion_name ? (
                                 <img
                                   key={pi}
