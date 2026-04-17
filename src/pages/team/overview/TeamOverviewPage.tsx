@@ -189,7 +189,7 @@ export const TeamOverviewPage = () => {
       accountSource: 'combined',
       seasonStart: SEASON_16_START_MS,
       queueType: 'flex',
-      columns: 'id,player_id,champion_name,win,kills,deaths,assists,game_creation,game_duration',
+      columns: 'id,player_id,riot_match_id,champion_name,win,kills,deaths,assists,game_creation,game_duration',
     }).then(({ data }) => {
       setFlexMatches(data ?? [])
     })
@@ -375,19 +375,34 @@ export const TeamOverviewPage = () => {
     return m
   }, [players])
 
-  /** Last 8 flex games across all players, sorted by date (flexMatches already sorted desc) */
-  const recentFlexMatches = useMemo(() => flexMatches.slice(0, 8), [flexMatches])
+  /** Last 8 flex games grouped by riot_match_id (1 entry = 1 game with all participants) */
+  const recentFlexGames = useMemo(() => {
+    const groups = new Map<string, {
+      key: string; win: boolean; game_creation: number; game_duration: number;
+      participants: Array<{ player_id: string; champion_name: string }>
+    }>()
+    for (const m of flexMatches) {
+      const key = m.riot_match_id ?? String(m.game_creation)
+      if (!groups.has(key)) {
+        groups.set(key, { key, win: m.win, game_creation: m.game_creation ?? 0, game_duration: m.game_duration ?? 0, participants: [] })
+      }
+      groups.get(key)!.participants.push({ player_id: m.player_id, champion_name: m.champion_name })
+    }
+    return Array.from(groups.values())
+      .sort((a, b) => b.game_creation - a.game_creation)
+      .slice(0, 8)
+  }, [flexMatches])
 
   const flexRecentStreak = useMemo(() => {
-    if (!recentFlexMatches.length) return null
-    const first = recentFlexMatches[0]?.win
+    if (!recentFlexGames.length) return null
+    const first = recentFlexGames[0]?.win
     let count = 0
-    for (const m of recentFlexMatches) {
-      if (m.win !== first) break
+    for (const g of recentFlexGames) {
+      if (g.win !== first) break
       count++
     }
     return count >= 2 ? { count, win: first } : null
-  }, [recentFlexMatches])
+  }, [recentFlexGames])
 
   /** Top champions from flex matches — overall top 5 + top 3 per player */
   const flexChampionStats = useMemo(() => {
@@ -1297,71 +1312,68 @@ export const TeamOverviewPage = () => {
             </div>
 
             {isFlexTeam ? (
-              /* ── Flex : même format que les scrims ── */
-              recentFlexMatches.length > 0 ? (
+              /* ── Flex : même format que les scrims (1 ligne = 1 game) ── */
+              recentFlexGames.length > 0 ? (
                 <div className="space-y-4">
                   {/* V/D pills */}
                   <div className="flex gap-1.5 flex-wrap">
-                    {recentFlexMatches.map((m: any, i: number) => (
+                    {recentFlexGames.map((g, i) => (
                       <div
-                        key={m.id || i}
+                        key={g.key || i}
                         className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
-                          m.win
+                          g.win
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                             : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                         }`}
-                        title={`${m.win ? 'Victoire' : 'Défaite'}${m.champion_name ? ` — ${m.champion_name}` : ''}`}
+                        title={g.win ? 'Victoire' : 'Défaite'}
                       >
-                        {m.win ? 'V' : 'D'}
+                        {g.win ? 'V' : 'D'}
                       </div>
                     ))}
                   </div>
 
-                  {/* Last 5 detail rows */}
+                  {/* Last 5 detail rows — 1 row = 1 game */}
                   <div className="space-y-1.5">
-                    {recentFlexMatches.slice(0, 5).map((m: any, i: number) => {
-                      const player = playersById[m.player_id]
-                      const duration = m.game_duration
-                        ? `${Math.round(m.game_duration / 60)} min`
+                    {recentFlexGames.slice(0, 5).map((g, i) => {
+                      const duration = g.game_duration
+                        ? `${Math.round(g.game_duration / 60)} min`
                         : ''
-                      const date = m.game_creation
-                        ? new Date(m.game_creation).toLocaleDateString('fr-FR', {
+                      const date = g.game_creation
+                        ? new Date(g.game_creation).toLocaleDateString('fr-FR', {
                             day: 'numeric',
                             month: 'short',
                           })
                         : ''
                       return (
                         <div
-                          key={m.id || i}
+                          key={g.key || i}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border ${
-                            m.win
+                            g.win
                               ? 'bg-emerald-500/5 border-emerald-500/20'
                               : 'bg-rose-500/5 border-rose-500/20'
                           }`}
                         >
                           <span
                             className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                              m.win
+                              g.win
                                 ? 'bg-emerald-500/20 text-emerald-400'
                                 : 'bg-rose-500/20 text-rose-400'
                             }`}
                           >
-                            {m.win ? 'V' : 'D'}
+                            {g.win ? 'V' : 'D'}
                           </span>
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {m.champion_name && (
-                              <img
-                                src={getChampionImage(m.champion_name)}
-                                alt={m.champion_name}
-                                title={m.champion_name}
-                                className="w-9 h-9 rounded-lg border border-dark-border/60 object-cover shrink-0"
-                              />
-                            )}
-                            {player && (
-                              <span className="text-sm font-medium text-white truncate">
-                                {player.player_name}
-                              </span>
-                            )}
+                          <div className="flex items-center gap-1.5 flex-1">
+                            {g.participants.map((p, pi) => (
+                              p.champion_name ? (
+                                <img
+                                  key={pi}
+                                  src={getChampionImage(p.champion_name)}
+                                  alt={p.champion_name}
+                                  title={`${playersById[p.player_id]?.player_name ?? ''} — ${p.champion_name}`}
+                                  className="w-9 h-9 rounded-lg border border-dark-border/60 object-cover"
+                                />
+                              ) : null
+                            ))}
                           </div>
                           <span className="text-gray-500 text-xs shrink-0 text-right leading-tight">
                             {date && <span className="block">{date}</span>}
