@@ -128,9 +128,11 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
       const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
       // Nom unique avec timestamp pour bypasser le cache CDN Supabase
       const path = `${team.id}/${Date.now()}.${ext}`
+      // Blob explicite — le SDK Supabase peut uploader un File vide dans certaines versions
+      const blob = new Blob([await file.arrayBuffer()], { type: file.type })
       const { error: uploadError } = await supabase.storage
         .from('team-logos')
-        .upload(path, file, { upsert: true, cacheControl: '3600' })
+        .upload(path, blob, { contentType: file.type, upsert: true, cacheControl: '3600' })
       if (uploadError) {
         console.error('[TeamEditModal] upload error:', uploadError)
         toastError(`Erreur upload : ${uploadError.message}`)
