@@ -45,9 +45,11 @@ export function usePlayerDetail(playerSlug: string | undefined) {
     selectedSoloqAccount === 2 ? 'secondary' :
     'combined'
   const totalFromRiot =
-    selectedSoloqAccount === 1 ? (player?.soloq_total_match_ids ?? null) :
+    selectedSoloqAccount === 1 ? (isFlexTeam ? (player?.soloq_total_match_ids_flex ?? null) : (player?.soloq_total_match_ids ?? null)) :
     selectedSoloqAccount === 2 ? (player?.soloq_total_match_ids_secondary ?? null) :
-    ((player?.soloq_total_match_ids ?? 0) + (player?.soloq_total_match_ids_secondary ?? 0)) || null
+    isFlexTeam
+      ? ((player?.soloq_total_match_ids_flex ?? 0) + (player?.soloq_total_match_ids_secondary ?? 0)) || null
+      : ((player?.soloq_total_match_ids ?? 0) + (player?.soloq_total_match_ids_secondary ?? 0)) || null
 
   // ─── Team data ────────────────────────────────────────────────────────────
   const { matches: allTeamMatches } = useTeamMatches(team?.id)

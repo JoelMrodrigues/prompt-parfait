@@ -562,12 +562,12 @@ export const PlayerDetailPage = () => {
           <ArrowLeft size={18} />
           Retour aux joueurs
         </button>
-        {/* Sélecteur compte — uniquement si le joueur a un compte secondaire configuré et équipe non-flex */}
-        {!isFlexTeam && player.secondary_account && (
+        {/* Sélecteur compte — si le joueur a un compte secondaire configuré */}
+        {player.secondary_account && (
           <div className="flex gap-2">
             {[
-              { idx: 1, label: player.pseudo || 'Compte 1', rank: player.rank },
-              { idx: 2, label: player.secondary_account, rank: player.rank_secondary ?? null },
+              { idx: 1, label: player.pseudo || 'Compte 1', rank: isFlexTeam ? player.rank_flex : player.rank },
+              { idx: 2, label: player.secondary_account, rank: isFlexTeam ? null : (player.rank_secondary ?? null) },
               { idx: 0, label: 'Combiné', rank: null },
             ].map(({ idx, label, rank }) => {
               const isActive = d.selectedSoloqAccount === idx
