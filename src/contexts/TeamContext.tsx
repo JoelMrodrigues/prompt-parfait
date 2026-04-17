@@ -3,7 +3,7 @@
  * Un seul fetch Supabase pour toute l'app, partagé entre toutes les pages.
  */
 import { createContext, useContext, useState, useEffect, useRef, useMemo, ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, normalizeStorageUrl } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { perf } from '../lib/logger'
 import {
@@ -174,18 +174,18 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false); return
       }
 
-      setAllTeams(teamsData || [])
+      const normalizeTeam = (t: Team): Team => ({ ...t, logo_url: normalizeStorageUrl(t.logo_url) })
+      const normalizedTeams = (teamsData || []).map(normalizeTeam)
+      setAllTeams(normalizedTeams)
 
       let activeTeam = null
       if (knownTeamId) {
-        activeTeam = teamsData?.find((t) => t.id === knownTeamId) ?? null
+        activeTeam = normalizedTeams.find((t) => t.id === knownTeamId) ?? null
       }
-      if (!activeTeam && teamsData?.length > 0) {
-        activeTeam = teamsData[0]
+      if (!activeTeam && normalizedTeams.length > 0) {
+        activeTeam = normalizedTeams[0]
         if (user && !knownTeamId) {
           await upsertProfile(user.id, { active_team_id: activeTeam.id })
-          // Pré-mettre à jour lastParamsRef pour que le prochain useEffect
-          // (déclenché par profile.active_team_id null→UUID) ne relance pas fetchTeam
           lastParamsRef.current = `${user.id}|${activeTeam.id}`
         }
       }
@@ -262,8 +262,9 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   const updateTeam = async (teamId: string, updates: Partial<Team>) => {
     const { data, error } = await updateTeamQuery(teamId, updates)
     if (error) throw error
-    setTeam(data)
-    return data
+    const normalized = { ...data, logo_url: normalizeStorageUrl(data.logo_url) }
+    setTeam(normalized)
+    return normalized
   }
 
   const deleteTeam = async (teamId: string) => {

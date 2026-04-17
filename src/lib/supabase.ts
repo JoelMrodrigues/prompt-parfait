@@ -26,6 +26,19 @@ export const supabase =
 export const isSupabaseConfigured = supabase !== null
 
 /**
+ * Normalise une URL de logo Supabase Storage pour s'assurer qu'elle utilise
+ * le chemin public (/object/public/...). Corrige les anciennes URLs stockées
+ * sans /public/ dans le chemin.
+ */
+export function normalizeStorageUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.includes('/storage/v1/object/') && !url.includes('/storage/v1/object/public/')) {
+    return url.replace('/storage/v1/object/', '/storage/v1/object/public/')
+  }
+  return url
+}
+
+/**
  * Ping de warmup — envoie une requête ultra-légère dès le chargement du module.
  * Supabase/PostgREST a un cold start de ~10s sur la première connexion.
  * Ce ping initialise la connexion TLS + le pool avant que l'utilisateur
