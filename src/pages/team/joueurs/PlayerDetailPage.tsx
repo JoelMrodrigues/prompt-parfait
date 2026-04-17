@@ -661,9 +661,9 @@ export const PlayerDetailPage = () => {
         </div>
       </div>
 
-      {/* 5 cartes principales */}
-      <div className="grid grid-cols-5 gap-3">
-        {MAIN_CARDS.map((card) => {
+      {/* Cartes principales (sans Team pour les équipes flex) */}
+      <div className={`grid gap-3 ${isFlexTeam ? 'grid-cols-4' : 'grid-cols-5'}`}>
+        {MAIN_CARDS.filter((card) => !(card.id === 'team' && isFlexTeam)).map((card) => {
           const label = (card.id === 'soloq' && isFlexTeam) ? 'Flex' : card.label
           const Icon = card.icon
           const isActive = d.selectedCard === card.id
@@ -847,8 +847,8 @@ export const PlayerDetailPage = () => {
           </>
         )}
 
-        {/* ── Team ── */}
-        {d.selectedCard === 'team' && (
+        {/* ── Team (masqué pour les équipes flex) ── */}
+        {d.selectedCard === 'team' && !isFlexTeam && (
           <>
             {d.selectedTeamSub === 'statistiques' && (
               <div className="space-y-6">
