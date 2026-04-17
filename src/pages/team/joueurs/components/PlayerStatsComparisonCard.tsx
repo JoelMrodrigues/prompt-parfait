@@ -44,7 +44,7 @@ export function PlayerStatsComparisonCard({
   soloqStats: DetailedStats
   isFlexTeam?: boolean
 }) {
-  const [mode, setMode] = useState<'team' | 'soloq'>('team')
+  const [mode, setMode] = useState<'team' | 'soloq'>(isFlexTeam ? 'soloq' : 'team')
   const stats = mode === 'team' ? teamStats : soloqStats
 
   const sorted = useMemo(() => sortByRole(players), [players])
@@ -96,27 +96,29 @@ export function PlayerStatsComparisonCard({
         </h3>
       </div>
 
-      {/* Toggle centré */}
-      <div className="flex justify-center mb-5">
-        <div className="flex items-center bg-dark-bg border border-dark-border rounded-xl p-1 gap-1">
-          <button
-            onClick={() => setMode('team')}
-            className={`px-6 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'team' ? 'bg-accent-blue !text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Team
-          </button>
-          <button
-            onClick={() => setMode('soloq')}
-            className={`px-6 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'soloq' ? 'bg-accent-blue !text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            {isFlexTeam ? 'Flex' : 'Solo Q'}
-          </button>
+      {/* Toggle centré — masqué pour les équipes flex */}
+      {!isFlexTeam && (
+        <div className="flex justify-center mb-5">
+          <div className="flex items-center bg-dark-bg border border-dark-border rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setMode('team')}
+              className={`px-6 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                mode === 'team' ? 'bg-accent-blue !text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Team
+            </button>
+            <button
+              onClick={() => setMode('soloq')}
+              className={`px-6 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                mode === 'soloq' ? 'bg-accent-blue !text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Solo Q
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Colonnes header */}
       <div className={`grid ${GRID} gap-2 px-3 mb-2`}>
