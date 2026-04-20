@@ -1645,9 +1645,7 @@ const FLEX_ROLE_COLORS: Record<string, { text: string; bg: string; border: strin
 function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => void }) {
   const { rows, loading } = useFlexTeamGames(players)
   const [comboSize, setComboSize] = useState(2)
-  const [showAdversary, setShowAdversary] = useState(false)
 
-  // Grouper par riot_match_id → 1 entrée par partie avec les champions de notre équipe
   const ourGames = useMemo(() => {
     const groups = new Map<string, { key: string; win: boolean; champions: string[] }>()
     for (const r of rows) {
@@ -1658,22 +1656,9 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
     return Array.from(groups.values()).filter((g) => g.champions.length >= 2)
   }, [rows])
 
-  // IDs des parties avec riot_match_id valide (pour le fetch adverses)
-  const validGameIds = useMemo(
-    () => ourGames.map((g) => g.key).filter((k) => !k.startsWith('solo_')),
-    [ourGames],
-  )
-
-  const { enemyGames, loading: enemyLoading } = useFlexEnemyGames(players, validGameIds, showAdversary)
-
-  // Source de données selon le toggle
-  const source = showAdversary
-    ? enemyGames.map((g) => ({ champions: g.enemyChampions, win: g.win }))
-    : ourGames
-
   const combos = useMemo(() => {
     const byCombo = new Map<string, { games: number; wins: number; names: string[] }>()
-    for (const g of source) {
+    for (const g of ourGames) {
       if (g.champions.length < comboSize) continue
       const cs = getCombinations(g.champions, comboSize)
       for (const combo of cs) {
@@ -1681,7 +1666,6 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
         const k = sorted.join('|')
         if (!byCombo.has(k)) byCombo.set(k, { games: 0, wins: 0, names: sorted })
         byCombo.get(k)!.games++
-        // win = on a gagné contre eux (adversaires) / avec eux (notre équipe)
         if (g.win) byCombo.get(k)!.wins++
       }
     }
@@ -1689,9 +1673,7 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
       .map((c) => ({ ...c, winrate: Math.round((c.wins / c.games) * 100), losses: c.games - c.wins }))
       .sort((a, b) => b.games - a.games)
       .slice(0, 20)
-  }, [source, comboSize])
-
-  const isLoading = loading || (showAdversary && enemyLoading)
+  }, [ourGames, comboSize])
 
   return (
     <div>
@@ -1710,35 +1692,7 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
         <EmptyStats type="soloq" />
       ) : (
         <>
-          {/* Contrôles : Notre équipe / Adversaires + taille combo */}
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            {/* Toggle Notre équipe / Adversaires */}
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => setShowAdversary(false)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  !showAdversary
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
-                }`}
-              >
-                Notre équipe
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAdversary(true)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  showAdversary
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
-                }`}
-              >
-                Adversaires
-              </button>
-            </div>
-
-            {/* Taille du combo */}
             <div className="flex gap-1">
               {COMBO_SIZES.filter((c) => c.size <= Math.min(5, players.length)).map(({ size, label }) => (
                 <button
@@ -1755,28 +1709,16 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
                 </button>
               ))}
             </div>
-
             <span className="text-xs text-gray-600">
-              {showAdversary
-                ? `${enemyGames.length} parties avec données adverses`
-                : `${ourGames.length} partie${ourGames.length > 1 ? 's' : ''} avec 2+ membres de l'équipe`}
+              {ourGames.length} partie{ourGames.length > 1 ? 's' : ''} avec 2+ membres de l'équipe
             </span>
           </div>
 
-          {/* Légende contextuelle */}
-          <p className="text-xs text-gray-600 mb-4">
-            {showAdversary
-              ? 'WR = % de nos victoires face à ce combo adverse'
-              : 'WR = % de victoires quand on joue ce combo'}
-          </p>
-
-          {isLoading ? (
+          {loading ? (
             <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
           ) : combos.length === 0 ? (
             <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center text-gray-500 text-sm">
-              {showAdversary
-                ? 'Pas de données adverses disponibles (match_json requis).'
-                : `Pas assez de parties à ${comboSize} joueurs ensemble.`}
+              Pas assez de parties à {comboSize} joueurs ensemble.
             </div>
           ) : (
             <div className="rounded-xl border border-dark-border overflow-hidden">
@@ -1785,10 +1727,8 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
                   <tr className="bg-dark-bg/80 text-gray-400 text-left">
                     <th className="px-4 py-3 w-8">#</th>
                     <th className="px-4 py-3">Combinaison</th>
-                    <th className="px-4 py-3 text-center">Rencontré</th>
-                    <th className="px-4 py-3 text-center">
-                      {showAdversary ? 'Nos V%' : 'Winrate'}
-                    </th>
+                    <th className="px-4 py-3 text-center">Joué</th>
+                    <th className="px-4 py-3 text-center">Winrate</th>
                     <th className="px-4 py-3 text-center">V / D</th>
                   </tr>
                 </thead>
