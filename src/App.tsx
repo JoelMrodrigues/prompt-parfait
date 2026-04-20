@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { TeamProvider } from './contexts/TeamContext'
 import { ToastProvider, useToast } from './contexts/ToastContext'
@@ -48,6 +48,8 @@ const ProTeams = lazy(() => import('./pages/stats/ProTeams').then(m => ({ defaul
 const ProPlayers = lazy(() => import('./pages/stats/ProPlayers').then(m => ({ default: m.ProPlayers })))
 const ProTournaments = lazy(() => import('./pages/stats/ProTournaments').then(m => ({ default: m.ProTournaments })))
 
+const AdminPage = lazy(() => import('./pages/admin/AdminPage').then(m => ({ default: m.AdminPage })))
+
 // Fallback minimal pendant le chargement lazy
 function PageLoader() {
   return (
@@ -55,6 +57,12 @@ function PageLoader() {
       <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" />
     </div>
   )
+}
+
+function AdminRedirect() {
+  const { isAdmin, loading } = useAuth()
+  if (loading) return null
+  return isAdmin ? <Navigate to="/admin" replace /> : null
 }
 
 function AppRoutes() {
@@ -78,7 +86,7 @@ function AppRoutes() {
       <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
+          <Route index element={<><AdminRedirect /><Home /></>} />
           <Route path="draft" element={DraftRoute} />
           <Route path="team" element={TeamRoute}>
             <Route index element={<TeamOverviewPage />} />
@@ -108,6 +116,9 @@ function AppRoutes() {
           <Route path="stats/pro/teams" element={<ProTeams />} />
           <Route path="stats/pro/players" element={<ProPlayers />} />
           <Route path="stats/pro/tournaments" element={<ProTournaments />} />
+          <Route path="admin" element={
+            <ProtectedRoute><AdminPage /></ProtectedRoute>
+          } />
           <Route path="login" element={<Login />} />
           <Route path="update-password" element={<UpdatePasswordPage />} />
           <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

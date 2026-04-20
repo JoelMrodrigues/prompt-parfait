@@ -4,7 +4,7 @@
  * + Team switcher en haut
  */
 import { useState, useRef, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Home,
   Users,
@@ -24,6 +24,7 @@ import {
   PanelLeftOpen,
   ShieldCheck,
   Map,
+  Shield,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { useAuth } from '../../contexts/AuthContext'
@@ -66,6 +67,7 @@ const SIDEBAR_GROUPS = [
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, updateTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
   const { isAdmin } = useAuth()
+  const navigate = useNavigate()
   const isFlexTeam = team?.team_type === 'flex'
   const { sidebarOpen, setSidebarOpen } = useLayout()
   const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
@@ -353,6 +355,18 @@ export const TeamSidebar = () => {
           </div>
         ))}
       </nav>
+      {/* Retour panel admin */}
+      {isAdmin && (
+        <div className="px-3 pb-3 pt-2 border-t border-red-500/20 mt-auto shrink-0">
+          <button
+            onClick={() => navigate('/admin')}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-red-400 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40 transition-colors"
+          >
+            <Shield size={13} />
+            ← Panel Admin
+          </button>
+        </div>
+      )}
       </div>{/* end full sidebar */}
     </aside>
   )
