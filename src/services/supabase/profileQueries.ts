@@ -10,6 +10,7 @@ export interface Profile {
   active_team_id: string | null
   created_at: string
   updated_at: string
+  is_admin?: boolean | null
 }
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
@@ -41,8 +42,23 @@ export async function upsertProfile(
   return data
 }
 
-export async function fetchAllTeams(userId: string) {
-  // Parallélisation : les 2 requêtes partent en même temps
+export async function fetchAllTeams(userId: string, isAdmin = false) {
+  const normalize = (t: any) => ({
+    ...t,
+    member_count: (t?.team_members?.[0]?.count ?? 0) + 1,
+    team_members: undefined,
+  })
+
+  // Admin → toutes les équipes sans filtre (RLS bypasse via user_is_admin())
+  if (isAdmin) {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*, team_members(count)')
+      .order('created_at', { ascending: true })
+    return { data: (data || []).map(normalize), error }
+  }
+
+  // Cas normal — équipes possédées + rejointes
   const [
     { data: ownTeams, error: err1 },
     { data: memberRows, error: err2 },
@@ -50,13 +66,6 @@ export async function fetchAllTeams(userId: string) {
     supabase.from('teams').select('*, team_members(count)').eq('user_id', userId).order('created_at', { ascending: true }),
     supabase.from('team_members').select('teams(*, team_members(count))').eq('user_id', userId),
   ])
-
-  const normalize = (t: any) => ({
-    ...t,
-    // team_members(count) retourne [{ count: N }] — on ajoute 1 pour le owner
-    member_count: (t?.team_members?.[0]?.count ?? 0) + 1,
-    team_members: undefined,
-  })
 
   const ownIds = new Set((ownTeams || []).map((t: any) => t.id))
   const joinedTeams = (memberRows || [])

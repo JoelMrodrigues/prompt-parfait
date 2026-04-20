@@ -114,7 +114,7 @@ const TeamContext = createContext<TeamContextValue>({} as TeamContextValue)
 export const useTeam = () => useContext(TeamContext)
 
 export const TeamProvider = ({ children }: { children: ReactNode }) => {
-  const { user, profile, refreshProfile, loading: authLoading } = useAuth()
+  const { user, profile, isAdmin, refreshProfile, loading: authLoading } = useAuth()
   const [team, setTeam] = useState<Team | null>(null)
   const [allTeams, setAllTeams] = useState<Team[]>([])
   const [players, setPlayers] = useState<Player[]>([])
@@ -166,7 +166,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
         { data: teamsData, error: teamsError },
         prefetchedPlayers,
       ] = await Promise.all([
-        fetchAllTeams(user.id),
+        fetchAllTeams(user.id, isAdmin),
         knownTeamId ? fetchPlayersByTeam(knownTeamId) : Promise.resolve(null),
       ])
 
@@ -196,7 +196,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       // Determine current user's role
       if (activeTeam) {
         const isOwner = activeTeam.user_id === user?.id
-        if (isOwner) {
+        if (isAdmin || isOwner) {
           setMyRole('owner')
           setMyPlayerId(null)
         } else if (supabase) {
@@ -373,8 +373,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  const isTeamOwner = !!(team && user && team.user_id === user.id)
-  const isCoOwner = myRole === 'co_owner'
+  const isTeamOwner = !!(team && user && (team.user_id === user.id || isAdmin))
+  const isCoOwner = myRole === 'co_owner' || isAdmin
   const canManageTeam = isTeamOwner || isCoOwner
 
   const value = useMemo(() => ({

@@ -7,6 +7,7 @@ interface AuthContextValue {
   user: User | null
   profile: Profile | null
   loading: boolean
+  isAdmin: boolean
   refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>
   signUp: (email: string, password: string) => Promise<{ data: unknown; error: unknown }>
@@ -139,9 +140,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
   }
 
+  const isAdmin = !!profile?.is_admin
+
   const value = useMemo(() => ({
-    user, profile, loading, refreshProfile, signIn, signUp, signOut, resetPasswordForEmail,
-  }), [user, profile, loading])
+    user, profile, loading, isAdmin, refreshProfile, signIn, signUp, signOut, resetPasswordForEmail,
+  }), [user, profile, loading, isAdmin])
 
   return (
     <AuthContext.Provider value={value}>

@@ -26,6 +26,7 @@ import {
   Map,
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
+import { useAuth } from '../../contexts/AuthContext'
 import { TeamEditModal } from './components/TeamEditModal'
 import { CreateTeamModal } from '../teams/components/CreateTeamModal'
 import { useSyncStatus } from '../../lib/syncStatus'
@@ -64,6 +65,7 @@ const SIDEBAR_GROUPS = [
 
 export const TeamSidebar = () => {
   const { team, allTeams, switchTeam, createNewTeam, updateTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
+  const { isAdmin } = useAuth()
   const isFlexTeam = team?.team_type === 'flex'
   const { sidebarOpen, setSidebarOpen } = useLayout()
   const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
@@ -190,6 +192,11 @@ export const TeamSidebar = () => {
           <span className="flex-1 text-sm font-semibold text-white truncate text-left">
             {team?.team_name ?? 'Mon Équipe'}
           </span>
+          {isAdmin && (
+            <span className="shrink-0 text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded">
+              ADMIN
+            </span>
+          )}
           <ChevronDown
             size={14}
             className={`text-gray-500 shrink-0 transition-transform ${switcherOpen ? 'rotate-180' : ''}`}
