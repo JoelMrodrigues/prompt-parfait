@@ -1555,6 +1555,65 @@ function useFlexTeamGames(players: any[]) {
   return { rows, loading }
 }
 
+// Hook lazy : fetche les match_json pour extraire les champions adverses
+// Déclenché uniquement quand enabled=true (toggle "Adversaires" cliqué)
+function useFlexEnemyGames(
+  players: any[],
+  riotMatchIds: string[],
+  enabled: boolean,
+) {
+  const [enemyGames, setEnemyGames] = useState<Array<{ key: string; win: boolean; enemyChampions: string[] }>>([])
+  const [loading, setLoading] = useState(false)
+  const idsKey = riotMatchIds.join(',')
+  const playerKey = players.map((p) => p.id).join(',')
+
+  useEffect(() => {
+    if (!enabled || !riotMatchIds.length || !supabase) return undefined
+    let cancelled = false
+    setLoading(true)
+    const playerIds = players.map((p) => p.id)
+    // Un seul fetch : on prend tous les rows (plusieurs par game, on déduplique en JS)
+    supabase
+      .from('player_soloq_matches')
+      .select('riot_match_id, win, match_json')
+      .in('player_id', playerIds)
+      .in('riot_match_id', riotMatchIds.slice(0, 300))
+      .not('match_json', 'is', null)
+      .then(({ data }) => {
+        if (cancelled) return
+        const seen = new Set<string>()
+        const result: Array<{ key: string; win: boolean; enemyChampions: string[] }> = []
+        for (const row of data ?? []) {
+          if (seen.has(row.riot_match_id) || !row.match_json) continue
+          seen.add(row.riot_match_id)
+          try {
+            const mj = typeof row.match_json === 'string' ? JSON.parse(row.match_json) : row.match_json
+            // Riot Match-V5 : mj.info.participants  ou flat mj.participants
+            const participants: any[] = mj?.info?.participants ?? mj?.participants ?? []
+            if (!participants.length) continue
+            // Notre équipe = participants dont win === row.win
+            // Équipe adverse = les autres
+            const enemyChampions = participants
+              .filter((p) => p.win !== row.win)
+              .map((p) => p.championName || p.champion_name || '')
+              .filter(Boolean)
+            if (enemyChampions.length > 0) {
+              result.push({ key: row.riot_match_id, win: row.win, enemyChampions })
+            }
+          } catch {
+            // match_json malformé, on ignore
+          }
+        }
+        setEnemyGames(result)
+        setLoading(false)
+      })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, idsKey, playerKey])
+
+  return { enemyGames, loading }
+}
+
 // Normalise les positions Riot (JUNGLE→JNG, MIDDLE→MID, BOTTOM→ADC, UTILITY→SUP)
 function normalizeFlexPos(pos: string | null): string | null {
   if (!pos) return null
@@ -1586,22 +1645,35 @@ const FLEX_ROLE_COLORS: Record<string, { text: string; bg: string; border: strin
 function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => void }) {
   const { rows, loading } = useFlexTeamGames(players)
   const [comboSize, setComboSize] = useState(2)
+  const [showAdversary, setShowAdversary] = useState(false)
 
-  // Grouper par riot_match_id → 1 entrée par partie avec la liste des champs joués par l'équipe
-  const games = useMemo(() => {
-    const groups = new Map<string, { win: boolean; champions: string[] }>()
+  // Grouper par riot_match_id → 1 entrée par partie avec les champions de notre équipe
+  const ourGames = useMemo(() => {
+    const groups = new Map<string, { key: string; win: boolean; champions: string[] }>()
     for (const r of rows) {
       const key = r.riot_match_id ?? `solo_${r.player_id}_${r.game_creation}`
-      if (!groups.has(key)) groups.set(key, { win: r.win, champions: [] })
+      if (!groups.has(key)) groups.set(key, { key, win: r.win, champions: [] })
       if (r.champion_name) groups.get(key)!.champions.push(r.champion_name)
     }
-    // Conserver uniquement les parties avec au moins 2 membres de l'équipe
     return Array.from(groups.values()).filter((g) => g.champions.length >= 2)
   }, [rows])
 
+  // IDs des parties avec riot_match_id valide (pour le fetch adverses)
+  const validGameIds = useMemo(
+    () => ourGames.map((g) => g.key).filter((k) => !k.startsWith('solo_')),
+    [ourGames],
+  )
+
+  const { enemyGames, loading: enemyLoading } = useFlexEnemyGames(players, validGameIds, showAdversary)
+
+  // Source de données selon le toggle
+  const source = showAdversary
+    ? enemyGames.map((g) => ({ champions: g.enemyChampions, win: g.win }))
+    : ourGames
+
   const combos = useMemo(() => {
     const byCombo = new Map<string, { games: number; wins: number; names: string[] }>()
-    for (const g of games) {
+    for (const g of source) {
       if (g.champions.length < comboSize) continue
       const cs = getCombinations(g.champions, comboSize)
       for (const combo of cs) {
@@ -1609,6 +1681,7 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
         const k = sorted.join('|')
         if (!byCombo.has(k)) byCombo.set(k, { games: 0, wins: 0, names: sorted })
         byCombo.get(k)!.games++
+        // win = on a gagné contre eux (adversaires) / avec eux (notre équipe)
         if (g.win) byCombo.get(k)!.wins++
       }
     }
@@ -1616,7 +1689,9 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
       .map((c) => ({ ...c, winrate: Math.round((c.wins / c.games) * 100), losses: c.games - c.wins }))
       .sort((a, b) => b.games - a.games)
       .slice(0, 20)
-  }, [games, comboSize])
+  }, [source, comboSize])
+
+  const isLoading = loading || (showAdversary && enemyLoading)
 
   return (
     <div>
@@ -1631,34 +1706,77 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
-      ) : games.length === 0 ? (
+      ) : ourGames.length === 0 ? (
         <EmptyStats type="soloq" />
       ) : (
         <>
-          {/* Sélecteur taille combo */}
-          <div className="flex gap-1 mb-6">
-            {COMBO_SIZES.filter((c) => c.size <= Math.min(5, players.length)).map(({ size, label }) => (
+          {/* Contrôles : Notre équipe / Adversaires + taille combo */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            {/* Toggle Notre équipe / Adversaires */}
+            <div className="flex gap-1">
               <button
-                key={size}
                 type="button"
-                onClick={() => setComboSize(size)}
+                onClick={() => setShowAdversary(false)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  comboSize === size
-                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                  !showAdversary
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                     : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
                 }`}
               >
-                {label}
+                Notre équipe
               </button>
-            ))}
-            <span className="ml-2 text-xs text-gray-600 self-center">
-              {games.length} partie{games.length > 1 ? 's' : ''} avec 2+ membres de l'équipe
+              <button
+                type="button"
+                onClick={() => setShowAdversary(true)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  showAdversary
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+                }`}
+              >
+                Adversaires
+              </button>
+            </div>
+
+            {/* Taille du combo */}
+            <div className="flex gap-1">
+              {COMBO_SIZES.filter((c) => c.size <= Math.min(5, players.length)).map(({ size, label }) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setComboSize(size)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    comboSize === size
+                      ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                      : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <span className="text-xs text-gray-600">
+              {showAdversary
+                ? `${enemyGames.length} parties avec données adverses`
+                : `${ourGames.length} partie${ourGames.length > 1 ? 's' : ''} avec 2+ membres de l'équipe`}
             </span>
           </div>
 
-          {combos.length === 0 ? (
+          {/* Légende contextuelle */}
+          <p className="text-xs text-gray-600 mb-4">
+            {showAdversary
+              ? 'WR = % de nos victoires face à ce combo adverse'
+              : 'WR = % de victoires quand on joue ce combo'}
+          </p>
+
+          {isLoading ? (
+            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
+          ) : combos.length === 0 ? (
             <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center text-gray-500 text-sm">
-              Pas assez de parties à {comboSize} joueurs ensemble.
+              {showAdversary
+                ? 'Pas de données adverses disponibles (match_json requis).'
+                : `Pas assez de parties à ${comboSize} joueurs ensemble.`}
             </div>
           ) : (
             <div className="rounded-xl border border-dark-border overflow-hidden">
@@ -1667,8 +1785,10 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
                   <tr className="bg-dark-bg/80 text-gray-400 text-left">
                     <th className="px-4 py-3 w-8">#</th>
                     <th className="px-4 py-3">Combinaison</th>
-                    <th className="px-4 py-3 text-center">Joué</th>
-                    <th className="px-4 py-3 text-center">Winrate</th>
+                    <th className="px-4 py-3 text-center">Rencontré</th>
+                    <th className="px-4 py-3 text-center">
+                      {showAdversary ? 'Nos V%' : 'Winrate'}
+                    </th>
                     <th className="px-4 py-3 text-center">V / D</th>
                   </tr>
                 </thead>
