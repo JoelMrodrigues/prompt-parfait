@@ -1,19 +1,14 @@
-/**
- * Page de gestion des membres — owner uniquement
- * Affiche les 8 slots (5 joueurs + 3 staff) avec l'email de celui qui a rejoint
- * et permet de virer un membre.
- */
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, UserX, RefreshCw, Mail } from 'lucide-react'
+import { Loader2, UserX, RefreshCw, Mail, Link, Unlink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTeam } from '../hooks/useTeam'
 import { useAuth } from '../../../contexts/AuthContext'
 import { getTeamMembersWithEmail, removeTeamMember, setCoOwner, transferOwnership, type TeamMemberWithEmail } from '../../../services/supabase/teamQueries'
 import { useToast } from '../../../contexts/ToastContext'
 
-// ─── Config des slots ──────────────────────────────────────────────────────────
+// ─── Config des slots (équipes scrim/standard) ────────────────────────────────
 
 const PLAYER_SLOTS = [
   { position: 'top',     abbr: 'TOP', emoji: '🛡️' },
@@ -23,7 +18,6 @@ const PLAYER_SLOTS = [
   { position: 'support', abbr: 'SUP', emoji: '✨' },
 ]
 
-// Normalise les abréviations DB ('JNG', 'SUP'...) vers les valeurs longues
 const POSITION_NORM: Record<string, string> = {
   jng: 'jungle', jun: 'jungle',
   sup: 'support', bot: 'adc', bottom: 'adc', utility: 'support',
@@ -47,6 +41,8 @@ export const TeamMembersPage = () => {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const { addToast } = useToast()
+
+  const isFlexTeam = team?.team_type === 'flex'
 
   const [members, setMembers] = useState<TeamMemberWithEmail[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,7 +124,6 @@ export const TeamMembersPage = () => {
     }
   }
 
-  // Trouver le membre associé à un joueur (par player_id ou par position+role=player)
   const memberForPlayer = (playerId: string, position: string) =>
     members.find(
       (m) => m.player_id === playerId || (m.role === 'player' && m.position === position)
@@ -138,6 +133,28 @@ export const TeamMembersPage = () => {
     members.find((m) => m.role === role) ?? null
 
   if (!isTeamOwner) return null
+
+  // ── Calcul des membres "non attribués" pour équipes flex ──
+  const flexLinkedUserIds = isFlexTeam
+    ? new Set(
+        players
+          .map(p => members.find(m => m.player_id === p.id)?.user_id)
+          .filter((id): id is string => !!id)
+      )
+    : new Set<string>()
+
+  const flexStaffUserIds = isFlexTeam
+    ? new Set(
+        STAFF_SLOTS.flatMap(slot => {
+          const m = members.find(m => m.role === slot.role)
+          return m ? [m.user_id] : []
+        })
+      )
+    : new Set<string>()
+
+  const flexUnmatchedMembers = isFlexTeam
+    ? members.filter(m => !flexLinkedUserIds.has(m.user_id) && !flexStaffUserIds.has(m.user_id))
+    : []
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
@@ -175,7 +192,6 @@ export const TeamMembersPage = () => {
               <Mail size={13} className="text-gray-500 shrink-0" />
               <span className="text-sm text-gray-300">{user?.email ?? '—'}</span>
             </div>
-            {/* Sélecteur + bouton transmettre */}
             {members.filter(m => m.role !== 'spectateur').length > 0 && (
               <TransferSelector
                 members={members.filter(m => m.role !== 'spectateur')}
@@ -190,14 +206,111 @@ export const TeamMembersPage = () => {
         <div className="flex items-center justify-center py-16">
           <Loader2 className="animate-spin text-accent-blue" size={32} />
         </div>
+      ) : isFlexTeam ? (
+        /* ═══════════════════════════════════════════════════════════
+           VUE FLEX — centrée sur les profils joueurs du roster
+           ═══════════════════════════════════════════════════════════ */
+        <>
+          {/* Légende colonne */}
+          <div className="flex items-center gap-4 px-4 py-1.5 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+            <span className="w-7 shrink-0" />
+            <span className="w-40 shrink-0">Profil joueur</span>
+            <span className="flex-1">Compte connecté</span>
+            <span className="w-32 shrink-0 text-right pr-2">Actions</span>
+          </div>
+
+          {/* Joueurs du roster */}
+          <section>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Roster</p>
+            <div className="space-y-2">
+              {players.length === 0 ? (
+                <p className="text-sm text-gray-600 italic px-4">Aucun joueur dans le roster.</p>
+              ) : (
+                players.map((player) => {
+                  const member = members.find(m => m.player_id === player.id) ?? null
+                  const displayName = (player as any).player_name || (player as any).pseudo || '?'
+                  return (
+                    <FlexMemberRow
+                      key={player.id}
+                      playerName={displayName}
+                      pseudo={(player as any).pseudo}
+                      member={member}
+                      kicking={kicking === member?.user_id}
+                      onKick={() => member && handleKick(member, displayName)}
+                      canManageTeam={canManageTeam}
+                      onSetCoOwner={(makeCoOwner) => member && openCoOwnerModal(member, makeCoOwner, displayName)}
+                      settingCoOwner={settingCoOwner === member?.user_id}
+                    />
+                  )
+                })
+              )}
+            </div>
+          </section>
+
+          {/* Staff */}
+          <section>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Staff</p>
+            <div className="space-y-2">
+              {STAFF_SLOTS.map((slot) => {
+                const member = memberForStaff(slot.role)
+                return (
+                  <MemberRow
+                    key={slot.role}
+                    emoji={slot.emoji}
+                    abbr={slot.label}
+                    playerName={null}
+                    member={member}
+                    kicking={kicking === member?.user_id}
+                    onKick={() => member && handleKick(member, slot.label)}
+                    canManageTeam={canManageTeam}
+                    memberRole={member?.role}
+                    onSetCoOwner={(makeCoOwner) => member && openCoOwnerModal(member, makeCoOwner, slot.label)}
+                    settingCoOwner={settingCoOwner === member?.user_id}
+                  />
+                )
+              })}
+            </div>
+          </section>
+
+          {/* Comptes connectés mais sans lien vers un profil joueur */}
+          {flexUnmatchedMembers.length > 0 && (
+            <section>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-1">Non attribués</p>
+              <p className="text-xs text-gray-600 mb-3">Ces comptes ont rejoint l'équipe mais ne sont liés à aucun profil joueur.</p>
+              <div className="space-y-2">
+                {flexUnmatchedMembers.map((m) => (
+                  <FlexMemberRow
+                    key={m.user_id}
+                    playerName={null}
+                    pseudo={null}
+                    member={m}
+                    kicking={kicking === m.user_id}
+                    onKick={() => handleKick(m, m.email)}
+                    canManageTeam={canManageTeam}
+                    onSetCoOwner={(makeCoOwner) => openCoOwnerModal(m, makeCoOwner, m.email)}
+                    settingCoOwner={settingCoOwner === m.user_id}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {members.length === 0 && players.length === 0 && (
+            <div className="text-center py-8 text-gray-600 text-sm">
+              Aucun membre n'a encore rejoint l'équipe via le lien d'invitation.
+            </div>
+          )}
+        </>
       ) : (
+        /* ═══════════════════════════════════════════════════════════
+           VUE SCRIM — slots par rôle (Top / Jng / Mid / ADC / Sup)
+           ═══════════════════════════════════════════════════════════ */
         <>
           {/* Joueurs */}
           <section>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Joueurs</p>
             <div className="space-y-2">
               {PLAYER_SLOTS.map((slot) => {
-                // Trouve le joueur titulaire à ce poste
                 const player = players.find(
                   (p) => normalizePos(p.position) === slot.position && (p as any).player_type !== 'remplacant'
                 ) ?? players.find((p) => normalizePos(p.position) === slot.position) ?? null
@@ -252,7 +365,7 @@ export const TeamMembersPage = () => {
             </div>
           </section>
 
-          {/* Comptes sans slot attribué (role='member', position=null) */}
+          {/* Non attribués */}
           {(() => {
             const matchedUserIds = new Set([
               ...PLAYER_SLOTS.flatMap((slot) => {
@@ -310,7 +423,6 @@ export const TeamMembersPage = () => {
             exit={{ opacity: 0, scale: 0.95 }}
             className="bg-dark-card border border-dark-border rounded-2xl p-6 w-full max-w-md space-y-5"
           >
-            {/* Icon + titre */}
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="w-14 h-14 rounded-full bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-3xl">
                 👑
@@ -328,7 +440,6 @@ export const TeamMembersPage = () => {
               </div>
             </div>
 
-            {/* Champ de confirmation */}
             <div className="space-y-2">
               <p className="text-xs text-gray-500 text-center">
                 Tapez{' '}
@@ -352,7 +463,6 @@ export const TeamMembersPage = () => {
               />
             </div>
 
-            {/* Boutons */}
             <div className="flex gap-3">
               <button
                 onClick={() => { setCoOwnerModal(null); setCoOwnerConfirm('') }}
@@ -372,6 +482,7 @@ export const TeamMembersPage = () => {
         </div>,
         document.body
       )}
+
       {/* Modal transfer ownership */}
       {transferModal && createPortal(
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -434,7 +545,121 @@ export const TeamMembersPage = () => {
   )
 }
 
-// ─── Ligne de membre ───────────────────────────────────────────────────────────
+// ─── Ligne flex — centrée sur le profil joueur ────────────────────────────────
+
+function FlexMemberRow({
+  playerName,
+  pseudo,
+  member,
+  kicking,
+  onKick,
+  canManageTeam,
+  onSetCoOwner,
+  settingCoOwner,
+}: {
+  playerName: string | null
+  pseudo: string | null
+  member: TeamMemberWithEmail | null
+  kicking: boolean
+  onKick: () => void
+  canManageTeam?: boolean
+  onSetCoOwner?: (makeCoOwner: boolean) => void
+  settingCoOwner?: boolean
+}) {
+  const isLinked = !!member
+  const isCoOwner = member?.role === 'co_owner'
+
+  return (
+    <motion.div
+      layout
+      className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors ${
+        isLinked
+          ? 'bg-dark-card border-dark-border'
+          : 'bg-dark-bg/40 border-dark-border/40'
+      }`}
+    >
+      {/* Icône lien */}
+      <span className="w-7 flex items-center justify-center shrink-0">
+        {isLinked
+          ? <Link size={15} className="text-accent-blue" />
+          : <Unlink size={15} className="text-gray-600" />
+        }
+      </span>
+
+      {/* Profil joueur */}
+      <div className="w-40 shrink-0">
+        {playerName ? (
+          <div>
+            <span className="text-sm font-semibold text-white">{playerName}</span>
+            {pseudo && pseudo !== playerName && (
+              <span className="text-xs text-gray-500 ml-1.5">#{pseudo}</span>
+            )}
+          </div>
+        ) : (
+          <span className="text-sm text-gray-600 italic">Sans profil</span>
+        )}
+      </div>
+
+      {/* Compte connecté */}
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        {isLinked ? (
+          <>
+            <Mail size={13} className="text-gray-500 shrink-0" />
+            <span className="text-sm text-gray-300 truncate">{member!.email}</span>
+            {isCoOwner && (
+              <span className="shrink-0 text-[10px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 rounded-md">
+                CO-OWNER
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-xs text-gray-600 italic">Pas encore rejoint</span>
+        )}
+      </div>
+
+      {/* Bouton co-owner */}
+      <AnimatePresence>
+        {isLinked && canManageTeam && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => onSetCoOwner?.(!isCoOwner)}
+            disabled={settingCoOwner}
+            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-50 ${
+              isCoOwner
+                ? 'text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10'
+                : 'text-gray-400 border-gray-600/40 hover:bg-gray-500/10 hover:text-yellow-300'
+            }`}
+            title={isCoOwner ? 'Révoquer co-owner' : 'Désigner co-owner'}
+          >
+            {settingCoOwner ? <Loader2 size={13} className="animate-spin" /> : '👑'}
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Bouton virer */}
+      <AnimatePresence>
+        {isLinked && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={onKick}
+            disabled={kicking}
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/60 transition-colors disabled:opacity-50"
+            title="Retirer ce membre"
+          >
+            {kicking ? <Loader2 size={13} className="animate-spin" /> : <UserX size={13} />}
+            Virer
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
+}
+
+// ─── Ligne standard (scrim) ────────────────────────────────────────────────────
 
 function MemberRow({
   emoji,
@@ -470,13 +695,11 @@ function MemberRow({
           : 'bg-dark-bg/40 border-dark-border/40'
       }`}
     >
-      {/* Slot info */}
       <span className="text-xl w-7 text-center shrink-0">{emoji}</span>
       <div className="w-20 shrink-0">
         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{abbr}</span>
       </div>
 
-      {/* Pseudo joueur */}
       <div className="w-36 shrink-0">
         {playerName ? (
           <span className="text-sm font-semibold text-white">{playerName}</span>
@@ -485,19 +708,22 @@ function MemberRow({
         )}
       </div>
 
-      {/* Email */}
       <div className="flex-1 flex items-center gap-2 min-w-0">
         {hasEmail ? (
           <>
             <Mail size={13} className="text-gray-500 shrink-0" />
             <span className="text-sm text-gray-300">{member!.email}</span>
+            {memberRole === 'co_owner' && (
+              <span className="shrink-0 text-[10px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 rounded-md">
+                CO-OWNER
+              </span>
+            )}
           </>
         ) : (
           <span className="text-xs text-gray-600 italic">Pas encore rejoint</span>
         )}
       </div>
 
-      {/* Bouton co-owner */}
       <AnimatePresence>
         {hasEmail && canManageTeam && (
           <motion.button
@@ -518,7 +744,6 @@ function MemberRow({
         )}
       </AnimatePresence>
 
-      {/* Bouton virer */}
       <AnimatePresence>
         {hasEmail && (
           <motion.button
