@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useTeam } from './hooks/useTeam'
 import { TeamEditModal } from './components/TeamEditModal'
+import { CreateTeamModal } from '../teams/components/CreateTeamModal'
 import { useSyncStatus } from '../../lib/syncStatus'
 import { useLayout } from '../../contexts/LayoutContext'
 import { RefreshCw } from 'lucide-react'
@@ -62,16 +63,14 @@ const SIDEBAR_GROUPS = [
 ]
 
 export const TeamSidebar = () => {
-  const { team, allTeams, switchTeam, createNewTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
+  const { team, allTeams, switchTeam, createNewTeam, updateTeam, isTeamOwner, myRole, canManageTeam } = useTeam()
   const isFlexTeam = team?.team_type === 'flex'
   const { sidebarOpen, setSidebarOpen } = useLayout()
   const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
   const [, setTick] = useState(0)
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [switchingTeamId, setSwitchingTeamId] = useState<string | null>(null)
-  const [creatingTeam, setCreatingTeam] = useState(false)
-  const [newTeamName, setNewTeamName] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const switcherRef = useRef<HTMLDivElement>(null)
 
@@ -94,8 +93,6 @@ export const TeamSidebar = () => {
     const handler = (e: MouseEvent) => {
       if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
         setSwitcherOpen(false)
-        setCreatingTeam(false)
-        setNewTeamName('')
       }
     }
     document.addEventListener('mousedown', handler)
@@ -117,22 +114,6 @@ export const TeamSidebar = () => {
       await switchTeam(teamId)
     } finally {
       setSwitchingTeamId(null)
-    }
-  }
-
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTeamName.trim() || creating) return
-    setCreating(true)
-    try {
-      await createNewTeam(newTeamName.trim())
-      setNewTeamName('')
-      setCreatingTeam(false)
-      setSwitcherOpen(false)
-    } catch (err) {
-      console.error('Erreur création équipe:', err)
-    } finally {
-      setCreating(false)
     }
   }
 
@@ -274,38 +255,26 @@ export const TeamSidebar = () => {
             )}
 
             <div className="border-t border-dark-border/60 p-2">
-              {!creatingTeam ? (
-                <button
-                  onClick={() => setCreatingTeam(true)}
-                  className="w-full flex items-center gap-2 px-2 py-2 text-xs text-gray-400 hover:text-white hover:bg-dark-card rounded-lg transition-colors"
-                >
-                  <Plus size={13} />
-                  Nouvelle équipe
-                </button>
-              ) : (
-                <form onSubmit={handleCreateTeam} className="flex gap-1.5">
-                  <input
-                    autoFocus
-                    value={newTeamName}
-                    onChange={(e) => setNewTeamName(e.target.value)}
-                    placeholder="Nom de l'équipe"
-                    className="flex-1 bg-dark-card border border-dark-border rounded-lg px-2 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-accent-blue"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newTeamName.trim() || creating}
-                    className="px-2 py-1.5 bg-accent-blue rounded-lg text-xs font-medium disabled:opacity-50"
-                  >
-                    {creating ? '…' : 'OK'}
-                  </button>
-                </form>
-              )}
+              <button
+                onClick={() => { setSwitcherOpen(false); setCreateModalOpen(true) }}
+                className="w-full flex items-center gap-2 px-2 py-2 text-xs text-gray-400 hover:text-white hover:bg-dark-card rounded-lg transition-colors"
+              >
+                <Plus size={13} />
+                Nouvelle équipe
+              </button>
             </div>
           </div>
         )}
       </div>
 
       {editModalOpen && <TeamEditModal onClose={() => setEditModalOpen(false)} />}
+      {createModalOpen && (
+        <CreateTeamModal
+          onClose={() => setCreateModalOpen(false)}
+          onCreate={createNewTeam}
+          onUpdateTeam={updateTeam}
+        />
+      )}
 
       {/* Indicateur auto-sync */}
       <div className="px-3 py-2 border-b border-dark-border/40">
