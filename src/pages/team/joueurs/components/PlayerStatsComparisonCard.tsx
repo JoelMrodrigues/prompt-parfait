@@ -1,7 +1,7 @@
 /**
  * Carte de comparaison des stats moyennes par joueur (Team / Solo Q).
  */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { BarChart2 } from 'lucide-react'
 import { ROSTER_ROLES } from '../../constants/roles'
 
@@ -44,7 +44,12 @@ export function PlayerStatsComparisonCard({
   soloqStats: DetailedStats
   isFlexTeam?: boolean
 }) {
-  const [mode, setMode] = useState<'team' | 'soloq'>(isFlexTeam ? 'soloq' : 'team')
+  const [mode, setMode] = useState<'team' | 'soloq'>('team')
+
+  useEffect(() => {
+    if (isFlexTeam) setMode('soloq')
+  }, [isFlexTeam])
+
   const stats = mode === 'team' ? teamStats : soloqStats
 
   const sorted = useMemo(() => sortByRole(players), [players])
