@@ -36,28 +36,28 @@ const SIDEBAR_GROUPS = [
   {
     label: 'Équipe',
     items: [
-      { id: 'overview', label: "Vue d'ensemble", icon: Home, path: '/team/overview' },
-      { id: 'joueurs', label: 'Joueurs', icon: UserCircle, path: '/team/joueurs' },
-      { id: 'champion-pool', label: 'Pool de Champions', icon: Users, path: '/team/champion-pool' },
-      { id: 'members', label: 'Membres', icon: ShieldCheck, path: '/team/members', managerOnly: true },
+      { id: 'overview',      label: "Vue d'ensemble",   icon: Home,       path: '/team/overview' },
+      { id: 'joueurs',       label: 'Joueurs',           icon: UserCircle, path: '/team/joueurs' },
+      { id: 'champion-pool', label: 'Pool de Champions', icon: Users,      path: '/team/champion-pool', featureKey: 'champion_pool' },
+      { id: 'members',       label: 'Membres',           icon: ShieldCheck,path: '/team/members', managerOnly: true },
     ],
   },
   {
     label: 'Analyse',
     items: [
-      { id: 'import', label: 'Import', icon: Upload, path: '/team/import', hideForSpectateur: true, hideForFlex: true },
-      { id: 'matchs', label: 'Matchs', icon: Gamepad2, path: '/team/matchs' },
-      { id: 'analyse', label: 'Analyse', icon: LineChart, path: '/team/analyse', hideForSpectateur: true },
-      { id: 'stats', label: 'Statistiques', icon: BarChart3, path: '/team/stats' },
+      { id: 'import',  label: 'Import',        icon: Upload,    path: '/team/import',   hideForSpectateur: true, hideForFlex: true, featureKey: 'import' },
+      { id: 'matchs',  label: 'Matchs',        icon: Gamepad2,  path: '/team/matchs',   featureKey: 'matchs' },
+      { id: 'analyse', label: 'Analyse',       icon: LineChart, path: '/team/analyse',  hideForSpectateur: true, featureKey: 'analyse' },
+      { id: 'stats',   label: 'Statistiques',  icon: BarChart3, path: '/team/stats',    featureKey: 'stats' },
     ],
   },
   {
     label: 'Outils',
     items: [
-      { id: 'drafts', label: 'Drafts', icon: FileText, path: '/team/drafts', hideForSpectateur: true },
-      { id: 'coaching', label: 'Coaching', icon: MessageSquare, path: '/team/coaching', hideForSpectateur: true },
-      { id: 'planning', label: 'Planning', icon: CalendarDays, path: '/team/planning', hideForSpectateur: true },
-      { id: 'plans', label: 'Plans', icon: Map, path: '/team/plans', hideForSpectateur: true },
+      { id: 'drafts',   label: 'Drafts',    icon: FileText,     path: '/team/drafts',    hideForSpectateur: true, featureKey: 'drafts' },
+      { id: 'coaching', label: 'Coaching',  icon: MessageSquare,path: '/team/coaching',  hideForSpectateur: true, featureKey: 'coaching' },
+      { id: 'planning', label: 'Planning',  icon: CalendarDays, path: '/team/planning',  hideForSpectateur: true, featureKey: 'planning' },
+      { id: 'plans',    label: 'Plans',     icon: Map,          path: '/team/plans',     hideForSpectateur: true, featureKey: 'plans' },
     ],
   },
 ]
@@ -78,6 +78,7 @@ export const TeamSidebar = () => {
     if (item.managerOnly && !canManageTeam) return false
     if (item.hideForSpectateur && myRole === 'spectateur') return false
     if (item.hideForFlex && isFlexTeam) return false
+    if (item.featureKey && team?.features != null && team.features[item.featureKey] === false) return false
     return true
   }
 

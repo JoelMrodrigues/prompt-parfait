@@ -44,6 +44,7 @@ export interface Team {
   lp_goal?: number | null
   lp_goal_deadline?: string | null
   member_count?: number
+  features?: Record<string, boolean> | null
 }
 
 export type TeamRole = 'owner' | 'co_owner' | 'player' | 'coach' | 'analyst' | 'manager' | 'spectateur'
