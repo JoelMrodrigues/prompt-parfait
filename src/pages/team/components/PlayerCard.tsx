@@ -25,7 +25,12 @@ function isValidChamp(name: string | null | undefined): boolean {
 
 function formatRankDisplay(rank: string | null | undefined): string {
   if (!rank) return ''
-  return rank.replace(/grandmaster/i, 'GM').replace(/challenger/i, 'Chal')
+  return rank
+    .replace(/grandmaster/i, 'GM')
+    .replace(/challenger/i, 'Chal')
+    .replace(/platinum/i, 'Plat')
+    .replace(/emerald/i, 'Emer')
+    .replace(/diamond/i, 'Diam')
 }
 
 /** Couleur du winrate % : Violet fluo 90–100%, Vert 60–80%, Orange 40–50%, Rouge sanguin 0–30% */

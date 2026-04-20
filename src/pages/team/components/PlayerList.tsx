@@ -127,15 +127,16 @@ export const PlayerList = ({
             </h4>
             <div className="h-px flex-1 bg-dark-border" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div className="flex flex-wrap justify-center gap-5">
             {subs.map((player) => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                onEdit={() => onEdit(player)}
-                onDelete={() => onDelete(player)}
-                isFlexTeam={isFlexTeam}
-              />
+              <div key={player.id} className="w-full sm:w-72">
+                <PlayerCard
+                  player={player}
+                  onEdit={() => onEdit(player)}
+                  onDelete={() => onDelete(player)}
+                  isFlexTeam={isFlexTeam}
+                />
+              </div>
             ))}
           </div>
         </div>
