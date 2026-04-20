@@ -124,6 +124,8 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
   const initializedRef = useRef(false)
   const fetchingRef   = useRef(false)
   const lastParamsRef = useRef<string>('')
+  const isAdminRef    = useRef(isAdmin)
+  isAdminRef.current  = isAdmin
 
   useEffect(() => {
     // Attendre que le profil soit chargé avant de fetcher l'équipe — évite la race
@@ -132,6 +134,10 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
     if (authLoading) return
 
     if (user && supabase) {
+      if (isAdmin) {
+        fetchingRef.current = false
+        lastParamsRef.current = ''
+      }
       fetchTeam()
     } else {
       setLoading(false)
@@ -145,7 +151,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
         setMyPlayerId(null)
       }
     }
-  }, [user?.id, profile?.active_team_id, authLoading])
+  }, [user?.id, profile?.active_team_id, authLoading, isAdmin])
 
   const fetchTeam = async (overrideTeamId?: string) => {
     if (!supabase) { setLoading(false); return }
@@ -166,7 +172,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
         { data: teamsData, error: teamsError },
         prefetchedPlayers,
       ] = await Promise.all([
-        fetchAllTeams(user.id, isAdmin),
+        fetchAllTeams(user.id, isAdminRef.current),
         knownTeamId ? fetchPlayersByTeam(knownTeamId) : Promise.resolve(null),
       ])
 
@@ -196,7 +202,7 @@ export const TeamProvider = ({ children }: { children: ReactNode }) => {
       // Determine current user's role
       if (activeTeam) {
         const isOwner = activeTeam.user_id === user?.id
-        if (isAdmin || isOwner) {
+        if (isAdminRef.current || isOwner) {
           setMyRole('owner')
           setMyPlayerId(null)
         } else if (supabase) {

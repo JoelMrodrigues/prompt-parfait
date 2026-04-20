@@ -29,11 +29,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadProfile = async (u: User) => {
     let p = await fetchProfile(u.id)
-    if (!p) {
+if (!p) {
       const defaultName = u.email?.split('@')[0] ?? 'Joueur'
       p = await upsertProfile(u.id, { display_name: defaultName })
     }
     setProfile(p)
+    upsertProfile(u.id, { last_seen_at: new Date().toISOString() } as any).catch(() => {})
   }
 
   const refreshProfile = async () => {

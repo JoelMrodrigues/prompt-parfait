@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { useTeam } from '../team/hooks/useTeam'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
+import type { Team } from '../../contexts/TeamContext'
 
 const TYPE_META: Record<string, { label: string; icon: typeof Swords; color: string; bg: string }> = {
   scrim:  { label: 'Scrims',  icon: Swords,   color: 'text-accent-blue',  bg: 'bg-accent-blue/10' },
@@ -16,8 +18,25 @@ const TYPE_META: Record<string, { label: string; icon: typeof Swords; color: str
 }
 
 export const AdminPage = () => {
-  const { allTeams, switchTeam } = useTeam()
-  const { user, signOut }        = useAuth()
+
+  const { user, signOut } = useAuth()
+  const [allTeams, setAllTeams] = useState<Team[]>([])
+
+  useEffect(() => {
+    if (!supabase) return
+    supabase
+      .from('teams')
+      .select('*, team_members(count)')
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (!data) return
+        setAllTeams(data.map((t: any) => ({
+          ...t,
+          member_count: (t?.team_members?.[0]?.count ?? 0) + 1,
+          team_members: undefined,
+        })))
+      })
+  }, [])
   const navigate                 = useNavigate()
 
   const [search, setSearch]         = useState('')
@@ -38,12 +57,13 @@ export const AdminPage = () => {
   const totalMembers = allTeams.reduce((s, t) => s + (t.member_count ?? 0), 0)
 
   const handleEnter = async (teamId: string) => {
-    if (enteringId) return
+    if (enteringId || !user) return
     setEnteringId(teamId)
     try {
-      await switchTeam(teamId)
-      navigate('/team/overview')
-    } finally {
+      await supabase!.from('profiles').update({ active_team_id: teamId }).eq('id', user.id)
+      sessionStorage.setItem('adminTeamView', 'true')
+      window.location.href = '/team/overview'
+    } catch {
       setEnteringId(null)
     }
   }
