@@ -17,7 +17,7 @@ import { Save, Search, Settings2, X } from 'lucide-react'
 const emptyTiers = () => Object.fromEntries(TIER_KEYS.map((k) => [k, []]))
 
 export const ChampionPoolPage = () => {
-  const { players = [], refetch } = useTeam()
+  const { team, players = [], refetch } = useTeam()
   const { saveAllChampionPools, buildTiersFromPlayers } = useChampionPool()
   const [selectedPlayerId, setSelectedPlayerId] = useState(null)
   const [selectedRoleFilter, setSelectedRoleFilter] = useState(null)
@@ -139,6 +139,7 @@ export const ChampionPoolPage = () => {
         players={players}
         selectedId={selectedPlayerId}
         onSelect={setSelectedPlayerId}
+        noRoles={team?.team_type === 'flex'}
       />
 
       {/* Zone principale */}
