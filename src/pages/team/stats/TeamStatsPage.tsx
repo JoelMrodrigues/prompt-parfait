@@ -10,9 +10,11 @@ import { useTeamTimelines, TIMELINE_MINUTES } from '../hooks/useTeamTimelines'
 import { PlayerFilterSidebar, ALL_ID } from '../champion-pool/components/PlayerFilterSidebar'
 import { PlayerTeamStatsSection } from '../joueurs/components/PlayerTeamStatsSection'
 import { SoloQStatsSection } from './SoloQStatsSection'
-import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles, Activity, Swords, Zap, ArrowRight } from 'lucide-react'
+import { Users, LayoutGrid, ArrowLeftRight, ArrowLeft, BarChart3, TrendingUp, Sparkles, Activity, Swords, Zap, ArrowRight, ShieldHalf } from 'lucide-react'
 import { getChampionImage, getChampionDisplayName } from '../../../lib/championImages'
 import { aggregateChampionStats } from '../../../lib/team/statsAggregation'
+import { supabase } from '../../../lib/supabase'
+import { SEASON_16_START_MS, REMAKE_THRESHOLD_SEC } from '../../../lib/constants'
 
 // ─── Empty state réutilisable ─────────────────────────────────────────────────
 
@@ -1162,6 +1164,8 @@ function PlayerTeamStatsDetailed({ playerId, matches }: { playerId: string; matc
 const STATS_CATEGORY_JOUEURS = 'joueurs'
 const STATS_CATEGORY_COMPOS = 'compos'
 const STATS_CATEGORY_SIDE = 'side'
+const STATS_CATEGORY_FLEX_COMPOS = 'flex_compos'
+const STATS_CATEGORY_ROLE_PERF = 'role_perf'
 
 const STATS_MODE_TEAM = 'team'
 const STATS_MODE_SOLOQ = 'soloq'
@@ -1191,6 +1195,27 @@ const STATS_CARDS = [
     label: 'Side',
     description: 'Stats Blue side vs Red side',
     icon: ArrowLeftRight,
+  },
+]
+
+const FLEX_STATS_CARDS = [
+  {
+    id: STATS_CATEGORY_JOUEURS,
+    label: 'Joueurs',
+    description: 'Stats Flex par joueur',
+    icon: Users,
+  },
+  {
+    id: STATS_CATEGORY_FLEX_COMPOS,
+    label: 'Compos Flex',
+    description: 'Combos de champions joués ensemble en Flex',
+    icon: LayoutGrid,
+  },
+  {
+    id: STATS_CATEGORY_ROLE_PERF,
+    label: 'Rôles Flex',
+    description: 'Winrate & KDA par rôle joué (Top / Jng / Mid / ADC / Sup)',
+    icon: ShieldHalf,
   },
 ]
 
@@ -1502,6 +1527,358 @@ function SideSection({
   )
 }
 
+// ─── Hook : matches Flex pour toute l'équipe ─────────────────────────────────
+
+function useFlexTeamGames(players: any[]) {
+  const [rows, setRows] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const key = players.map((p) => p.id).join(',')
+
+  useEffect(() => {
+    if (!players.length || !supabase) return undefined
+    let cancelled = false
+    setLoading(true)
+    const ids = players.map((p) => p.id)
+    supabase
+      .from('player_soloq_matches')
+      .select('player_id, riot_match_id, win, champion_name, individual_position, kills, deaths, assists, game_creation')
+      .in('player_id', ids)
+      .eq('queue_type', 'flex')
+      .gte('game_creation', SEASON_16_START_MS)
+      .gte('game_duration', REMAKE_THRESHOLD_SEC)
+      .then(({ data }) => {
+        if (!cancelled) { setRows(data ?? []); setLoading(false) }
+      })
+    return () => { cancelled = true }
+  }, [key])
+
+  return { rows, loading }
+}
+
+// Normalise les positions Riot (JUNGLE→JNG, MIDDLE→MID, BOTTOM→ADC, UTILITY→SUP)
+function normalizeFlexPos(pos: string | null): string | null {
+  if (!pos) return null
+  switch (pos.toUpperCase()) {
+    case 'TOP':     return 'TOP'
+    case 'JUNGLE':  return 'JNG'
+    case 'MIDDLE':  return 'MID'
+    case 'BOTTOM':
+    case 'BOT':
+    case 'ADC':     return 'ADC'
+    case 'UTILITY':
+    case 'SUP':
+    case 'SUPPORT': return 'SUP'
+    default:        return null
+  }
+}
+
+const FLEX_ROLE_ORDER = ['TOP', 'JNG', 'MID', 'ADC', 'SUP']
+const FLEX_ROLE_COLORS: Record<string, { text: string; bg: string; border: string }> = {
+  TOP:  { text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+  JNG:  { text: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30'  },
+  MID:  { text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30'   },
+  ADC:  { text: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30'    },
+  SUP:  { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+}
+
+// ─── Section Compos Flex ──────────────────────────────────────────────────────
+
+function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => void }) {
+  const { rows, loading } = useFlexTeamGames(players)
+  const [comboSize, setComboSize] = useState(2)
+
+  // Grouper par riot_match_id → 1 entrée par partie avec la liste des champs joués par l'équipe
+  const games = useMemo(() => {
+    const groups = new Map<string, { win: boolean; champions: string[] }>()
+    for (const r of rows) {
+      const key = r.riot_match_id ?? `solo_${r.player_id}_${r.game_creation}`
+      if (!groups.has(key)) groups.set(key, { win: r.win, champions: [] })
+      if (r.champion_name) groups.get(key)!.champions.push(r.champion_name)
+    }
+    // Conserver uniquement les parties avec au moins 2 membres de l'équipe
+    return Array.from(groups.values()).filter((g) => g.champions.length >= 2)
+  }, [rows])
+
+  const combos = useMemo(() => {
+    const byCombo = new Map<string, { games: number; wins: number; names: string[] }>()
+    for (const g of games) {
+      if (g.champions.length < comboSize) continue
+      const cs = getCombinations(g.champions, comboSize)
+      for (const combo of cs) {
+        const sorted = [...combo].sort()
+        const k = sorted.join('|')
+        if (!byCombo.has(k)) byCombo.set(k, { games: 0, wins: 0, names: sorted })
+        byCombo.get(k)!.games++
+        if (g.win) byCombo.get(k)!.wins++
+      }
+    }
+    return Array.from(byCombo.values())
+      .map((c) => ({ ...c, winrate: Math.round((c.wins / c.games) * 100), losses: c.games - c.wins }))
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 20)
+  }, [games, comboSize])
+
+  return (
+    <div>
+      <button type="button" onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 text-sm">
+        <ArrowLeft size={18} />
+        Retour au choix
+      </button>
+      <div className="mb-6">
+        <h2 className="font-display text-3xl font-bold mb-1">Compos Flex</h2>
+        <p className="text-gray-400">Combinaisons de champions jouées ensemble en ranked Flex.</p>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
+      ) : games.length === 0 ? (
+        <EmptyStats type="soloq" />
+      ) : (
+        <>
+          {/* Sélecteur taille combo */}
+          <div className="flex gap-1 mb-6">
+            {COMBO_SIZES.filter((c) => c.size <= Math.min(5, players.length)).map(({ size, label }) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setComboSize(size)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  comboSize === size
+                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="ml-2 text-xs text-gray-600 self-center">
+              {games.length} partie{games.length > 1 ? 's' : ''} avec 2+ membres de l'équipe
+            </span>
+          </div>
+
+          {combos.length === 0 ? (
+            <div className="bg-dark-card border border-dark-border rounded-xl p-8 text-center text-gray-500 text-sm">
+              Pas assez de parties à {comboSize} joueurs ensemble.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dark-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-dark-bg/80 text-gray-400 text-left">
+                    <th className="px-4 py-3 w-8">#</th>
+                    <th className="px-4 py-3">Combinaison</th>
+                    <th className="px-4 py-3 text-center">Joué</th>
+                    <th className="px-4 py-3 text-center">Winrate</th>
+                    <th className="px-4 py-3 text-center">V / D</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {combos.map((c, idx) => (
+                    <tr key={c.names.join('|')} className="border-t border-dark-border/50 hover:bg-dark-bg/40 transition-colors">
+                      <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {c.names.map((n) => (
+                            <img key={n} src={getChampionImage(n)} alt={n} title={getChampionDisplayName(n) || n}
+                              className="w-7 h-7 rounded object-cover border border-dark-border" />
+                          ))}
+                          <span className="text-gray-300 text-xs ml-1">
+                            {c.names.map((n) => getChampionDisplayName(n) || n).join(' + ')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-300">{c.games}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`font-semibold ${c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{c.winrate}%</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-emerald-400">{c.wins}V</span>
+                        <span className="text-gray-500 mx-1">/</span>
+                        <span className="text-rose-400">{c.losses}D</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Section Performance par rôle (Flex) ─────────────────────────────────────
+
+function FlexRolePerformanceSection({ players, onBack }: { players: any[]; onBack: () => void }) {
+  const { rows, loading } = useFlexTeamGames(players)
+
+  // Stats globales par rôle
+  const roleStats = useMemo(() => {
+    const by: Record<string, { games: number; wins: number; k: number; d: number; a: number }> = {}
+    for (const r of rows) {
+      const role = normalizeFlexPos(r.individual_position)
+      if (!role) continue
+      if (!by[role]) by[role] = { games: 0, wins: 0, k: 0, d: 0, a: 0 }
+      by[role].games++
+      if (r.win) by[role].wins++
+      by[role].k += r.kills ?? 0
+      by[role].d += r.deaths ?? 0
+      by[role].a += r.assists ?? 0
+    }
+    return FLEX_ROLE_ORDER.map((role) => {
+      const s = by[role]
+      if (!s || s.games === 0) return { role, games: 0, wins: 0, winrate: null as number | null, kda: null as number | null, avgK: 0, avgD: 0, avgA: 0 }
+      return {
+        role,
+        games: s.games,
+        wins: s.wins,
+        winrate: (s.wins / s.games) * 100,
+        kda: s.d > 0 ? (s.k + s.a) / s.d : s.k + s.a,
+        avgK: s.k / s.games,
+        avgD: s.d / s.games,
+        avgA: s.a / s.games,
+      }
+    })
+  }, [rows])
+
+  // Stats par joueur × rôle
+  const playerRoleStats = useMemo(() => {
+    const by: Record<string, Record<string, { games: number; wins: number; k: number; d: number; a: number }>> = {}
+    for (const r of rows) {
+      const role = normalizeFlexPos(r.individual_position)
+      if (!role) continue
+      if (!by[r.player_id]) by[r.player_id] = {}
+      if (!by[r.player_id][role]) by[r.player_id][role] = { games: 0, wins: 0, k: 0, d: 0, a: 0 }
+      by[r.player_id][role].games++
+      if (r.win) by[r.player_id][role].wins++
+      by[r.player_id][role].k += r.kills ?? 0
+      by[r.player_id][role].d += r.deaths ?? 0
+      by[r.player_id][role].a += r.assists ?? 0
+    }
+    return players.map((p) => ({
+      player: p,
+      roles: FLEX_ROLE_ORDER.map((role) => {
+        const s = by[p.id]?.[role]
+        if (!s || s.games === 0) return { role, games: 0, wins: 0, winrate: null as number | null, kda: null as number | null }
+        return {
+          role,
+          games: s.games,
+          wins: s.wins,
+          winrate: (s.wins / s.games) * 100,
+          kda: s.d > 0 ? (s.k + s.a) / s.d : s.k + s.a,
+          avgK: s.k / s.games,
+          avgD: s.d / s.games,
+          avgA: s.a / s.games,
+        }
+      }),
+    }))
+  }, [rows, players])
+
+  const totalRows = rows.length
+
+  return (
+    <div>
+      <button type="button" onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 text-sm">
+        <ArrowLeft size={18} />
+        Retour au choix
+      </button>
+      <div className="mb-6">
+        <h2 className="font-display text-3xl font-bold mb-1">Rôles Flex</h2>
+        <p className="text-gray-400">Performance de l'équipe par rôle joué en ranked Flex.</p>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-accent-blue" /></div>
+      ) : totalRows === 0 ? (
+        <EmptyStats type="soloq" />
+      ) : (
+        <div className="space-y-6">
+          {/* Vue d'ensemble par rôle — 5 cards */}
+          <div className="grid grid-cols-5 gap-3">
+            {roleStats.map(({ role, games, wins, winrate, kda, avgK, avgD, avgA }) => {
+              const c = FLEX_ROLE_COLORS[role]
+              return (
+                <div key={role} className={`rounded-2xl border ${c.border} ${c.bg} p-4 flex flex-col gap-2`}>
+                  <span className={`text-[10px] uppercase tracking-widest font-bold ${c.text}`}>{role}</span>
+                  {games === 0 ? (
+                    <span className="text-gray-600 text-sm">—</span>
+                  ) : (
+                    <>
+                      <p className={`text-2xl font-bold tabular-nums ${winrate! >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {winrate!.toFixed(0)}%
+                      </p>
+                      <p className="text-[11px] text-gray-500 tabular-nums">{wins}V · {games - wins}D</p>
+                      <div className="h-1 rounded-full bg-dark-bg overflow-hidden">
+                        <div className={`h-full rounded-full ${winrate! >= 50 ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${Math.min(winrate!, 100)}%` }} />
+                      </div>
+                      <p className="text-[11px] text-gray-400 tabular-nums mt-1">
+                        KDA <span className="text-white font-semibold">{kda!.toFixed(2)}</span>
+                      </p>
+                      <p className="text-[10px] text-gray-600 tabular-nums">{avgK!.toFixed(1)}/{avgD!.toFixed(1)}/{avgA!.toFixed(1)}</p>
+                      <p className="text-[10px] text-gray-600">{games} partie{games > 1 ? 's' : ''}</p>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Matrice joueur × rôle */}
+          <div className="rounded-xl border border-dark-border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-dark-bg/80 text-gray-400 text-left border-b border-dark-border">
+                  <th className="px-4 py-3">Joueur</th>
+                  {FLEX_ROLE_ORDER.map((role) => {
+                    const c = FLEX_ROLE_COLORS[role]
+                    return (
+                      <th key={role} className={`px-4 py-3 text-center ${c.text}`}>{role}</th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-dark-border/50">
+                {playerRoleStats.map(({ player, roles }) => (
+                  <tr key={player.id} className="hover:bg-dark-bg/30 transition-colors">
+                    <td className="px-4 py-3 font-medium text-white whitespace-nowrap">
+                      {player.player_name || player.pseudo}
+                    </td>
+                    {roles.map(({ role, games, wins, winrate, kda }) => {
+                      const c = FLEX_ROLE_COLORS[role]
+                      return (
+                        <td key={role} className="px-4 py-3 text-center">
+                          {games === 0 ? (
+                            <span className="text-gray-700">—</span>
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className={`text-sm font-bold tabular-nums ${winrate! >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                {winrate!.toFixed(0)}%
+                              </span>
+                              <span className={`text-[10px] tabular-nums ${c.text}`}>
+                                KDA {kda!.toFixed(1)}
+                              </span>
+                              <span className="text-[10px] text-gray-600">{wins}V/{games}</span>
+                            </div>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-[10px] text-gray-700 text-center">
+            Données S16 Ranked Flex · rôle dérivé de <code>individualPosition</code> Riot API
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 // Seuil au-delà duquel le fullCache est considéré stale (3 minutes)
@@ -1530,6 +1907,8 @@ export const TeamStatsPage = () => {
   const [selectedId, setSelectedId] = useState(ALL_ID)
   const [statsMode, setStatsMode] = useState(STATS_MODE_TEAM)
   const [teamStatsSub, setTeamStatsSub] = useState('resume')
+  // Pour les équipes flex : bascule entre stats Flex (ranked flex) et Solo Q
+  const [flexQueueType, setFlexQueueType] = useState<'flex' | 'soloq'>('flex')
 
   // Pour les équipes flex : forcer le mode SoloQ (pas de données scrim/tournoi)
   useEffect(() => {
@@ -1551,7 +1930,7 @@ export const TeamStatsPage = () => {
   }, [matches, selectedId])
 
   const renderContent = () => {
-    if (statsMode === STATS_MODE_SOLOQ) return <SoloQStatsSection selectedId={selectedId} players={players} queueType={isFlexTeam ? 'flex' : 'soloq'} />
+    if (statsMode === STATS_MODE_SOLOQ) return <SoloQStatsSection selectedId={selectedId} players={players} queueType={isFlexTeam ? flexQueueType : 'soloq'} />
 
     if (teamStatsSub === 'timeline') {
       if (selectedId === ALL_ID) {
@@ -1592,7 +1971,7 @@ export const TeamStatsPage = () => {
           <p className="text-gray-400 text-lg">Choisissez une catégorie à analyser.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(isFlexTeam ? STATS_CARDS.filter((c) => c.id === STATS_CATEGORY_JOUEURS) : STATS_CARDS).map((card) => {
+          {(isFlexTeam ? FLEX_STATS_CARDS : STATS_CARDS).map((card) => {
             const Icon = card.icon
             return (
               <button
@@ -1634,6 +2013,22 @@ export const TeamStatsPage = () => {
     )
   }
 
+  if (statsCategory === STATS_CATEGORY_FLEX_COMPOS) {
+    return (
+      <div className="w-full max-w-5xl mx-auto">
+        <FlexComposSection players={players} onBack={() => setStatsCategory(null)} />
+      </div>
+    )
+  }
+
+  if (statsCategory === STATS_CATEGORY_ROLE_PERF) {
+    return (
+      <div className="w-full max-w-5xl mx-auto">
+        <FlexRolePerformanceSection players={players} onBack={() => setStatsCategory(null)} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex gap-6 w-full max-w-7xl">
       <PlayerFilterSidebar
@@ -1641,6 +2036,7 @@ export const TeamStatsPage = () => {
         selectedId={selectedId}
         onSelect={setSelectedId}
         showAllButton
+        noRoles={isFlexTeam}
       />
       <div className="flex-1 min-w-0">
         {/* Retour */}
@@ -1653,32 +2049,59 @@ export const TeamStatsPage = () => {
           Retour au choix
         </button>
 
-        {/* Mode Team / Solo Q (masqué pour les équipes flex — uniquement Flex) */}
+        {/* Mode Team / Solo Q — ou Flex / Solo Q pour équipes flex */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          {!isFlexTeam && (
-            <button
-              type="button"
-              onClick={() => setStatsMode(STATS_MODE_TEAM)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                statsMode === STATS_MODE_TEAM
-                  ? 'bg-primary text-white'
-                  : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
-              }`}
-            >
-              Team
-            </button>
+          {isFlexTeam ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setFlexQueueType('flex')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  flexQueueType === 'flex'
+                    ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-400'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                Flex
+              </button>
+              <button
+                type="button"
+                onClick={() => setFlexQueueType('soloq')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  flexQueueType === 'soloq'
+                    ? 'bg-primary text-white'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                Solo Q
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setStatsMode(STATS_MODE_TEAM)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  statsMode === STATS_MODE_TEAM
+                    ? 'bg-primary text-white'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                Team
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatsMode(STATS_MODE_SOLOQ)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  statsMode === STATS_MODE_SOLOQ
+                    ? 'bg-primary text-white'
+                    : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                Solo Q
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            onClick={() => setStatsMode(STATS_MODE_SOLOQ)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              statsMode === STATS_MODE_SOLOQ
-                ? 'bg-primary text-white'
-                : 'bg-dark-card border border-dark-border text-gray-400 hover:text-white hover:border-gray-500'
-            }`}
-          >
-            {isFlexTeam ? 'Flex' : 'Solo Q'}
-          </button>
         </div>
 
         {/* Sous-menus Team : Général | Timeline | Champions */}
