@@ -42,6 +42,28 @@ export function getRiotMetrics() {
   }
 }
 
+// ─── Multi-clés Riot depuis Supabase ─────────────────────────────────────────
+
+let _dbKeys: string[] = []
+let _keyIndex = 0
+
+export async function reloadRiotKeysFromDb() {
+  const db = getSupabaseAdmin()
+  if (!db) return
+  const { data } = await db.from('riot_api_keys').select('key_value').eq('active', true)
+  if (data?.length) {
+    _dbKeys = data.map((k: any) => k.key_value.trim())
+    console.log(`[riotClient] ${_dbKeys.length} clé(s) Riot chargée(s) depuis Supabase`)
+  }
+}
+
+export function getActiveRiotKey(fallback: string): string {
+  if (_dbKeys.length === 0) return fallback
+  const key = _dbKeys[_keyIndex % _dbKeys.length]
+  _keyIndex = (_keyIndex + 1) % _dbKeys.length
+  return key || fallback
+}
+
 // ─── Persistence Supabase (toutes les 5 min) ─────────────────────────────────
 
 let _peakPerMinute = 0

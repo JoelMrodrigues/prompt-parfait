@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserCircle, Users, Shield, Clock, Pencil, X, Mail, Lock, Check, AlertCircle, RefreshCw } from 'lucide-react'
+import { UserCircle, Users, Shield, Clock, Pencil, X, Mail, Lock, Check, AlertCircle, RefreshCw, UserX, Download } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getBackendUrl } from '../../lib/constants'
+import { logAdminAction } from '../../lib/adminLog'
 
 interface UserRow {
   id: string
   email: string | null
+  is_suspended?: boolean
   display_name: string | null
   created_at: string
   last_sign_in_at: string | null
@@ -72,6 +74,7 @@ const EditUserModal = ({ user, onClose, onSaved }: EditModalProps) => {
 
       setSuccess(true)
       onSaved(user.id, { email: newEmail || user.email || undefined })
+      await logAdminAction('update_user', 'user', user.id, { changed: Object.keys(body).join(', ') })
       setTimeout(onClose, 1200)
     } catch (e: any) {
       setError(e.message)
@@ -192,6 +195,24 @@ export const AdminStatsUsersPage = () => {
     setUsers(u => u.map(x => x.id === id ? { ...x, ...changes } : x))
   }
 
+  const toggleSuspend = async (u: UserRow) => {
+    const newVal = !u.is_suspended
+    await supabase!.from('profiles').update({ is_suspended: newVal }).eq('id', u.id)
+    setUsers(us => us.map(x => x.id === u.id ? { ...x, is_suspended: newVal } : x))
+    await logAdminAction(newVal ? 'suspend_user' : 'unsuspend_user', 'user', u.id, { email: u.email || undefined })
+  }
+
+  const exportCsv = () => {
+    const header = 'id,email,display_name,created_at,last_seen_at,has_team,is_admin,is_suspended'
+    const rows = users.map(u => [u.id, u.email || '', u.display_name || '', u.created_at, u.last_seen_at || '', u.has_team, u.is_admin, u.is_suspended || false].join(','))
+    const csv = [header, ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `users_${new Date().toISOString().slice(0,10)}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const sevenDaysAgo  = Date.now() - 7 * 24 * 60 * 60 * 1000
   const recentSignups = users.filter(u => new Date(u.created_at).getTime() > sevenDaysAgo).length
 
@@ -214,13 +235,14 @@ export const AdminStatsUsersPage = () => {
           <h2 className="text-2xl font-black text-white">Utilisateurs</h2>
           <p className="text-sm text-gray-500 mt-1">{users.length} comptes enregistrés</p>
         </div>
-        <button
-          onClick={loadUsers}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dark-border text-xs text-gray-400 hover:text-white hover:border-red-500/30 transition-colors"
-        >
-          <RefreshCw size={12} />
-          Rafraîchir
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportCsv} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dark-border text-xs text-gray-400 hover:text-white hover:border-emerald-500/30 transition-colors">
+            <Download size={12} />Export CSV
+          </button>
+          <button onClick={loadUsers} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dark-border text-xs text-gray-400 hover:text-white hover:border-red-500/30 transition-colors">
+            <RefreshCw size={12} />Rafraîchir
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -265,7 +287,7 @@ export const AdminStatsUsersPage = () => {
         transition={{ delay: 0.2 }}
         className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden"
       >
-        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_40px] gap-3 px-4 py-2.5 border-b border-dark-border text-[10px] font-bold uppercase tracking-widest text-gray-600">
+        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_60px] gap-3 px-4 py-2.5 border-b border-dark-border text-[10px] font-bold uppercase tracking-widest text-gray-600">
           <span>Utilisateur</span>
           <span>Email</span>
           <span>Dernière activité</span>
@@ -278,7 +300,7 @@ export const AdminStatsUsersPage = () => {
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 + i * 0.015 }}
-            className="grid grid-cols-[2fr_2fr_1fr_1fr_40px] gap-3 items-center px-4 py-3 border-b border-dark-border/40 last:border-0 hover:bg-dark-bg/40 transition-colors group"
+            className={`grid grid-cols-[2fr_2fr_1fr_1fr_60px] gap-3 items-center px-4 py-3 border-b border-dark-border/40 last:border-0 hover:bg-dark-bg/40 transition-colors group ${u.is_suspended ? 'opacity-60' : ''}`}
           >
             {/* Nom */}
             <div className="flex items-center gap-2.5 min-w-0">
@@ -307,13 +329,22 @@ export const AdminStatsUsersPage = () => {
               {new Date(u.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' })}
             </span>
 
-            {/* Edit */}
-            <button
-              onClick={() => setEditing(u)}
-              className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center text-gray-500 hover:text-white hover:border-red-500/30 transition-all"
-            >
-              <Pencil size={12} />
-            </button>
+            {/* Actions */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              <button
+                onClick={() => toggleSuspend(u)}
+                title={u.is_suspended ? 'Réactiver' : 'Suspendre'}
+                className={`w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center transition-colors ${u.is_suspended ? 'text-amber-400 border-amber-500/30' : 'text-gray-500 hover:text-amber-400 hover:border-amber-500/30'}`}
+              >
+                <UserX size={12} />
+              </button>
+              <button
+                onClick={() => setEditing(u)}
+                className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center text-gray-500 hover:text-white hover:border-red-500/30 transition-colors"
+              >
+                <Pencil size={12} />
+              </button>
+            </div>
           </motion.div>
         ))}
         {filtered.length === 0 && (

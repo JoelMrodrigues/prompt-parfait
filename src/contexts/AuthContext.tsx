@@ -33,6 +33,12 @@ if (!p) {
       const defaultName = u.email?.split('@')[0] ?? 'Joueur'
       p = await upsertProfile(u.id, { display_name: defaultName })
     }
+    if ((p as any)?.is_suspended) {
+      await supabase!.auth.signOut()
+      setProfile(null)
+      setUser(null)
+      return
+    }
     setProfile(p)
     upsertProfile(u.id, { last_seen_at: new Date().toISOString() } as any).catch(() => {})
   }

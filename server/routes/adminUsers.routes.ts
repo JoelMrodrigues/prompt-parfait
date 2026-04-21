@@ -34,7 +34,7 @@ router.get('/users', requireAdmin as any, async (_req: Request, res: Response) =
   // Merge avec profiles pour display_name, last_seen_at, is_admin
   const { data: profiles } = await db
     .from('profiles')
-    .select('id, display_name, last_seen_at, is_admin, active_team_id')
+    .select('id, display_name, last_seen_at, is_admin, is_suspended, active_team_id')
 
   const profileMap: Record<string, any> = {}
   for (const p of profiles || []) profileMap[p.id] = p
@@ -47,6 +47,7 @@ router.get('/users', requireAdmin as any, async (_req: Request, res: Response) =
     display_name: profileMap[u.id]?.display_name || null,
     last_seen_at: profileMap[u.id]?.last_seen_at || null,
     is_admin: profileMap[u.id]?.is_admin || false,
+    is_suspended: profileMap[u.id]?.is_suspended || false,
     has_team: !!profileMap[u.id]?.active_team_id,
   }))
 

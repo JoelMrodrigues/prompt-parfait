@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Moon, Sun, Shield, Users, BarChart3 } from 'lucide-react'
+import { Moon, Sun, Shield, Users, BarChart3, Megaphone, Key } from 'lucide-react'
 import { UserProfileMenu } from './UserProfileMenu'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -14,9 +14,11 @@ export const Header = () => {
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   const adminLinks = [
-    { to: '/admin',          label: 'Équipes',       icon: Users },
-    { to: '/admin/features', label: 'Features',      icon: Shield },
-    { to: '/admin/stats',    label: 'Statistiques',  icon: BarChart3 },
+    { to: '/admin',                label: 'Équipes',       icon: Users },
+    { to: '/admin/features',       label: 'Features',      icon: Shield },
+    { to: '/admin/stats',          label: 'Stats',         icon: BarChart3 },
+    { to: '/admin/announcements',  label: 'Annonces',      icon: Megaphone },
+    { to: '/admin/riot-keys',      label: 'Clés Riot',     icon: Key },
   ]
 
   const userLinks = [

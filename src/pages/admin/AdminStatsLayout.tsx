@@ -1,12 +1,14 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Activity, ArrowLeft, TrendingUp, HeartPulse } from 'lucide-react'
+import { LayoutDashboard, Users, Activity, ArrowLeft, TrendingUp, HeartPulse, UserPlus, ScrollText } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
-  { path: '/admin/stats',          label: 'Accueil',       icon: LayoutDashboard, end: true },
-  { path: '/admin/stats/users',    label: 'Utilisateurs',  icon: Users },
-  { path: '/admin/stats/usage',    label: 'Utilisation',   icon: Activity },
-  { path: '/admin/stats/activity', label: 'Activité',      icon: TrendingUp },
-  { path: '/admin/stats/health',   label: 'Santé',         icon: HeartPulse },
+  { path: '/admin/stats',               label: 'Accueil',       icon: LayoutDashboard, end: true },
+  { path: '/admin/stats/users',         label: 'Utilisateurs',  icon: Users },
+  { path: '/admin/stats/usage',         label: 'Utilisation',   icon: Activity },
+  { path: '/admin/stats/activity',      label: 'Activité',      icon: TrendingUp },
+  { path: '/admin/stats/onboarding',    label: 'Onboarding',    icon: UserPlus },
+  { path: '/admin/stats/logs',          label: 'Logs',          icon: ScrollText },
+  { path: '/admin/stats/health',        label: 'Santé',         icon: HeartPulse },
 ]
 
 export const AdminStatsLayout = () => {

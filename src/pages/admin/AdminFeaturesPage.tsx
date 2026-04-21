@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Check, X, Loader2, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { logAdminAction } from '../../lib/adminLog'
 import type { Team } from '../../contexts/TeamContext'
 
 const FEATURES = [
@@ -58,6 +59,7 @@ export const AdminFeaturesPage = () => {
       setTeams(prev => prev.map(t =>
         t.id === team.id ? { ...t, features: newFeatures } : t
       ))
+      logAdminAction('toggle_feature', 'team', team.id, { feature: featureKey, enabled: !current })
     }
     setSaving(null)
   }

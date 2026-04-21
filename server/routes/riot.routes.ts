@@ -3,6 +3,7 @@ import axios from 'axios'
 import { cache } from '../services/cacheService.js'
 import { parsePseudo } from '../utils/parsers.js'
 import { getRiotMetrics } from '../lib/riotClient.js'
+import { getActiveRiotKey } from '../lib/riotClient.js'
 import {
   getPuuidByRiotId,
   getPuuidAndSummonerId,
@@ -25,10 +26,10 @@ const router = Router()
 
 function getApiKey(): string {
   const isProd = process.env.NODE_ENV === 'production'
-  const key = isProd
+  const envKey = isProd
     ? (process.env.RIOT_API_KEY || '')
     : (process.env.RIOT_API_KEY_TEST || process.env.RIOT_API_KEY || '')
-  return key.trim().replace(/\r/g, '')
+  return getActiveRiotKey(envKey.trim().replace(/\r/g, ''))
 }
 
 // Middleware : vérifie que la clé API est configurée

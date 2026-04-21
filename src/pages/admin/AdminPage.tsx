@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield, Search, Users, Swords, Trophy, Gamepad2, LogOut,
   ExternalLink, Loader2, LayoutGrid, List, X, Check, UserCircle,
-  Calendar, ChevronRight,
+  Calendar, ChevronRight, Trash2,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { logAdminAction } from '../../lib/adminLog'
 import type { Team } from '../../contexts/TeamContext'
 
 const TYPE_META: Record<string, { label: string; icon: typeof Swords; color: string; bg: string }> = {
@@ -48,6 +49,8 @@ export const AdminPage = () => {
   const [detail, setDetail] = useState<TeamDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [savingFeature, setSavingFeature] = useState<string | null>(null)
+  const [deletingTeam, setDeletingTeam] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const loadTeams = useCallback(async () => {
     if (!supabase) return
@@ -69,6 +72,7 @@ export const AdminPage = () => {
     setSelectedTeam(team)
     setDetail(null)
     setDetailLoading(true)
+    setConfirmDelete(false)
     if (!supabase) return
     const [
       { data: membersRaw },
@@ -110,6 +114,20 @@ export const AdminPage = () => {
       setAllTeams(prev => prev.map(t => t.id === selectedTeam.id ? { ...t, features: newFeatures } : t))
     }
     setSavingFeature(null)
+  }
+
+  const deleteTeam = async () => {
+    if (!selectedTeam || !supabase) return
+    setDeletingTeam(true)
+    const { error } = await supabase.rpc('delete_team_admin', { target_team_id: selectedTeam.id })
+    if (!error) {
+      logAdminAction('delete_team', 'team', selectedTeam.id, { team_name: selectedTeam.team_name })
+      setAllTeams(prev => prev.filter(t => t.id !== selectedTeam.id))
+      setSelectedTeam(null)
+      setDetail(null)
+    }
+    setDeletingTeam(false)
+    setConfirmDelete(false)
   }
 
   const filtered = useMemo(() => {
@@ -295,7 +313,7 @@ export const AdminPage = () => {
                     {(() => { const meta = TYPE_META[selectedTeam.team_type ?? '']; const Icon = meta?.icon ?? Swords; return meta ? <span className={`flex items-center gap-1 text-[10px] font-semibold ${meta.color}`}><Icon size={9} />{meta.label}</span> : null })()}
                   </div>
                 </div>
-                <button onClick={() => setSelectedTeam(null)} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-dark-bg/60 transition-colors shrink-0">
+                <button onClick={() => { setSelectedTeam(null); setConfirmDelete(false) }} className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-dark-bg/60 transition-colors shrink-0">
                   <X size={14} />
                 </button>
               </div>
@@ -400,6 +418,38 @@ export const AdminPage = () => {
                     {enteringId === selectedTeam.id ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
                     Accéder à l'équipe
                   </button>
+
+                  {/* Supprimer */}
+                  {!confirmDelete ? (
+                    <button
+                      onClick={() => setConfirmDelete(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium text-gray-600 border border-dark-border hover:text-red-400 hover:border-red-500/30 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                      Supprimer l'équipe
+                    </button>
+                  ) : (
+                    <div className="border border-red-500/40 rounded-xl p-3 bg-red-500/5 space-y-2">
+                      <p className="text-xs text-red-300 text-center font-medium">Supprimer définitivement ?</p>
+                      <p className="text-[11px] text-gray-500 text-center">Cette action est irréversible. Tous les matchs, joueurs et données seront supprimés.</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setConfirmDelete(false)}
+                          className="flex-1 py-1.5 rounded-lg text-xs text-gray-500 border border-dark-border hover:text-white transition-colors"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={deleteTeam}
+                          disabled={deletingTeam}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                          {deletingTeam ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                          Confirmer
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>

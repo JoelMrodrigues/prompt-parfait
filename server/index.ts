@@ -10,6 +10,8 @@ import lcuRoutes from './routes/lcu.routes.js'
 import analyseRoutes from './routes/analyse.routes.js'
 import teamRoutes from './routes/team.routes.js'
 import adminUsersRoutes from './routes/adminUsers.routes.js'
+import adminRiotKeysRoutes from './routes/adminRiotKeys.routes.js'
+import { reloadRiotKeysFromDb } from './lib/riotClient.js'
 
 loadServerEnv()
 resolveRiotApiKey()
@@ -56,6 +58,7 @@ app.use('/api/lcu', lcuRoutes)
 app.use('/api/analyse', analyseRoutes)
 app.use('/api/team', teamRoutes)
 app.use('/api/admin', adminUsersRoutes)
+app.use('/api/admin', adminRiotKeysRoutes)
 
 app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
@@ -68,6 +71,8 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 })
 
 app.listen(PORT, async () => {
+  reloadRiotKeysFromDb().catch(() => {})
+
   const apiKey = (process.env.RIOT_API_KEY || '').trim().replace(/\r/g, '')
   if (apiKey !== process.env.RIOT_API_KEY) process.env.RIOT_API_KEY = apiKey
 

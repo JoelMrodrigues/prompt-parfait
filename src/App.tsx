@@ -50,12 +50,16 @@ const ProTournaments = lazy(() => import('./pages/stats/ProTournaments').then(m 
 
 const AdminPage = lazy(() => import('./pages/admin/AdminPage').then(m => ({ default: m.AdminPage })))
 const AdminFeaturesPage = lazy(() => import('./pages/admin/AdminFeaturesPage').then(m => ({ default: m.AdminFeaturesPage })))
+const AdminAnnouncementsPage = lazy(() => import('./pages/admin/AdminAnnouncementsPage').then(m => ({ default: m.AdminAnnouncementsPage })))
+const AdminRiotKeysPage = lazy(() => import('./pages/admin/AdminRiotKeysPage').then(m => ({ default: m.AdminRiotKeysPage })))
 const AdminStatsLayout = lazy(() => import('./pages/admin/AdminStatsLayout').then(m => ({ default: m.AdminStatsLayout })))
 const AdminStatsPage = lazy(() => import('./pages/admin/AdminStatsPage').then(m => ({ default: m.AdminStatsPage })))
 const AdminStatsUsersPage = lazy(() => import('./pages/admin/AdminStatsUsersPage').then(m => ({ default: m.AdminStatsUsersPage })))
 const AdminStatsUsagePage = lazy(() => import('./pages/admin/AdminStatsUsagePage').then(m => ({ default: m.AdminStatsUsagePage })))
 const AdminStatsActivityPage = lazy(() => import('./pages/admin/AdminStatsActivityPage').then(m => ({ default: m.AdminStatsActivityPage })))
 const AdminStatsHealthPage = lazy(() => import('./pages/admin/AdminStatsHealthPage').then(m => ({ default: m.AdminStatsHealthPage })))
+const AdminStatsOnboardingPage = lazy(() => import('./pages/admin/AdminStatsOnboardingPage').then(m => ({ default: m.AdminStatsOnboardingPage })))
+const AdminStatsLogsPage = lazy(() => import('./pages/admin/AdminStatsLogsPage').then(m => ({ default: m.AdminStatsLogsPage })))
 
 // Fallback minimal pendant le chargement lazy
 function PageLoader() {
@@ -119,12 +123,16 @@ function AppRoutes() {
           <Route path="stats/pro/tournaments" element={<ProTournaments />} />
           <Route path="admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           <Route path="admin/features" element={<ProtectedRoute><AdminFeaturesPage /></ProtectedRoute>} />
+          <Route path="admin/announcements" element={<ProtectedRoute><AdminAnnouncementsPage /></ProtectedRoute>} />
+          <Route path="admin/riot-keys" element={<ProtectedRoute><AdminRiotKeysPage /></ProtectedRoute>} />
           <Route path="admin/stats" element={<ProtectedRoute><AdminStatsLayout /></ProtectedRoute>}>
             <Route index element={<AdminStatsPage />} />
             <Route path="users" element={<AdminStatsUsersPage />} />
             <Route path="usage" element={<AdminStatsUsagePage />} />
             <Route path="activity" element={<AdminStatsActivityPage />} />
             <Route path="health" element={<AdminStatsHealthPage />} />
+            <Route path="onboarding" element={<AdminStatsOnboardingPage />} />
+            <Route path="logs" element={<AdminStatsLogsPage />} />
           </Route>
           <Route path="login" element={<Login />} />
           <Route path="update-password" element={<UpdatePasswordPage />} />
