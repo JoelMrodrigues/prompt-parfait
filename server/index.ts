@@ -58,7 +58,7 @@ app.use('/api/lcu', lcuRoutes)
 app.use('/api/analyse', analyseRoutes)
 app.use('/api/team', teamRoutes)
 app.use('/api/admin', adminUsersRoutes)
-app.use('/api/admin', adminRiotKeysRoutes)
+app.use('/api/admin/riot-keys', adminRiotKeysRoutes)
 
 app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { UserPlus, Users, Gamepad2, Activity, ArrowRight, TrendingUp } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -9,11 +10,13 @@ interface FunnelStep {
   count: number
   icon: typeof UserPlus
   color: string
+  link: string
 }
 
 interface WeeklySignup { week: string; count: number }
 
 export const AdminStatsOnboardingPage = () => {
+  const navigate = useNavigate()
   const [steps, setSteps]     = useState<FunnelStep[]>([])
   const [weekly, setWeekly]   = useState<WeeklySignup[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,24 +24,15 @@ export const AdminStatsOnboardingPage = () => {
   useEffect(() => {
     if (!supabase) return
     const load = async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-      const [
-        { count: totalProfiles },
-        { count: withTeam },
-        { count: withMatch },
-        { count: activeRecent },
-      ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).not('active_team_id', 'is', null),
-        supabase.from('team_matches').select('team_id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('last_seen_at', sevenDaysAgo),
-      ])
+      // SECURITY DEFINER function bypasses RLS for admin stats
+      const { data: stats } = await supabase.rpc('get_admin_onboarding_stats')
 
+      const s = stats as { total_profiles: number; with_team: number; with_match: number; active_7d: number } | null
       setSteps([
-        { label: 'Inscrits',         description: 'Comptes créés',              count: totalProfiles ?? 0, icon: UserPlus,  color: 'text-accent-blue' },
-        { label: 'Avec une équipe',  description: 'Ont créé ou rejoint',         count: withTeam    ?? 0, icon: Users,     color: 'text-emerald-400' },
-        { label: 'Matchs importés',  description: 'Équipes avec ≥1 match',       count: withMatch   ?? 0, icon: Gamepad2,  color: 'text-amber-400' },
-        { label: 'Actifs (7j)',       description: 'Connectés ces 7 derniers j', count: activeRecent ?? 0, icon: Activity,  color: 'text-red-400' },
+        { label: 'Inscrits',        description: 'Comptes créés',              count: s?.total_profiles ?? 0, icon: UserPlus, color: 'text-accent-blue',  link: '/admin/stats/users' },
+        { label: 'Avec une équipe', description: 'Ont créé ou rejoint',        count: s?.with_team     ?? 0, icon: Users,    color: 'text-emerald-400', link: '/admin' },
+        { label: 'Matchs importés', description: 'Équipes avec ≥1 match',      count: s?.with_match    ?? 0, icon: Gamepad2, color: 'text-amber-400',   link: '/admin/stats/activity' },
+        { label: 'Actifs (7j)',     description: 'Connectés ces 7 derniers j', count: s?.active_7d     ?? 0, icon: Activity, color: 'text-red-400',     link: '/admin/stats/users' },
       ])
 
       // Weekly signups — 8 dernières semaines
@@ -90,7 +84,8 @@ export const AdminStatsOnboardingPage = () => {
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.08 }}
-              className="bg-dark-card border border-dark-border rounded-xl p-4"
+              onClick={() => navigate(step.link)}
+              className="bg-dark-card border border-dark-border rounded-xl p-4 cursor-pointer hover:border-red-500/30 transition-colors group"
             >
               <div className="flex items-center gap-4 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center shrink-0">
