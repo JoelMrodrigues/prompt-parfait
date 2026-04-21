@@ -82,7 +82,7 @@ export function useTeamAutoSync() {
       const currentPlayers = playersRef.current
       const updatePlayerFn = updatePlayerRef.current
       const listToSync = (currentPlayers || []).filter(hasValidPseudo)
-      const isFlexTeam = team?.team_type === 'flex'
+      const isFlexTeam = team?.team_type === 'flex' || team?.features?.flex === true
       const queueSuffix = isFlexTeam ? '&queue=flex' : ''
 
       // Nouveau AbortController pour chaque cycle — annule toutes les requêtes en vol si abort

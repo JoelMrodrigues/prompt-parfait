@@ -14,6 +14,7 @@ const FEATURES = [
   { key: 'coaching',      label: 'Coaching' },
   { key: 'planning',      label: 'Planning' },
   { key: 'plans',         label: 'Plans' },
+  { key: 'flex',          label: 'Ranked Flex' },
 ]
 
 type TeamWithFeatures = Team & { features: Record<string, boolean> }
