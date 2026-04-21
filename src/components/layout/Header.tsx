@@ -14,8 +14,9 @@ export const Header = () => {
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   const adminLinks = [
-    { to: '/admin',       label: 'Équipes',       icon: Users },
-    { to: '/admin/stats', label: 'Statistiques',  icon: BarChart3 },
+    { to: '/admin',          label: 'Équipes',       icon: Users },
+    { to: '/admin/features', label: 'Features',      icon: Shield },
+    { to: '/admin/stats',    label: 'Statistiques',  icon: BarChart3 },
   ]
 
   const userLinks = [

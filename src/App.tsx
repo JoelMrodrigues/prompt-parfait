@@ -49,10 +49,13 @@ const ProPlayers = lazy(() => import('./pages/stats/ProPlayers').then(m => ({ de
 const ProTournaments = lazy(() => import('./pages/stats/ProTournaments').then(m => ({ default: m.ProTournaments })))
 
 const AdminPage = lazy(() => import('./pages/admin/AdminPage').then(m => ({ default: m.AdminPage })))
+const AdminFeaturesPage = lazy(() => import('./pages/admin/AdminFeaturesPage').then(m => ({ default: m.AdminFeaturesPage })))
 const AdminStatsLayout = lazy(() => import('./pages/admin/AdminStatsLayout').then(m => ({ default: m.AdminStatsLayout })))
 const AdminStatsPage = lazy(() => import('./pages/admin/AdminStatsPage').then(m => ({ default: m.AdminStatsPage })))
 const AdminStatsUsersPage = lazy(() => import('./pages/admin/AdminStatsUsersPage').then(m => ({ default: m.AdminStatsUsersPage })))
 const AdminStatsUsagePage = lazy(() => import('./pages/admin/AdminStatsUsagePage').then(m => ({ default: m.AdminStatsUsagePage })))
+const AdminStatsActivityPage = lazy(() => import('./pages/admin/AdminStatsActivityPage').then(m => ({ default: m.AdminStatsActivityPage })))
+const AdminStatsHealthPage = lazy(() => import('./pages/admin/AdminStatsHealthPage').then(m => ({ default: m.AdminStatsHealthPage })))
 
 // Fallback minimal pendant le chargement lazy
 function PageLoader() {
@@ -115,10 +118,13 @@ function AppRoutes() {
           <Route path="stats/pro/players" element={<ProPlayers />} />
           <Route path="stats/pro/tournaments" element={<ProTournaments />} />
           <Route path="admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+          <Route path="admin/features" element={<ProtectedRoute><AdminFeaturesPage /></ProtectedRoute>} />
           <Route path="admin/stats" element={<ProtectedRoute><AdminStatsLayout /></ProtectedRoute>}>
             <Route index element={<AdminStatsPage />} />
             <Route path="users" element={<AdminStatsUsersPage />} />
             <Route path="usage" element={<AdminStatsUsagePage />} />
+            <Route path="activity" element={<AdminStatsActivityPage />} />
+            <Route path="health" element={<AdminStatsHealthPage />} />
           </Route>
           <Route path="login" element={<Login />} />
           <Route path="update-password" element={<UpdatePasswordPage />} />

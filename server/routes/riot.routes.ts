@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express'
 import axios from 'axios'
 import { cache } from '../services/cacheService.js'
 import { parsePseudo } from '../utils/parsers.js'
+import { getRiotMetrics } from '../lib/riotClient.js'
 import {
   getPuuidByRiotId,
   getPuuidAndSummonerId,
@@ -65,7 +66,12 @@ async function resolvePuuid(pseudo: string, region: string, puuidOverride: strin
 
 router.get('/status', (_req: Request, res: Response) => {
   const key = getApiKey()
-  res.json({ ok: true, riotKeySet: !!key?.trim(), message: key ? 'RIOT_API_KEY présente' : 'RIOT_API_KEY absente — ajoute-la dans Railway Variables' })
+  res.json({ ok: true, configured: !!key?.trim(), message: key ? 'RIOT_API_KEY présente' : 'RIOT_API_KEY absente' })
+})
+
+router.get('/metrics', (_req: Request, res: Response) => {
+  const key = getApiKey()
+  res.json({ ...getRiotMetrics(), keys_count: key ? 1 : 0, key_configured: !!key })
 })
 
 // ─── TEST CLÉ (appel Riot pour valider) ───────────────────────────────────────
