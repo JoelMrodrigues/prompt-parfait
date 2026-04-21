@@ -9,6 +9,7 @@ import statsRoutes from './routes/stats.routes.js'
 import lcuRoutes from './routes/lcu.routes.js'
 import analyseRoutes from './routes/analyse.routes.js'
 import teamRoutes from './routes/team.routes.js'
+import adminUsersRoutes from './routes/adminUsers.routes.js'
 
 loadServerEnv()
 resolveRiotApiKey()
@@ -54,6 +55,7 @@ app.use('/api/stats', statsRoutes)
 app.use('/api/lcu', lcuRoutes)
 app.use('/api/analyse', analyseRoutes)
 app.use('/api/team', teamRoutes)
+app.use('/api/admin', adminUsersRoutes)
 
 app.get('/', (_req, res) => res.json({ ok: true, service: 'prompt-parfait-api', endpoints: ['/health', '/api/riot/...', '/api/stats/...'] }))
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
