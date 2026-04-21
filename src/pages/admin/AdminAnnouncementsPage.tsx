@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Megaphone, Plus, X, Trash2, CheckCircle, AlertCircle, AlertTriangle, Info, Eye, EyeOff } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Megaphone, Plus, X, Trash2, AlertCircle, AlertTriangle, Info, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { logAdminAction } from '../../lib/adminLog'
 
@@ -20,58 +20,45 @@ const TYPE_META = {
   error: { icon: AlertCircle,   color: 'text-red-400',      bg: 'bg-red-500/10 border-red-500/20',           label: 'Urgent' },
 }
 
-export const AdminAnnouncementsPage = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [saving, setSaving]     = useState(false)
+interface CreateModalProps {
+  onClose: () => void
+  onCreated: (ann: Announcement) => void
+}
+
+function CreateAnnouncementModal({ onClose, onCreated }: CreateModalProps) {
   const [form, setForm] = useState({ message: '', type: 'info' as Announcement['type'], expires_at: '' })
-
-  useEffect(() => {
-    if (!supabase) return
-    supabase.from('system_announcements').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setAnnouncements((data || []) as Announcement[]); setLoading(false) })
-  }, [])
-
-  const toggleActive = async (ann: Announcement) => {
-    const newVal = !ann.active
-    await supabase!.from('system_announcements').update({ active: newVal }).eq('id', ann.id)
-    setAnnouncements(a => a.map(x => x.id === ann.id ? { ...x, active: newVal } : x))
-    await logAdminAction('announcement', 'announcement', ann.id, { action: newVal ? 'activated' : 'deactivated', message: ann.message.slice(0, 60) })
-  }
-
-  const deleteAnn = async (ann: Announcement) => {
-    await supabase!.from('system_announcements').delete().eq('id', ann.id)
-    setAnnouncements(a => a.filter(x => x.id !== ann.id))
-    await logAdminAction('announcement', 'announcement', ann.id, { action: 'deleted', message: ann.message.slice(0, 60) })
-  }
+  const [saving, setSaving] = useState(false)
 
   const handleCreate = async () => {
-    if (!form.message.trim()) return
+    if (!form.message.trim() || !supabase) return
     setSaving(true)
     const row: any = { message: form.message.trim(), type: form.type, active: true }
     if (form.expires_at) row.expires_at = new Date(form.expires_at).toISOString()
-    const { data } = await supabase!.from('system_announcements').insert(row).select().single()
+    const { data } = await supabase.from('system_announcements').insert(row).select().single()
     if (data) {
-      setAnnouncements(a => [data as Announcement, ...a])
+      onCreated(data as Announcement)
       await logAdminAction('announcement', 'announcement', data.id, { action: 'created', message: form.message.slice(0, 60) })
     }
-    setForm({ message: '', type: 'info', expires_at: '' })
     setSaving(false)
-    setShowModal(false)
+    onClose()
   }
 
-  const modal = showModal && createPortal(
-    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
         className="bg-dark-card border border-dark-border rounded-2xl w-full max-w-lg shadow-2xl"
+        onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-dark-border">
           <p className="text-sm font-bold text-white">Nouvelle annonce</p>
-          <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-white transition-colors"><X size={16} /></button>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <X size={16} />
+          </button>
         </div>
         <div className="p-5 space-y-4">
           <div>
@@ -107,7 +94,6 @@ export const AdminAnnouncementsPage = () => {
               />
             </div>
           </div>
-          {/* Preview */}
           {form.message && (
             <div className={`flex items-start gap-2 p-3 rounded-lg border text-xs ${TYPE_META[form.type].bg}`}>
               {(() => { const Icon = TYPE_META[form.type].icon; return <Icon size={14} className={`${TYPE_META[form.type].color} shrink-0 mt-0.5`} /> })()}
@@ -116,8 +102,17 @@ export const AdminAnnouncementsPage = () => {
           )}
         </div>
         <div className="flex gap-2 px-5 pb-5">
-          <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-dark-border text-sm text-gray-400 hover:text-white transition-colors">Annuler</button>
-          <button onClick={handleCreate} disabled={saving || !form.message.trim()} className="flex-1 py-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-sm text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-dark-border text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={saving || !form.message.trim()}
+            className="flex-1 py-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-sm text-red-400 hover:bg-red-500/25 transition-colors disabled:opacity-50"
+          >
             {saving ? 'Création…' : 'Publier'}
           </button>
         </div>
@@ -125,8 +120,37 @@ export const AdminAnnouncementsPage = () => {
     </div>,
     document.body
   )
+}
 
-  if (loading) return <div className="flex items-center justify-center min-h-[40vh]"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-400" /></div>
+export const AdminAnnouncementsPage = () => {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+    if (!supabase) { setLoading(false); return }
+    supabase.from('system_announcements').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setAnnouncements((data || []) as Announcement[]); setLoading(false) })
+  }, [])
+
+  const toggleActive = async (ann: Announcement) => {
+    const newVal = !ann.active
+    await supabase!.from('system_announcements').update({ active: newVal }).eq('id', ann.id)
+    setAnnouncements(a => a.map(x => x.id === ann.id ? { ...x, active: newVal } : x))
+    await logAdminAction('announcement', 'announcement', ann.id, { action: newVal ? 'activated' : 'deactivated', message: ann.message.slice(0, 60) })
+  }
+
+  const deleteAnn = async (ann: Announcement) => {
+    await supabase!.from('system_announcements').delete().eq('id', ann.id)
+    setAnnouncements(a => a.filter(x => x.id !== ann.id))
+    await logAdminAction('announcement', 'announcement', ann.id, { action: 'deleted', message: ann.message.slice(0, 60) })
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-400" />
+    </div>
+  )
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
@@ -179,10 +203,17 @@ export const AdminAnnouncementsPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <button onClick={() => toggleActive(ann)} title={ann.active ? 'Désactiver' : 'Activer'} className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center text-gray-500 hover:text-white transition-colors">
+                    <button
+                      onClick={() => toggleActive(ann)}
+                      title={ann.active ? 'Désactiver' : 'Activer'}
+                      className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center text-gray-500 hover:text-white transition-colors"
+                    >
                       {ann.active ? <Eye size={13} /> : <EyeOff size={13} />}
                     </button>
-                    <button onClick={() => deleteAnn(ann)} className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center text-gray-500 hover:text-red-400 transition-colors">
+                    <button
+                      onClick={() => deleteAnn(ann)}
+                      className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center text-gray-500 hover:text-red-400 transition-colors"
+                    >
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -193,7 +224,12 @@ export const AdminAnnouncementsPage = () => {
         </div>
       )}
 
-      <AnimatePresence>{showModal && modal}</AnimatePresence>
+      {showModal && (
+        <CreateAnnouncementModal
+          onClose={() => setShowModal(false)}
+          onCreated={ann => setAnnouncements(a => [ann, ...a])}
+        />
+      )}
     </div>
   )
 }
