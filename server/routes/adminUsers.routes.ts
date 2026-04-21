@@ -1,19 +1,20 @@
 import { Router, Request, Response } from 'express'
-import { supabaseAdmin } from '../lib/supabaseAdmin.js'
+import { getSupabaseAdmin } from '../lib/supabaseAdmin.js'
 
 const router = Router()
 
 // ─── Middleware admin ─────────────────────────────────────────────────────────
 
 async function requireAdmin(req: Request, res: Response, next: () => void) {
-  if (!supabaseAdmin) return res.status(503).json({ error: 'Supabase admin non configuré' })
+  const db = getSupabaseAdmin()
+  if (!db) return res.status(503).json({ error: 'Supabase admin non configuré' })
   const token = req.headers.authorization?.replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'Token manquant' })
 
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+  const { data: { user }, error } = await db.auth.getUser(token)
   if (error || !user) return res.status(401).json({ error: 'Token invalide' })
 
-  const { data: profile } = await supabaseAdmin
+  const { data: profile } = await db
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
@@ -26,11 +27,12 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
 // ─── GET /api/admin/users ─────────────────────────────────────────────────────
 
 router.get('/users', requireAdmin as any, async (_req: Request, res: Response) => {
-  const { data, error } = await supabaseAdmin!.auth.admin.listUsers({ perPage: 1000 })
+  const db = getSupabaseAdmin()!
+  const { data, error } = await db.auth.admin.listUsers({ perPage: 1000 })
   if (error) return res.status(500).json({ error: error.message })
 
   // Merge avec profiles pour display_name, last_seen_at, is_admin
-  const { data: profiles } = await supabaseAdmin!
+  const { data: profiles } = await db
     .from('profiles')
     .select('id, display_name, last_seen_at, is_admin, active_team_id')
 
@@ -63,7 +65,8 @@ router.patch('/users/:id', requireAdmin as any, async (req: Request, res: Respon
   if (email?.trim())    updates.email    = email.trim()
   if (password?.trim()) updates.password = password.trim()
 
-  const { error } = await supabaseAdmin!.auth.admin.updateUserById(id, updates)
+  const db = getSupabaseAdmin()!
+  const { error } = await db.auth.admin.updateUserById(id, updates)
   if (error) return res.status(500).json({ error: error.message })
 
   res.json({ ok: true })

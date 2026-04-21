@@ -8,7 +8,7 @@
 import axios from 'axios'
 import { sleep } from '../utils/helpers.js'
 import type { RiotResponse } from '../types/index.js'
-import { supabaseAdmin } from './supabaseAdmin.js'
+import { getSupabaseAdmin } from './supabaseAdmin.js'
 
 // ─── Métriques ────────────────────────────────────────────────────────────────
 
@@ -47,6 +47,7 @@ export function getRiotMetrics() {
 let _peakPerMinute = 0
 
 async function _persistDailyStats() {
+  const supabaseAdmin = getSupabaseAdmin()
   if (!supabaseAdmin) return
   const m = getRiotMetrics()
   const today = new Date().toISOString().slice(0, 10)
