@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Swords, Users, Trophy, Gamepad2, Activity, Clock, TrendingUp } from 'lucide-react'
+import { Swords, Users, Trophy, Gamepad2, Activity, Clock, TrendingUp, Shield } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 const TYPE_META: Record<string, { label: string; icon: typeof Swords; color: string }> = {
@@ -19,13 +19,14 @@ interface TeamActivity {
   member_count: number
   match_count: number
   soloq_count: number
+  flex_count: number
   last_member_seen: string | null
 }
 
 export const AdminStatsActivityPage = () => {
   const [teams, setTeams] = useState<TeamActivity[]>([])
   const [loading, setLoading] = useState(true)
-  const [sort, setSort] = useState<'matches' | 'soloq' | 'members' | 'seen'>('matches')
+  const [sort, setSort] = useState<'matches' | 'soloq' | 'flex' | 'members' | 'seen'>('matches')
 
   useEffect(() => {
     if (!supabase) return
@@ -41,6 +42,7 @@ export const AdminStatsActivityPage = () => {
         member_count: Number(t.member_count) || 0,
         match_count: Number(t.match_count) || 0,
         soloq_count: Number(t.soloq_count) || 0,
+        flex_count: Number(t.flex_count) || 0,
         last_member_seen: t.last_member_seen || null,
       })))
       setLoading(false)
@@ -51,6 +53,7 @@ export const AdminStatsActivityPage = () => {
   const sorted = [...teams].sort((a, b) => {
     if (sort === 'matches') return b.match_count - a.match_count
     if (sort === 'soloq')   return b.soloq_count - a.soloq_count
+    if (sort === 'flex')    return b.flex_count - a.flex_count
     if (sort === 'members') return b.member_count - a.member_count
     if (sort === 'seen') {
       if (!a.last_member_seen) return 1
@@ -95,10 +98,11 @@ export const AdminStatsActivityPage = () => {
           <p className="text-sm text-gray-500 mt-1">Classement par usage réel de la plateforme</p>
         </div>
         <div className="flex items-center gap-1 bg-dark-card border border-dark-border rounded-lg p-1">
-          <SortBtn val="matches" label="Matchs" />
-          <SortBtn val="soloq"   label="SoloQ" />
+          <SortBtn val="matches" label="Matchs équipe" />
+          <SortBtn val="soloq"   label="Solo Q" />
+          <SortBtn val="flex"    label="Flex" />
           <SortBtn val="members" label="Membres" />
-          <SortBtn val="seen"    label="Dernière activité" />
+          <SortBtn val="seen"    label="Activité" />
         </div>
       </div>
 
@@ -119,18 +123,24 @@ export const AdminStatsActivityPage = () => {
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">{medals[i]}</span>
                 <div className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center overflow-hidden shrink-0">
-                  {team.logo_url ? <img src={team.logo_url} className="w-full h-full object-contain p-0.5" /> : <span className="text-[10px] font-bold text-gray-500">{team.team_name.charAt(0)}</span>}
+                  {team.logo_url
+                    ? <img src={team.logo_url} className="w-full h-full object-contain p-0.5" />
+                    : <span className="text-[10px] font-bold text-gray-500">{team.team_name.charAt(0)}</span>}
                 </div>
                 <span className="text-sm font-bold text-white truncate flex-1">{team.team_name}</span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500 flex items-center gap-1"><Activity size={10} />Matchs</span>
+                  <span className="text-gray-500 flex items-center gap-1"><Activity size={10} />Matchs équipe</span>
                   <span className="text-white font-semibold">{team.match_count}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500 flex items-center gap-1"><TrendingUp size={10} />SoloQ</span>
-                  <span className="text-white font-semibold">{team.soloq_count}</span>
+                  <span className="text-gray-500 flex items-center gap-1"><Trophy size={10} className="text-amber-400" />Solo Q</span>
+                  <span className="text-amber-400 font-semibold">{team.soloq_count}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500 flex items-center gap-1"><Shield size={10} className="text-emerald-400" />Flex</span>
+                  <span className="text-emerald-400 font-semibold">{team.flex_count}</span>
                 </div>
                 {meta && <div className="flex justify-between text-xs"><span className="text-gray-500">Type</span><span className={`font-medium ${meta.color}`}>{meta.label}</span></div>}
               </div>
@@ -146,10 +156,11 @@ export const AdminStatsActivityPage = () => {
         transition={{ delay: 0.2 }}
         className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden"
       >
-        <div className="grid grid-cols-[2fr_80px_80px_80px_120px] gap-3 px-4 py-2.5 border-b border-dark-border text-[10px] font-bold uppercase tracking-widest text-gray-600">
+        <div className="grid grid-cols-[2fr_90px_80px_80px_80px_110px] gap-2 px-4 py-2.5 border-b border-dark-border text-[10px] font-bold uppercase tracking-widest text-gray-600">
           <span>Équipe</span>
           <span className="text-center">Matchs</span>
-          <span className="text-center">SoloQ</span>
+          <span className="text-center text-amber-500/70">Solo Q</span>
+          <span className="text-center text-emerald-500/70">Flex</span>
           <span className="text-center">Membres</span>
           <span className="flex items-center gap-1"><Clock size={10} />Activité</span>
         </div>
@@ -163,11 +174,13 @@ export const AdminStatsActivityPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 + i * 0.02 }}
-              className="grid grid-cols-[2fr_80px_80px_80px_120px] gap-3 items-center px-4 py-3 border-b border-dark-border/40 last:border-0 hover:bg-dark-bg/40 transition-colors"
+              className="grid grid-cols-[2fr_90px_80px_80px_80px_110px] gap-2 items-center px-4 py-3 border-b border-dark-border/40 last:border-0 hover:bg-dark-bg/40 transition-colors"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-lg bg-dark-bg border border-dark-border flex items-center justify-center overflow-hidden shrink-0">
-                  {team.logo_url ? <img src={team.logo_url} className="w-full h-full object-contain p-0.5" /> : <span className="text-[10px] font-bold text-gray-500">{team.team_name.charAt(0)}</span>}
+                  {team.logo_url
+                    ? <img src={team.logo_url} className="w-full h-full object-contain p-0.5" />
+                    : <span className="text-[10px] font-bold text-gray-500">{team.team_name.charAt(0)}</span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-white truncate">{team.team_name}</p>
@@ -180,7 +193,8 @@ export const AdminStatsActivityPage = () => {
                 </div>
               </div>
               <span className="text-sm text-white font-semibold text-center">{team.match_count}</span>
-              <span className="text-sm text-white font-semibold text-center">{team.soloq_count}</span>
+              <span className="text-sm text-amber-400 font-semibold text-center">{team.soloq_count || '—'}</span>
+              <span className="text-sm text-emerald-400 font-semibold text-center">{team.flex_count || '—'}</span>
               <span className="text-sm text-gray-400 text-center">{team.member_count}</span>
               <span className={`text-xs ${team.last_member_seen ? 'text-gray-400' : 'text-gray-700'}`}>{relativeTime(team.last_member_seen)}</span>
             </motion.div>
