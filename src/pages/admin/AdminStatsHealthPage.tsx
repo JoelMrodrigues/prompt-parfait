@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Server, Database, Wifi, WifiOff, RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Zap, Key, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Server, Database, Wifi, WifiOff, RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Zap, Key, TrendingUp, AlertTriangle, BarChart2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getBackendUrl } from '../../lib/constants'
 
@@ -50,6 +50,7 @@ export const AdminStatsHealthPage = () => {
     key_configured: boolean
     uptime_seconds: number
   } | null>(null)
+  const [dailyStats, setDailyStats] = useState<{ date: string; total_requests: number; rate_limited_count: number; peak_per_minute: number }[]>([])
 
   const runChecks = useCallback(async () => {
     setChecks([
@@ -113,6 +114,16 @@ export const AdminStatsHealthPage = () => {
     setLastChecked(new Date())
   }, [])
 
+  const loadDailyStats = useCallback(async () => {
+    if (!supabase) return
+    const { data } = await supabase
+      .from('riot_daily_stats')
+      .select('date, total_requests, rate_limited_count, peak_per_minute')
+      .order('date', { ascending: false })
+      .limit(14)
+    setDailyStats((data || []).reverse() as any)
+  }, [])
+
   const loadDbStats = useCallback(async () => {
     if (!supabase) return
     const tables = ['teams', 'players', 'profiles', 'team_matches', 'player_soloq_matches']
@@ -128,6 +139,7 @@ export const AdminStatsHealthPage = () => {
   useEffect(() => {
     runChecks()
     loadDbStats()
+    loadDailyStats()
   }, [])
 
   const globalStatus = checks.some(c => c.status === 'error') ? 'error'
@@ -146,7 +158,7 @@ export const AdminStatsHealthPage = () => {
           </p>
         </div>
         <button
-          onClick={() => { runChecks(); loadDbStats() }}
+          onClick={() => { runChecks(); loadDbStats(); loadDailyStats() }}
           className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dark-border text-xs text-gray-400 hover:text-white hover:border-red-500/30 transition-colors"
         >
           <RefreshCw size={12} />
@@ -247,6 +259,48 @@ export const AdminStatsHealthPage = () => {
           <p className="text-[10px] text-gray-700 mt-2">
             {riotMetrics.total} requêtes tracées depuis le démarrage du serveur ({Math.round(riotMetrics.uptime_seconds / 60)} min uptime)
           </p>
+        </section>
+      )}
+
+      {/* Historique quotidien Riot */}
+      {dailyStats.length > 0 && (
+        <section>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3 flex items-center gap-1.5">
+            <BarChart2 size={11} />
+            Riot API — Historique 14 jours
+          </p>
+          <div className="bg-dark-card border border-dark-border rounded-2xl overflow-hidden">
+            <div className="grid grid-cols-[1fr_80px_80px_80px] gap-2 px-4 py-2 border-b border-dark-border text-[10px] font-bold uppercase tracking-widest text-gray-600">
+              <span>Date</span>
+              <span className="text-right">Requêtes</span>
+              <span className="text-right">Pic/min</span>
+              <span className="text-right">Rate limits</span>
+            </div>
+            {(() => {
+              const maxReq = Math.max(...dailyStats.map(d => d.total_requests), 1)
+              return dailyStats.map((d, i) => (
+                <div key={d.date} className="grid grid-cols-[1fr_80px_80px_80px] gap-2 items-center px-4 py-2.5 border-b border-dark-border/40 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-1.5 rounded-full bg-accent-blue/40"
+                      style={{ width: `${Math.max((d.total_requests / maxReq) * 80, 2)}px` }}
+                    />
+                    <span className="text-xs text-gray-400">
+                      {new Date(d.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                      {i === dailyStats.length - 1 && <span className="ml-1.5 text-[9px] text-emerald-500 font-bold">AUJOURD'HUI</span>}
+                    </span>
+                  </div>
+                  <span className="text-xs text-white font-semibold text-right">{d.total_requests.toLocaleString()}</span>
+                  <span className={`text-xs text-right font-medium ${d.peak_per_minute > 80 ? 'text-red-400' : d.peak_per_minute > 50 ? 'text-amber-400' : 'text-gray-400'}`}>
+                    {d.peak_per_minute}
+                  </span>
+                  <span className={`text-xs text-right ${d.rate_limited_count > 0 ? 'text-amber-400 font-semibold' : 'text-gray-700'}`}>
+                    {d.rate_limited_count > 0 ? d.rate_limited_count : '—'}
+                  </span>
+                </div>
+              ))
+            })()}
+          </div>
         </section>
       )}
 

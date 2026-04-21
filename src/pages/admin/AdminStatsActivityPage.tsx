@@ -30,56 +30,18 @@ export const AdminStatsActivityPage = () => {
   useEffect(() => {
     if (!supabase) return
     const load = async () => {
-      const { data: teamsRaw } = await supabase
-        .from('teams')
-        .select('id, team_name, team_type, logo_url, created_at, team_members(count)')
-
-      if (!teamsRaw) { setLoading(false); return }
-
-      const teamIds = teamsRaw.map((t: any) => t.id)
-
-      const [
-        { data: matchCounts },
-        { data: soloqCounts },
-        { data: memberActivity },
-      ] = await Promise.all([
-        supabase.from('team_matches').select('team_id').in('team_id', teamIds),
-        supabase.from('player_soloq_matches')
-          .select('players!inner(team_id)')
-          .in('players.team_id', teamIds),
-        supabase.from('team_members')
-          .select('team_id, profiles!inner(last_seen_at)')
-          .in('team_id', teamIds),
-      ])
-
-      const matchMap: Record<string, number> = {}
-      for (const m of matchCounts || []) matchMap[m.team_id] = (matchMap[m.team_id] || 0) + 1
-
-      const soloqMap: Record<string, number> = {}
-      for (const s of soloqCounts || []) {
-        const tid = (s as any).players?.team_id
-        if (tid) soloqMap[tid] = (soloqMap[tid] || 0) + 1
-      }
-
-      const lastSeenMap: Record<string, string | null> = {}
-      for (const m of memberActivity || []) {
-        const tid = (m as any).team_id
-        const seen = (m as any).profiles?.last_seen_at
-        if (!lastSeenMap[tid] || (seen && seen > lastSeenMap[tid]!)) {
-          lastSeenMap[tid] = seen || null
-        }
-      }
-
-      setTeams(teamsRaw.map((t: any) => ({
+      const { data, error } = await supabase.rpc('get_admin_team_stats')
+      if (error) console.error('get_admin_team_stats:', error.message)
+      setTeams((data || []).map((t: any) => ({
         id: t.id,
         team_name: t.team_name,
         team_type: t.team_type,
         logo_url: t.logo_url,
         created_at: t.created_at,
-        member_count: (t.team_members?.[0]?.count ?? 0) + 1,
-        match_count: matchMap[t.id] || 0,
-        soloq_count: soloqMap[t.id] || 0,
-        last_member_seen: lastSeenMap[t.id] || null,
+        member_count: Number(t.member_count) || 0,
+        match_count: Number(t.match_count) || 0,
+        soloq_count: Number(t.soloq_count) || 0,
+        last_member_seen: t.last_member_seen || null,
       })))
       setLoading(false)
     }

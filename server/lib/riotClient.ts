@@ -3,10 +3,12 @@
  * - Auto-retry sur 429 (respect du retry-after)
  * - Log des 403 pour faciliter le debug
  * - Compteur de requêtes avec fenêtre glissante 60s
+ * - Persistence des stats quotidiennes dans Supabase (toutes les 5 min)
  */
 import axios from 'axios'
 import { sleep } from '../utils/helpers.js'
 import type { RiotResponse } from '../types/index.js'
+import { supabaseAdmin } from './supabaseAdmin.js'
 
 // ─── Métriques ────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,26 @@ export function getRiotMetrics() {
     window: _records.slice(-60).map(r => ({ ts: r.ts, status: r.status })),
   }
 }
+
+// ─── Persistence Supabase (toutes les 5 min) ─────────────────────────────────
+
+let _peakPerMinute = 0
+
+async function _persistDailyStats() {
+  if (!supabaseAdmin) return
+  const m = getRiotMetrics()
+  const today = new Date().toISOString().slice(0, 10)
+  if (m.per_minute_now > _peakPerMinute) _peakPerMinute = m.per_minute_now
+  await supabaseAdmin.from('riot_daily_stats').upsert({
+    date: today,
+    total_requests: m.total,
+    rate_limited_count: m.rate_limited_total,
+    peak_per_minute: _peakPerMinute,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'date' })
+}
+
+setInterval(_persistDailyStats, 5 * 60 * 1000)
 
 export const REGION_TO_CLUSTER: Record<string, string> = {
   euw1: 'europe', eun1: 'europe', tr1: 'europe', ru: 'europe',
