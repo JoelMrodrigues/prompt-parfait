@@ -123,9 +123,25 @@ export const TeamSidebar = () => {
   }
 
   return (
+    <>
+      {/* Backdrop mobile — ferme la sidebar au clic extérieur */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     <aside
-      className="bg-dark-card border-r border-dark-border flex flex-col shrink-0 overflow-hidden"
-      style={{ width: sidebarOpen ? '15rem' : '2.5rem', transition: 'width 300ms ease' }}
+      className={`
+        bg-dark-card border-r border-dark-border flex flex-col overflow-hidden
+        fixed top-0 bottom-0 left-0 z-50
+        md:relative md:top-auto md:bottom-auto md:left-auto md:z-auto md:shrink-0
+        transition-all duration-300 ease-in-out
+        ${sidebarOpen
+          ? 'translate-x-0 w-60'
+          : '-translate-x-full md:translate-x-0 w-60 md:w-10'
+        }
+      `}
     >
       {/* Mini strip — icônes seules quand sidebar repliée */}
       {!sidebarOpen && (
@@ -332,6 +348,7 @@ export const TeamSidebar = () => {
                   <li key={item.id}>
                     <NavLink
                       to={item.path}
+                      onClick={() => { if (window.innerWidth < 768) setSidebarOpen(false) }}
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                           isActive
@@ -369,5 +386,6 @@ export const TeamSidebar = () => {
       )}
       </div>{/* end full sidebar */}
     </aside>
+    </>
   )
 }

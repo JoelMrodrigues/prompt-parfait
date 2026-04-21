@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Moon, Sun, Shield, Users, BarChart3, Megaphone, Key } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Moon, Sun, Shield, Users, BarChart3, Megaphone, Key, Menu, X } from 'lucide-react'
 import { UserProfileMenu } from './UserProfileMenu'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -9,16 +10,17 @@ export const Header = () => {
   const location = useLocation()
   const { isDark, toggleTheme } = useTheme()
   const { isAdmin } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
   const adminLinks = [
-    { to: '/admin',                label: 'Équipes',       icon: Users },
-    { to: '/admin/features',       label: 'Features',      icon: Shield },
-    { to: '/admin/stats',          label: 'Stats',         icon: BarChart3 },
-    { to: '/admin/announcements',  label: 'Annonces',      icon: Megaphone },
-    { to: '/admin/riot-keys',      label: 'Clés Riot',     icon: Key },
+    { to: '/admin',                label: 'Équipes',   icon: Users },
+    { to: '/admin/features',       label: 'Features',  icon: Shield },
+    { to: '/admin/stats',          label: 'Stats',     icon: BarChart3 },
+    { to: '/admin/announcements',  label: 'Annonces',  icon: Megaphone },
+    { to: '/admin/riot-keys',      label: 'Clés Riot', icon: Key },
   ]
 
   const userLinks = [
@@ -28,16 +30,34 @@ export const Header = () => {
     { to: '/stats', label: 'Stats' },
   ]
 
+  const themeButton = (
+    <button
+      onClick={toggleTheme}
+      className="w-9 h-9 rounded-lg border border-dark-border bg-dark-bg flex items-center justify-center text-gray-400 hover:text-white hover:border-accent-blue/40 transition-all shrink-0"
+      title={isDark ? 'Mode clair' : 'Mode sombre'}
+    >
+      <motion.div
+        key={isDark ? 'dark' : 'light'}
+        initial={{ rotate: -30, opacity: 0 }}
+        animate={{ rotate: 0, opacity: 1 }}
+        transition={{ duration: 0.25 }}
+      >
+        {isDark ? <Sun size={15} /> : <Moon size={15} />}
+      </motion.div>
+    </button>
+  )
+
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b ${
       isAdmin
         ? 'bg-dark-card/90 border-red-500/20'
         : 'bg-dark-card/80 border-dark-border'
     }`}>
-      <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
+      <nav className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+        {/* Logo */}
         <Link
           to={isAdmin ? '/admin' : '/'}
-          className="font-display text-2xl font-bold bg-gradient-to-r from-purple-300 to-white bg-clip-text text-transparent flex items-center gap-2.5"
+          className="font-display text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-300 to-white bg-clip-text text-transparent flex items-center gap-2 shrink-0"
         >
           Void.pro
           {isAdmin && (
@@ -48,27 +68,28 @@ export const Header = () => {
           )}
         </Link>
 
-        <div className="flex items-center gap-8">
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-6 lg:gap-8">
           {isAdmin ? (
-            <ul className="flex gap-2">
+            <ul className="flex gap-1 lg:gap-2">
               {adminLinks.map(({ to, label, icon: Icon }) => (
                 <li key={to}>
                   <Link
                     to={to}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive(to)
                         ? 'bg-red-500/10 text-red-400 border border-red-500/30'
                         : 'text-gray-400 hover:text-white hover:bg-dark-bg/60'
                     }`}
                   >
                     <Icon size={14} />
-                    {label}
+                    <span className="hidden lg:inline">{label}</span>
                   </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <ul className="flex gap-6">
+            <ul className="flex gap-4 lg:gap-6">
               {userLinks.map(({ to, label }) => (
                 <li key={to}>
                   <Link
@@ -90,25 +111,54 @@ export const Header = () => {
               ))}
             </ul>
           )}
-
-          <button
-            onClick={toggleTheme}
-            className="w-9 h-9 rounded-lg border border-dark-border bg-dark-bg flex items-center justify-center text-gray-400 hover:text-white hover:border-accent-blue/40 transition-all"
-            title={isDark ? 'Mode clair' : 'Mode sombre'}
-          >
-            <motion.div
-              key={isDark ? 'dark' : 'light'}
-              initial={{ rotate: -30, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              transition={{ duration: 0.25 }}
-            >
-              {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            </motion.div>
-          </button>
-
+          {themeButton}
           <UserProfileMenu />
         </div>
+
+        {/* Mobile: theme + hamburger */}
+        <div className="flex md:hidden items-center gap-2">
+          {themeButton}
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="w-9 h-9 rounded-lg border border-dark-border bg-dark-bg flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+          >
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
       </nav>
+
+      {/* Mobile dropdown */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden border-t border-dark-border overflow-hidden bg-dark-card/95 backdrop-blur-md"
+          >
+            <div className="px-4 py-4 space-y-1">
+              {(isAdmin ? adminLinks.map(l => ({ to: l.to, label: l.label })) : userLinks).map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    isActive(to)
+                      ? isAdmin ? 'bg-red-500/10 text-red-400' : 'bg-accent-blue/10 text-accent-blue'
+                      : 'text-gray-400 hover:text-white hover:bg-dark-bg/60'
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+              <div className="pt-2 border-t border-dark-border/60">
+                <UserProfileMenu />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   )
 }

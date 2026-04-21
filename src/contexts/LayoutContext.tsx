@@ -13,7 +13,9 @@ const LayoutContext = createContext<LayoutContextValue>({
 export const useLayout = () => useContext(LayoutContext)
 
 export const LayoutProvider = ({ children }: { children: React.ReactNode }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  )
   return (
     <LayoutContext.Provider value={{ sidebarOpen, setSidebarOpen }}>
       {children}

@@ -14,9 +14,9 @@ interface Announcement {
 }
 
 const TYPE_META = {
-  info:  { icon: Info,          bg: 'bg-accent-blue/10 border-accent-blue/30',  text: 'text-accent-blue' },
-  warn:  { icon: AlertTriangle, bg: 'bg-amber-500/10 border-amber-500/30',       text: 'text-amber-400' },
-  error: { icon: AlertCircle,   bg: 'bg-red-500/10 border-red-500/30',           text: 'text-red-400' },
+  info:  { icon: Info,          bg: 'bg-accent-blue/10 border-accent-blue/30',  text: 'text-accent-blue',  pulse: false },
+  warn:  { icon: AlertTriangle, bg: 'bg-amber-500 border-amber-600',             text: 'text-white',        pulse: true  },
+  error: { icon: AlertCircle,   bg: 'bg-red-600 border-red-700',                 text: 'text-white',        pulse: true  },
 }
 
 const DISMISSED_KEY = 'dismissed_announcements'
@@ -29,10 +29,20 @@ function AnnouncementBanner() {
 
   useEffect(() => {
     if (!supabase) return
-    supabase.from('system_announcements')
-      .select('id, message, type, expires_at')
-      .eq('active', true)
-      .then(({ data }) => setAnnouncements((data || []) as Announcement[]))
+
+    const fetch = () =>
+      supabase.from('system_announcements')
+        .select('id, message, type, expires_at')
+        .eq('active', true)
+        .then(({ data }) => setAnnouncements((data || []) as Announcement[]))
+
+    fetch()
+
+    const ch = supabase.channel('ann_banner')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_announcements' }, fetch)
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
   }, [])
 
   const visible = announcements.filter(a => {
@@ -55,16 +65,17 @@ function AnnouncementBanner() {
         const meta = TYPE_META[ann.type]
         const Icon = meta.icon
         return (
-          <div key={ann.id} className={`flex items-center gap-3 px-4 py-2.5 border-b ${meta.bg}`}>
-            {/* Dot pulsant */}
-            <span className="relative shrink-0 flex h-2.5 w-2.5">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${meta.text.replace('text-', 'bg-')}`} />
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${meta.text.replace('text-', 'bg-')}`} />
-            </span>
-            <Icon size={14} className={`${meta.text} shrink-0`} />
-            <p className={`text-sm flex-1 font-medium ${meta.text}`}>{ann.message}</p>
-            <button onClick={() => dismiss(ann.id)} className="text-gray-500 hover:text-white transition-colors shrink-0 ml-2">
-              <X size={14} />
+          <div
+            key={ann.id}
+            className={`flex items-center gap-3 px-4 py-3 border-b ${meta.bg} ${meta.pulse ? 'animate-pulse' : ''}`}
+          >
+            <Icon size={16} className={`${meta.text} shrink-0`} />
+            <p className={`text-sm flex-1 font-semibold ${meta.text}`}>{ann.message}</p>
+            <button
+              onClick={() => dismiss(ann.id)}
+              className={`${meta.text} opacity-70 hover:opacity-100 transition-opacity shrink-0 ml-2`}
+            >
+              <X size={15} />
             </button>
           </div>
         )

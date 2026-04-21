@@ -5,6 +5,7 @@
  */
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import { Menu } from 'lucide-react'
 import { TeamSidebar } from './TeamSidebar'
 import { useTeam } from './hooks/useTeam'
 import { useTeamAutoSync } from './hooks/useTeamAutoSync'
@@ -14,32 +15,27 @@ import { useTeamMatches } from './hooks/useTeamMatches'
 import { useTeamBlocks } from './hooks/useTeamBlocks'
 import { ErrorBoundary } from '../../components/common/ErrorBoundary'
 import { loadItems } from '../../lib/items'
-import { LayoutProvider } from '../../contexts/LayoutContext'
+import { LayoutProvider, useLayout } from '../../contexts/LayoutContext'
 
-export const TeamLayout = () => {
+function TeamLayoutInner() {
   const location = useLocation()
   const navigate = useNavigate()
   const { team, loading } = useTeam()
+  const { setSidebarOpen } = useLayout()
+
   useTeamAutoSync()
   useSoloqMoodSync()
   useTeamMoodSync()
-  // Pré-fetch en arrière-plan dès l'entrée dans la section équipe.
-  // Le cache module-level garantit que MatchsPage reçoit les données instantanément.
   useTeamMatches(team?.id)
   useTeamBlocks(team?.id)
 
-  // Pré-charge les items Community Dragon une seule fois pour tout le layout.
-  // Les pages enfants (PlayerDetailPage, MatchDetailPage, SoloqMatchDetailPage)
-  // n'ont plus besoin d'appeler loadItems() individuellement.
   useEffect(() => { loadItems() }, [])
 
-  // Apply saved team accent color globally
   useEffect(() => {
     const color = team?.accent_color
     if (color) document.documentElement.style.setProperty('--color-accent', color)
   }, [team?.accent_color])
 
-  // Si pas d'équipe, rediriger vers overview (sauf page d'invitation)
   const isJoinPage = location.pathname.startsWith('/team/join/')
   useEffect(() => {
     if (!loading && !team && !isJoinPage && location.pathname !== '/team/overview') {
@@ -47,7 +43,6 @@ export const TeamLayout = () => {
     }
   }, [loading, team, isJoinPage, location.pathname, navigate])
 
-  // Page d'invitation : layout minimal sans sidebar
   if (location.pathname.startsWith('/team/join/')) {
     return (
       <div className="min-h-screen bg-dark-bg">
@@ -59,14 +54,22 @@ export const TeamLayout = () => {
   }
 
   return (
-    <LayoutProvider>
     <div className="min-h-screen bg-dark-bg flex">
-      {/* Sidebar */}
       <TeamSidebar />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        <main className="flex-1 overflow-auto p-6">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile sub-header : hamburger + nom équipe */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-dark-card border-b border-dark-border shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-dark-bg/60 transition-colors"
+          >
+            <Menu size={18} />
+          </button>
+          <span className="text-sm font-semibold text-white truncate">{team?.team_name ?? '...'}</span>
+        </div>
+
+        <main className="flex-1 overflow-auto p-3 md:p-6">
           <ErrorBoundary>
             <div key={location.pathname} className="animate-page-in">
               <Outlet />
@@ -75,6 +78,11 @@ export const TeamLayout = () => {
         </main>
       </div>
     </div>
-    </LayoutProvider>
   )
 }
+
+export const TeamLayout = () => (
+  <LayoutProvider>
+    <TeamLayoutInner />
+  </LayoutProvider>
+)
