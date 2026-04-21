@@ -58,9 +58,9 @@ export const MoodSoloQCard = ({
           return (
             <div
               key={p.id}
-              className="flex items-center gap-3 py-2 px-3 rounded-xl bg-dark-bg/50 border border-dark-border/40"
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 px-3 rounded-xl bg-dark-bg/50 border border-dark-border/40"
             >
-              <span className="text-sm font-medium text-white w-24 shrink-0 truncate">
+              <span className="text-sm font-medium text-white w-20 shrink-0 truncate">
                 {p.player_name}
               </span>
               <div className="flex gap-1 shrink-0">
@@ -70,7 +70,7 @@ export const MoodSoloQCard = ({
                   Array.from({ length: count }, (_, i) => (
                     <span
                       key={i}
-                      className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${
+                      className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center text-[9px] sm:text-[10px] font-bold ${
                         i < wins
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                           : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
@@ -82,7 +82,7 @@ export const MoodSoloQCard = ({
                 )}
               </div>
               <span className="text-xs text-gray-400 shrink-0">
-                {count > 0 ? `${wins}V ${losses}D` : '—'} · KDA {m?.kda ?? '—'}
+                {count > 0 ? `${wins}V ${losses}D` : '—'} · {m?.kda ?? '—'}
               </span>
               {soloqMood && (
                 <span className="ml-auto shrink-0 text-xs font-semibold text-white/90">

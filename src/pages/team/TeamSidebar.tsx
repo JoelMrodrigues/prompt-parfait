@@ -73,6 +73,37 @@ export const TeamSidebar = () => {
   const { isSyncing, currentPlayer, currentIndex, totalPlayers, isSecondaryPass, lastCycleAt } = useSyncStatus()
   const [, setTick] = useState(0)
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  )
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler, { passive: true })
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  useEffect(() => {
+    let startX = 0
+    let startY = 0
+    const onStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+    }
+    const onEnd = (e: TouchEvent) => {
+      if (!isMobile) return
+      const dx = e.changedTouches[0].clientX - startX
+      const dy = Math.abs(e.changedTouches[0].clientY - startY)
+      if (!sidebarOpen && startX < 28 && dx > 60 && dy < 80) setSidebarOpen(true)
+      if (sidebarOpen && dx < -60 && dy < 80) setSidebarOpen(false)
+    }
+    document.addEventListener('touchstart', onStart, { passive: true })
+    document.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', onStart)
+      document.removeEventListener('touchend', onEnd)
+    }
+  }, [isMobile, sidebarOpen, setSidebarOpen])
   const [switchingTeamId, setSwitchingTeamId] = useState<string | null>(null)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -125,26 +156,26 @@ export const TeamSidebar = () => {
   return (
     <>
       {/* Backdrop mobile — ferme la sidebar au clic extérieur */}
-      {sidebarOpen && (
+      {isMobile && sidebarOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
     <aside
-      className={`
-        bg-dark-card border-r border-dark-border flex flex-col overflow-hidden
-        fixed top-0 bottom-0 left-0 z-50
-        md:relative md:top-auto md:bottom-auto md:left-auto md:z-auto md:shrink-0
-        transition-all duration-300 ease-in-out
-        ${sidebarOpen
-          ? 'translate-x-0 w-60'
-          : '-translate-x-full md:translate-x-0 w-60 md:w-10'
-        }
-      `}
+      className="bg-dark-card border-r border-dark-border flex flex-col overflow-hidden"
+      style={{
+        position: isMobile ? 'fixed' : 'relative',
+        ...(isMobile ? { top: 0, bottom: 0, left: 0, zIndex: 50 } : { flexShrink: 0 }),
+        width: isMobile ? '15rem' : (sidebarOpen ? '15rem' : '2.5rem'),
+        transform: isMobile
+          ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)')
+          : 'none',
+        transition: 'transform 300ms ease, width 300ms ease',
+      }}
     >
-      {/* Mini strip — icônes seules quand sidebar repliée */}
-      {!sidebarOpen && (
+      {/* Mini strip — icônes seules quand sidebar repliée (desktop uniquement) */}
+      {!sidebarOpen && !isMobile && (
         <div className="flex flex-col items-center py-3 gap-1 w-10">
           <button
             onClick={() => setSidebarOpen(true)}

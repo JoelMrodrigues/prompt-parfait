@@ -54,7 +54,7 @@ function TeamLayoutInner() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg flex">
+    <div className="h-screen bg-dark-bg flex overflow-hidden">
       <TeamSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">

@@ -125,8 +125,9 @@ export function PlayerStatsComparisonCard({
         </div>
       )}
 
+      <div className="overflow-x-auto -mx-5 px-5">
       {/* Colonnes header */}
-      <div className={`grid ${GRID} gap-2 px-3 mb-2`}>
+      <div className={`grid ${GRID} gap-2 px-3 mb-2 min-w-[700px]`}>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider">Joueur</span>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">KDA</span>
         <span className="text-[10px] text-gray-600 uppercase tracking-wider text-center">Kills</span>
@@ -141,7 +142,7 @@ export function PlayerStatsComparisonCard({
       </div>
 
       {/* Lignes */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 min-w-[700px]">
         {rows.map(({ player, totalK, totalD, totalA, kda, winrate, count, dmgPerMin, goldPerMin, avgPinks, wrBlue, wrRed }) => {
           const pos = (player.position || '').toUpperCase() === 'BOT' ? 'ADC' : (player.position || '').toUpperCase()
           const roleColor = ROLE_COLORS[pos] ?? 'text-gray-400 bg-gray-500/10 border-gray-500/30'
@@ -229,10 +230,11 @@ export function PlayerStatsComparisonCard({
       </div>
 
       {active.length === 0 && (
-        <p className="text-center text-gray-600 text-sm py-4">
+        <p className="text-center text-gray-600 text-sm py-4 min-w-[700px]">
           {mode === 'team' ? 'Aucune partie team enregistrée' : `Aucune donnée ${isFlexTeam ? 'Flex' : 'Solo Q'} disponible`}
         </p>
       )}
+      </div>{/* end overflow-x-auto */}
 
       <p className="text-[10px] text-gray-700 text-center mt-3">
         ★ = meilleur · Dég./min & Or/min = global sur la période{mode === 'team' ? ' · Pinks/p = contrôles par partie' : ' (parties enrichies uniquement)'} · Win% B/R = winrate côté bleu / rouge ·{' '}
