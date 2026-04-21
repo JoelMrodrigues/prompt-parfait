@@ -50,15 +50,20 @@ function AnnouncementBanner() {
   if (visible.length === 0) return null
 
   return (
-    <div className="fixed top-20 left-0 right-0 z-40 flex flex-col gap-1 pointer-events-none px-4">
+    <div className="flex flex-col">
       {visible.map(ann => {
         const meta = TYPE_META[ann.type]
         const Icon = meta.icon
         return (
-          <div key={ann.id} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border ${meta.bg} pointer-events-auto shadow-lg`}>
+          <div key={ann.id} className={`flex items-center gap-3 px-4 py-2.5 border-b ${meta.bg}`}>
+            {/* Dot pulsant */}
+            <span className="relative shrink-0 flex h-2.5 w-2.5">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${meta.text.replace('text-', 'bg-')}`} />
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${meta.text.replace('text-', 'bg-')}`} />
+            </span>
             <Icon size={14} className={`${meta.text} shrink-0`} />
-            <p className={`text-sm flex-1 ${meta.text}`}>{ann.message}</p>
-            <button onClick={() => dismiss(ann.id)} className="text-gray-500 hover:text-white transition-colors shrink-0">
+            <p className={`text-sm flex-1 font-medium ${meta.text}`}>{ann.message}</p>
+            <button onClick={() => dismiss(ann.id)} className="text-gray-500 hover:text-white transition-colors shrink-0 ml-2">
               <X size={14} />
             </button>
           </div>
@@ -81,8 +86,8 @@ export const Layout = () => {
   return (
     <div className="min-h-screen bg-dark-bg">
       {!isDraftPage && <Header />}
-      {!isDraftPage && <AnnouncementBanner />}
       <main className={!isDraftPage ? 'pt-20' : ''}>
+        {!isDraftPage && <AnnouncementBanner />}
         <ErrorBoundary>
           <div key={location.pathname} className="animate-page-in">
             <Outlet />
