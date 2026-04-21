@@ -10,9 +10,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export function loadServerEnv(): void {
   const paths = [
-    resolve(__dirname, '..', '.env'),         // server/.env
-    resolve(process.cwd(), 'server', '.env'), // ./server/.env
-    resolve(process.cwd(), '.env'),           // ./.env
+    resolve(__dirname, '..', '.env'),         // server/.env  (absolu depuis config/)
+    resolve(__dirname, '..', '..', '.env'),   // racine projet (absolu depuis config/)
+    resolve(process.cwd(), 'server', '.env'), // ./server/.env  (si cwd = racine)
+    resolve(process.cwd(), '.env'),           // ./.env         (si cwd = racine)
+    resolve(process.cwd(), '..', '.env'),     // ../.env        (si cwd = server/)
   ]
 
   for (const p of paths) {
