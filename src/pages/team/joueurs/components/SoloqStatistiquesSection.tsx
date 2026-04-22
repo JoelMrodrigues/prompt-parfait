@@ -96,8 +96,8 @@ export function SoloqStatistiquesSection({ d }: { d: any }) {
   })
 
   const real = filtered.filter((g) => (g.game_duration ?? 0) >= 180)
-  const total = filtered.length
-  const wins = filtered.filter((g) => g.win).length
+  const total = real.length
+  const wins = real.filter((g) => g.win).length
   const losses = total - wins
   const wr = total > 0 ? Math.round((wins / total) * 100) : null
 

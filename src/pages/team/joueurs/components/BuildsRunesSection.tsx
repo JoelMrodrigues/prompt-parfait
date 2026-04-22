@@ -159,6 +159,7 @@ export function SoloqBuildsRunesSection({ lpGraphMatches, loading, runesCache }:
 
   const topChamps = Array.from(champMap.entries())
     .sort((a, b) => b[1].games - a[1].games).slice(0, 8)
+    .filter(([, v]) => v.games > 0)
     .map(([name, v]) => {
       const [bestRune] = [...v.runeCombos.entries()].sort((a, b) => b[1] - a[1])
       const [ks, p1, p2, p3, s1, s2] = (bestRune?.[0] ?? '').split(',').map(Number)
@@ -259,6 +260,7 @@ export function TeamBuildsRunesSection({ teamStats, loading, runesCache }: {
 
   const topChamps = Array.from(champMap.entries())
     .sort((a, b) => b[1].games - a[1].games).slice(0, 8)
+    .filter(([, v]) => v.games > 0)
     .map(([name, v]) => {
       const [bestRune] = [...v.runeCombos.entries()].sort((a, b) => b[1] - a[1])
       const [ks, p1, p2, p3, s1, s2] = (bestRune?.[0] ?? '').split(',').map(Number)

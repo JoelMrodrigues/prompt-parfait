@@ -143,8 +143,8 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
   )
   const all = filteredTeamStats ?? []
 
-  const total = all.length
-  const wins = all.filter((s: any) => s.team_matches?.our_win).length
+  const total = real.length
+  const wins = real.filter((s: any) => s.team_matches?.our_win).length
   const losses = total - wins
   const wr = total > 0 ? Math.round((wins / total) * 100) : null
 

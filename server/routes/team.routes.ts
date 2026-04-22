@@ -49,13 +49,21 @@ router.post('/invite-email', async (req: Request, res: Response) => {
 
 // ─── Template HTML ────────────────────────────────────────────────────────────
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 function buildInviteEmailHtml({ teamName, inviteLink, senderName }: {
   teamName: string
   inviteLink: string
   senderName?: string
 }) {
-  const senderLine = senderName
-    ? `<strong style="color:#fff">${senderName}</strong> vous invite à rejoindre`
+  const safeSender = senderName ? escapeHtml(senderName) : ''
+  const safeTeam = escapeHtml(teamName)
+  const safeLink = encodeURI(inviteLink)
+
+  const senderLine = safeSender
+    ? `<strong style="color:#fff">${safeSender}</strong> vous invite à rejoindre`
     : `Vous avez été invité à rejoindre`
 
   return `<!DOCTYPE html>
@@ -119,17 +127,17 @@ function buildInviteEmailHtml({ teamName, inviteLink, senderName }: {
         <div class="team-badge">
           <div class="team-inner">
             <span class="team-dot"></span>
-            <span class="team-name">${teamName}</span>
+            <span class="team-name">${safeTeam}</span>
           </div>
         </div>
         <div class="cta-wrap">
           <span class="expiry">⏱ Lien valable 7 jours</span><br/>
-          <a href="${inviteLink}" class="cta-btn">Rejoindre l'équipe</a>
+          <a href="${safeLink}" class="cta-btn">Rejoindre l'équipe</a>
         </div>
         <div class="divider"></div>
         <div class="fallback">
           <p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>
-          <a href="${inviteLink}">${inviteLink}</a>
+          <a href="${safeLink}">${escapeHtml(inviteLink)}</a>
         </div>
       </div>
     </div>
