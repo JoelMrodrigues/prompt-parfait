@@ -54,6 +54,7 @@ export const ChampionGrid = ({
               alt={champ.name}
               className="w-full h-full object-cover pointer-events-none"
               draggable={false}
+              loading="lazy"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).src = '/resources/champions/icons/default.jpg'
               }}

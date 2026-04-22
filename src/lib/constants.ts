@@ -26,3 +26,27 @@ export const AUTOSYNC_LOOP_INTERVAL_MS = 3 * 60 * 1000   // 3 min
 export const MOOD_SYNC_INTERVAL_MS = 2 * 60 * 1000        // 2 min
 export const DELAY_BETWEEN_REQUESTS_MS = 2500
 export const DELAY_BETWEEN_PLAYERS_MS = 3000
+
+// ─── Position normalization ───────────────────────────────────────────────────
+// Converts Riot API positions (BOTTOM, JUNGLE, MIDDLE, UTILITY) and internal
+// variants (BOT, JNG, ADC, SUP) to the canonical 5-role display form.
+export function normalizePosition(pos: string): string {
+  switch ((pos ?? '').toUpperCase()) {
+    case 'TOP':
+    case 'TOPLANE':     return 'TOP'
+    case 'JUNGLE':
+    case 'JNG':
+    case 'JUNGLER':     return 'JNG'
+    case 'MIDDLE':
+    case 'MID':         return 'MID'
+    case 'BOTTOM':
+    case 'BOT':
+    case 'ADC':
+    case 'CARRY':
+    case 'DUO_CARRY':   return 'ADC'
+    case 'UTILITY':
+    case 'SUPPORT':
+    case 'SUP':         return 'SUP'
+    default:            return (pos ?? '').toUpperCase()
+  }
+}

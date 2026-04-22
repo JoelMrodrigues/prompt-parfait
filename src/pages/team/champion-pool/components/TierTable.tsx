@@ -109,6 +109,7 @@ export const TierTable = ({
                             alt={champ.name}
                             className="w-full h-full object-cover"
                             draggable={false}
+                            loading="lazy"
                           />
                         </div>
                         <button

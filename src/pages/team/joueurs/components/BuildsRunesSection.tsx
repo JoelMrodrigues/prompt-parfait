@@ -3,6 +3,7 @@
  * Extraites de PlayerDetailPage pour alléger le fichier principal.
  */
 import { useState, useEffect } from 'react'
+import { REMAKE_THRESHOLD_SEC } from '../../../../lib/constants'
 import { getChampionImage } from '../../../../lib/championImages'
 import { getItemImageUrl, getItemName, loadItems, isItemsLoaded } from '../../../../lib/items'
 
@@ -16,6 +17,7 @@ export function RuneIcon({ id, runesCache, size = 'sm' }: { id: number; runesCac
     <img src={DD_RUNE(r.icon)} alt={r.name} title={r.name}
       className={`${size === 'lg' ? 'w-10 h-10' : 'w-6 h-6'} rounded-full object-cover bg-dark-bg border border-dark-border/50`}
       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+      loading="lazy"
     />
   )
 }
@@ -29,6 +31,7 @@ export function ItemImg({ id, size = 'md' }: { id: number; size?: 'sm' | 'md' })
     <img src={url} alt={String(id)} title={getItemName(id) ?? String(id)}
       className={`${cls} border border-dark-border/60 object-cover`}
       onError={() => setImgError(true)}
+      loading="lazy"
     />
   )
 }
@@ -38,7 +41,7 @@ export function ChampRow({
 }: { champ: string; isExpanded: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <div className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-dark-bg/60 transition-colors ${isExpanded ? 'bg-dark-bg/60' : 'bg-dark-bg/40'}`} onClick={onClick}>
-      <img src={getChampionImage(champ)} alt={champ} className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+      <img src={getChampionImage(champ)} alt={champ} className="w-9 h-9 rounded-lg object-cover border border-dark-border shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} loading="lazy" />
       {children}
       <div className="ml-auto shrink-0 text-gray-500">
         <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -121,7 +124,7 @@ export function SoloqBuildsRunesSection({ lpGraphMatches, loading, runesCache }:
   useEffect(() => { if (!itemsReady) loadItems().then(() => setItemsReady(true)) }, [])
   const [expandedChamp, setExpandedChamp] = useState<string | null>(null)
 
-  const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= 180)
+  const realGames = lpGraphMatches.filter((m) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC)
 
   // Runes : colonne `runes` (perks Riot) ou fallback sur match_json.perks si la colonne est null
   const getSoloqRunes = (m: any) => m.runes ?? (m.match_json as any)?.perks ?? null
@@ -232,7 +235,7 @@ export function TeamBuildsRunesSection({ teamStats, loading, runesCache }: {
   useEffect(() => { if (!itemsReady) loadItems().then(() => setItemsReady(true)) }, [])
   const [expandedChamp, setExpandedChamp] = useState<string | null>(null)
 
-  const realGames = teamStats.filter((s) => (s.team_matches?.game_duration ?? 0) >= 180)
+  const realGames = teamStats.filter((s) => (s.team_matches?.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC)
 
   const extractTeamRunes = (s: any) => {
     const n = (v: any) => (v ? Number(v) : undefined)

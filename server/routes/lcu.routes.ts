@@ -76,6 +76,8 @@ router.post('/connect', async (req: Request, res: Response) => {
 router.post('/matches', async (req: Request, res: Response) => {
   const { port, password, puuid } = req.body
   if (!port || !password || !puuid) return res.status(400).json({ success: false, error: 'port, password et puuid requis' })
+  const portNum = parseInt(String(port), 10)
+  if (isNaN(portNum) || portNum < 1 || portNum > 65535) return res.status(400).json({ success: false, error: 'port invalide' })
 
   try {
     const client = lcuClient(port, password)
@@ -111,6 +113,8 @@ router.post('/matches', async (req: Request, res: Response) => {
 router.post('/game', async (req: Request, res: Response) => {
   const { port, password, gameId } = req.body
   if (!port || !password || !gameId) return res.status(400).json({ success: false, error: 'port, password et gameId requis' })
+  const portNum = parseInt(String(port), 10)
+  if (isNaN(portNum) || portNum < 1 || portNum > 65535) return res.status(400).json({ success: false, error: 'port invalide' })
 
   try {
     const client = lcuClient(port, password)
@@ -127,6 +131,8 @@ router.post('/game', async (req: Request, res: Response) => {
 router.post('/timeline', async (req: Request, res: Response) => {
   const { port, password, gameId } = req.body
   if (!port || !password || !gameId) return res.status(400).json({ success: false, error: 'port, password et gameId requis' })
+  const portNum = parseInt(String(port), 10)
+  if (isNaN(portNum) || portNum < 1 || portNum > 65535) return res.status(400).json({ success: false, error: 'port invalide' })
 
   try {
     const client = lcuClient(port, password)

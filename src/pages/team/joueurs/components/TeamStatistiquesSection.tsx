@@ -3,6 +3,7 @@
  * Filtres type de match + 3 KPI + barre side + 4 blocs stats + breakdown champions
  */
 import { useMemo, useState, useEffect } from 'react'
+import { REMAKE_THRESHOLD_SEC } from '../../../../lib/constants'
 import { getChampionImage, getChampionDisplayName } from '../../../../lib/championImages'
 
 function avg(arr: number[]): number | null {
@@ -138,7 +139,7 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
   const { filteredTeamStats, teamStatsLoading, teamMatchTypeFilter, setTeamMatchTypeFilter } = d
 
   const real = useMemo(
-    () => (filteredTeamStats ?? []).filter((s: any) => (s.team_matches?.game_duration ?? 0) >= 180),
+    () => (filteredTeamStats ?? []).filter((s: any) => (s.team_matches?.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC),
     [filteredTeamStats]
   )
   const all = filteredTeamStats ?? []

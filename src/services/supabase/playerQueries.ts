@@ -140,6 +140,7 @@ export async function fetchSoloqMatchesByChampion({
     .eq('player_id', playerId)
     .eq('champion_name', championName)
     .order('game_creation', { ascending: false })
+    .limit(50)
 
   if (accountSource !== 'combined') {
     query = query.eq('account_source', accountSource)
@@ -249,6 +250,7 @@ export async function fetchMultiPlayerSoloqMatches({
   if (accountSource !== 'combined') query = query.eq('account_source', accountSource)
   if (minDuration) query = query.gte('game_duration', minDuration)
   if (queueType) query = query.eq('queue_type', queueType)
+  query = query.limit(300)
   const { data, error } = await query
   return { data: data ?? [], error }
 }

@@ -2,6 +2,7 @@
  * Section statistiques Solo Q — version complète avec toutes les stats disponibles
  */
 import { useState } from 'react'
+import { REMAKE_THRESHOLD_SEC } from '../../../../lib/constants'
 
 const ROLE_ORDER_STATS = ['TOP', 'JUNGLE', 'MIDDLE', 'BOTTOM', 'UTILITY'] as const
 const ROLE_DISPLAY_STATS: Record<string, string> = {
@@ -95,7 +96,7 @@ export function SoloqStatistiquesSection({ d }: { d: any }) {
     return true
   })
 
-  const real = filtered.filter((g) => (g.game_duration ?? 0) >= 180)
+  const real = filtered.filter((g) => (g.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC)
   const total = real.length
   const wins = real.filter((g) => g.win).length
   const losses = total - wins

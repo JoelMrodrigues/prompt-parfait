@@ -17,6 +17,11 @@ function getClient() {
 
 // ─── Types partagés ────────────────────────────────────────────────────────────
 
+const VALID_AXES = new Set([
+  'deaths', 'trading', 'positioning', 'early', 'objectives',
+  'macro', 'roaming', 'cs', 'gold', 'champion', 'consistency', 'vision',
+])
+
 interface SplitStats {
   games: number
   winRate: number
@@ -66,6 +71,8 @@ function buildContext(p: AnalysePayload): string {
     `  - ${c.name}: ${c.games}G · WR ${pct(c.winRate)} · KDA ${c.kda.toFixed(1)}${c.avgCs != null ? ` · ${c.avgCs.toFixed(0)} CS moy` : ''}`
   ).join('\n')
 
+  const safeAxes = (p.selectedAxes ?? []).filter((a) => VALID_AXES.has(a)).join(', ')
+
   return `
 Joueur: ${p.player.name}${p.player.position ? ` (${p.player.position})` : ''}${p.player.rank ? ` — ${p.player.rank}` : ''}
 Période: ${p.period.from} → ${p.period.to} · ${p.period.games} parties analysées
@@ -95,7 +102,7 @@ STATS EN DÉFAITE (${p.losses.games} parties)
 CHAMPIONS (triés par nb de parties)
 ${champLines}
 
-Axes analysés: ${p.selectedAxes.join(', ')}
+Axes analysés: ${safeAxes}
 `.trim()
 }
 

@@ -100,7 +100,7 @@ function SoloqChampionsAccordion({
   }
 
   const buildData = useMemo(() => {
-    const realGames = lpGraphMatches.filter((m: any) => (m.game_duration ?? 0) >= 180)
+    const realGames = lpGraphMatches.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC)
     type C = { runeCombos: Map<string, number>; itemFreq: Map<number, number>; games: any[] }
     const map = new Map<string, C>()
     for (const m of realGames) {
