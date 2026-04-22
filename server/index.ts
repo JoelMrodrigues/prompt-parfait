@@ -42,7 +42,7 @@ app.use(helmet({ contentSecurityPolicy: false }))
 app.use(cors(corsOptions))
 app.use(express.json({ limit: '50kb' }))
 
-// Rate limiting — 100 req/min par IP sur les routes API
+// Rate limiting — global 100 req/min, routes sensibles plus strictes
 const apiLimiter = rateLimit({
   windowMs: 60_000,
   max: 100,
@@ -50,7 +50,29 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, error: 'Trop de requêtes — réessayez dans 1 minute' },
 })
+
+// Sync Riot + analyse Claude : coûteux en ressources et en crédits API
+const heavyLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Limite atteinte — max 10 sync/analyse par minute' },
+})
+
+// Routes admin : accès restreint, pas besoin de plus de 20/min
+const adminLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Limite admin atteinte — réessayez dans 1 minute' },
+})
+
 app.use('/api', apiLimiter)
+app.use('/api/riot/sync-rank', heavyLimiter)
+app.use('/api/analyse', heavyLimiter)
+app.use('/api/admin', adminLimiter)
 
 app.use('/api/riot', riotRoutes)
 app.use('/api/stats', statsRoutes)

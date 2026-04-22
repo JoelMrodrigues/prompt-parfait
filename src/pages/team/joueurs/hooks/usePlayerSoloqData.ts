@@ -62,6 +62,7 @@ export function usePlayerSoloqData({
   const [lpGraphLoading, setLpGraphLoading] = useState(false)
 
   const matchHistoryPlayerIdRef = useRef<string | null>(null)
+  const lpGraphCountRef = useRef<number | null>(null)
   const { lastCycleAt } = useSyncStatus()
 
   // ─── LP curve — primary ou secondary (combiné non supporté — pas de rang combiné) ──
@@ -96,6 +97,7 @@ export function usePlayerSoloqData({
     setChampionModalMatches([])
     setGameDetailMatch(null)
     matchHistoryPlayerIdRef.current = null
+    lpGraphCountRef.current = null
     setLpGraphMatches([])
   }, [player?.id, soloqAccountSource])
 
@@ -134,8 +136,8 @@ export function usePlayerSoloqData({
   }, [player?.id, soloqAccountSource, queueType])
 
   // ─── Rafraîchissement silencieux après chaque cycle auto-sync ────────────
-  // Quand l'auto-sync enrichit des parties (items/runes), lpGraphMatches doit
-  // être rechargé pour que BuildsRunesSection reflète les nouvelles données.
+  // Vérifie le count d'abord (1 row) — recharge 300 lignes seulement si de
+  // nouvelles parties ont été ajoutées depuis le dernier cycle.
   useEffect(() => {
     if (!lastCycleAt || !player?.id) return
     fetchSoloqMatches({
@@ -143,9 +145,23 @@ export function usePlayerSoloqData({
       accountSource: soloqAccountSource,
       seasonStart: SEASON_16_START_MS,
       offset: 0,
-      limit: 300,
+      limit: 1,
+      withCount: true,
       queueType,
-    }).then(({ data }) => {
+    }).then(({ count }) => {
+      if (count == null || count === lpGraphCountRef.current) return
+      lpGraphCountRef.current = count
+      return fetchSoloqMatches({
+        playerId: player.id,
+        accountSource: soloqAccountSource,
+        seasonStart: SEASON_16_START_MS,
+        offset: 0,
+        limit: 300,
+        queueType,
+      })
+    }).then((result) => {
+      if (!result) return
+      const { data } = result
       if (Array.isArray(data))
         setLpGraphMatches(data.filter((m: any) => (m.game_duration ?? 0) >= REMAKE_THRESHOLD_SEC))
     }).catch(() => {})
