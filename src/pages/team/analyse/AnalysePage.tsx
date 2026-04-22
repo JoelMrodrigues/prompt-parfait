@@ -89,12 +89,12 @@ function Panel({ side, title, sub, description, tags, splash, href, disabled, ac
       <div className="relative z-10 flex flex-col h-full">
 
         {/* Zone titre — toujours visible, centrée verticalement */}
-        <div className="flex-1 flex flex-col justify-center px-14">
+        <div className="flex-1 flex flex-col justify-center px-6 sm:px-10 md:px-14">
           {/* Label */}
           <motion.p
             animate={{ opacity: hovered ? 0 : 0.65, y: hovered ? -6 : 0 }}
             transition={{ duration: 0.3 }}
-            className="text-xs font-bold tracking-[0.3em] uppercase mb-5 select-none"
+            className="text-xs font-bold tracking-[0.3em] uppercase mb-3 md:mb-5 select-none"
             style={{ color: accent }}
           >
             {sub}
@@ -106,7 +106,7 @@ function Panel({ side, title, sub, description, tags, splash, href, disabled, ac
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
             className="font-display font-black select-none leading-none"
             style={{
-              fontSize: 'clamp(4.5rem, 7vw, 8rem)',
+              fontSize: 'clamp(2.8rem, 7vw, 8rem)',
               color: '#ffffff',
               textShadow: `0 2px 40px rgba(0,0,0,0.8), 0 0 80px ${accentDim}`,
             }}
@@ -127,7 +127,7 @@ function Panel({ side, title, sub, description, tags, splash, href, disabled, ac
         <motion.div
           animate={{ opacity: hovered ? 1 : 0, y: hovered ? 0 : 30 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="px-14 pb-14 shrink-0"
+          className="px-6 sm:px-10 md:px-14 pb-8 md:pb-14 shrink-0"
         >
           {/* Sub label visible dans la zone basse */}
           <p
@@ -190,26 +190,40 @@ function Panel({ side, title, sub, description, tags, splash, href, disabled, ac
 
 function Divider() {
   return (
-    <div className="relative w-px shrink-0 z-20 self-stretch">
-      <motion.div
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(to bottom, transparent 0%, rgba(96,165,250,0.6) 35%, rgba(167,139,250,0.6) 65%, transparent 100%)',
-        }}
-        animate={{ opacity: [0.3, 1, 0.3] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          width: 10, height: 10,
-          background: 'rgba(167,139,250,0.9)',
-          boxShadow: '0 0 20px 6px rgba(139,92,246,0.35)',
-        }}
-        animate={{ scale: [1, 1.6, 1], opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-    </div>
+    <>
+      {/* Desktop: vertical line */}
+      <div className="hidden md:block relative w-px shrink-0 z-20 self-stretch">
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(96,165,250,0.6) 35%, rgba(167,139,250,0.6) 65%, transparent 100%)',
+          }}
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            width: 10, height: 10,
+            background: 'rgba(167,139,250,0.9)',
+            boxShadow: '0 0 20px 6px rgba(139,92,246,0.35)',
+          }}
+          animate={{ scale: [1, 1.6, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+      {/* Mobile: horizontal line */}
+      <div className="md:hidden relative h-px w-full shrink-0 z-20">
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to right, transparent 0%, rgba(96,165,250,0.6) 35%, rgba(167,139,250,0.6) 65%, transparent 100%)',
+          }}
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+    </>
   )
 }
 
@@ -241,7 +255,7 @@ export const AnalysePage = () => {
   return (
     <div
       ref={containerRef}
-      className="-m-6 flex overflow-hidden"
+      className="-m-3 md:-m-6 flex flex-col md:flex-row overflow-hidden"
       style={{ height: 'calc(100vh - 5rem)' }}
     >
       <Panel

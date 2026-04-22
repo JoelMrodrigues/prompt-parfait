@@ -1303,7 +1303,8 @@ function ComposSection({ matches, onBack }: { matches: any[]; onBack: () => void
         <EmptyStats type="matches" />
       ) : (
         <div className="rounded-xl border border-dark-border overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto scrollbar-none">
+          <table className="w-full text-sm min-w-[400px]">
             <thead>
               <tr className="bg-dark-bg/80 text-gray-400 text-left">
                 <th className="px-4 py-3 w-8">#</th>
@@ -1321,17 +1322,17 @@ function ComposSection({ matches, onBack }: { matches: any[]; onBack: () => void
                 >
                   <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1.5">
                       {c.names.map((n) => (
                         <img
                           key={n}
                           src={getChampionImage(n)}
                           alt={n}
                           title={getChampionDisplayName(n) || n}
-                          className="w-7 h-7 rounded object-cover border border-dark-border"
+                          className="w-7 h-7 rounded object-cover border border-dark-border shrink-0"
                         />
                       ))}
-                      <span className="text-gray-300 text-xs ml-1">
+                      <span className="text-gray-300 text-xs ml-1 hidden sm:inline whitespace-nowrap">
                         {c.names.map((n) => getChampionDisplayName(n) || n).join(' + ')}
                       </span>
                     </div>
@@ -1344,7 +1345,7 @@ function ComposSection({ matches, onBack }: { matches: any[]; onBack: () => void
                       {c.winrate}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-3 text-center whitespace-nowrap">
                     <span className="text-emerald-400">{c.wins}V</span>
                     <span className="text-gray-500 mx-1">/</span>
                     <span className="text-rose-400">{c.losses}D</span>
@@ -1353,6 +1354,7 @@ function ComposSection({ matches, onBack }: { matches: any[]; onBack: () => void
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
@@ -1451,8 +1453,8 @@ function SideSection({
           </div>
 
           {players.length > 0 && (
-            <div className="rounded-xl border border-dark-border overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-dark-border overflow-x-auto scrollbar-none">
+              <table className="w-full text-sm min-w-[360px]">
                 <thead>
                   <tr className="bg-dark-bg/80 text-gray-400 text-left">
                     <th className="px-4 py-3">Joueur</th>
@@ -1722,7 +1724,8 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
             </div>
           ) : (
             <div className="rounded-xl border border-dark-border overflow-hidden">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto scrollbar-none">
+              <table className="w-full text-sm min-w-[400px]">
                 <thead>
                   <tr className="bg-dark-bg/80 text-gray-400 text-left">
                     <th className="px-4 py-3 w-8">#</th>
@@ -1737,12 +1740,12 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
                     <tr key={c.names.join('|')} className="border-t border-dark-border/50 hover:bg-dark-bg/40 transition-colors">
                       <td className="px-4 py-3 text-gray-500">{idx + 1}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
                           {c.names.map((n) => (
                             <img key={n} src={getChampionImage(n)} alt={n} title={getChampionDisplayName(n) || n}
-                              className="w-7 h-7 rounded object-cover border border-dark-border" />
+                              className="w-7 h-7 rounded object-cover border border-dark-border shrink-0" />
                           ))}
-                          <span className="text-gray-300 text-xs ml-1">
+                          <span className="text-gray-300 text-xs ml-1 hidden sm:inline whitespace-nowrap">
                             {c.names.map((n) => getChampionDisplayName(n) || n).join(' + ')}
                           </span>
                         </div>
@@ -1751,7 +1754,7 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
                       <td className="px-4 py-3 text-center">
                         <span className={`font-semibold ${c.winrate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{c.winrate}%</span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <span className="text-emerald-400">{c.wins}V</span>
                         <span className="text-gray-500 mx-1">/</span>
                         <span className="text-rose-400">{c.losses}D</span>
@@ -1760,6 +1763,7 @@ function FlexComposSection({ players, onBack }: { players: any[]; onBack: () => 
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </>
@@ -2090,7 +2094,7 @@ export const TeamStatsPage = () => {
   }
 
   return (
-    <div className="flex gap-6 w-full max-w-7xl">
+    <div className="flex flex-col md:flex-row md:gap-6 w-full max-w-7xl -mx-3 md:mx-0">
       <PlayerFilterSidebar
         players={players}
         selectedId={selectedId}
@@ -2098,7 +2102,7 @@ export const TeamStatsPage = () => {
         showAllButton
         noRoles={isFlexTeam}
       />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 px-3 md:px-0">
         {/* Retour */}
         <button
           type="button"
@@ -2166,7 +2170,7 @@ export const TeamStatsPage = () => {
 
         {/* Sous-menus Team : Général | Timeline | Champions */}
         {statsMode === STATS_MODE_TEAM && (
-          <div className="flex gap-0 mb-4 border-b border-dark-border">
+          <div className="flex gap-0 mb-4 border-b border-dark-border overflow-x-auto scrollbar-none">
             {TEAM_STAT_SUBS.map((s) => {
               const Icon = s.icon
               return (
@@ -2174,13 +2178,13 @@ export const TeamStatsPage = () => {
                   key={s.id}
                   type="button"
                   onClick={() => setTeamStatsSub(s.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${
                     teamStatsSub === s.id
                       ? 'border-accent-blue text-white'
                       : 'border-transparent text-gray-400 hover:text-white hover:border-dark-border'
                   }`}
                 >
-                  <Icon size={15} />
+                  <Icon size={14} />
                   {s.label}
                 </button>
               )

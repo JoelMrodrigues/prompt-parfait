@@ -255,12 +255,12 @@ export const JoueursPage = () => {
   return (
     <div className="max-w-[1600px] mx-auto space-y-5 px-2">
       {/* Header style Overview */}
-      <div className="bg-dark-card border border-dark-border rounded-2xl p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-5">
+      <div className="bg-dark-card border border-dark-border rounded-2xl p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-5">
             {/* Logo équipe — mêmes classes que Vue d'ensemble (bg-white si logo) */}
             <div
-              className={`shrink-0 w-20 h-20 rounded-full border-2 border-dark-border flex items-center justify-center overflow-hidden ${
+              className={`shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-full border-2 border-dark-border flex items-center justify-center overflow-hidden ${
                 team.logo_url ? '' : 'bg-dark-bg/80'
               }`}
               style={team.logo_url ? {
@@ -286,11 +286,11 @@ export const JoueursPage = () => {
               )}
             </div>
             <div>
-              <h1 className="font-display text-2xl font-bold text-white leading-tight">
+              <h1 className="font-display text-lg sm:text-2xl font-bold text-white leading-tight">
                 {team.team_name}
               </h1>
-              <h2 className="font-display text-xl font-semibold text-gray-300 mt-0.5">Joueurs</h2>
-              <p className="text-gray-500 text-sm mt-0.5">Gérez les joueurs de votre équipe</p>
+              <h2 className="font-display text-base sm:text-xl font-semibold text-gray-300 mt-0.5">Joueurs</h2>
+              <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Gérez les joueurs de votre équipe</p>
               {(() => {
                 const lastSync = players
                   .map((p) => isFlexTeam ? p.rank_flex_updated_at : p.rank_updated_at)

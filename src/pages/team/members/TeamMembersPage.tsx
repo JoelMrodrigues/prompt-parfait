@@ -180,17 +180,15 @@ export const TeamMembersPage = () => {
       {!loading && (
         <section>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Propriétaire</p>
-          <motion.div layout className="flex items-center gap-4 px-4 py-3 rounded-xl border bg-dark-card border-yellow-500/30">
+          <motion.div layout className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-3 rounded-xl border bg-dark-card border-yellow-500/30">
             <span className="text-xl w-7 text-center shrink-0">👑</span>
-            <div className="w-20 shrink-0">
-              <span className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider">OWNER</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-yellow-500/80 uppercase tracking-wider w-10 sm:w-20">OWNER</span>
+              <span className="text-sm font-semibold text-white w-24 sm:w-36 truncate">{profile?.display_name ?? '—'}</span>
             </div>
-            <div className="w-36 shrink-0">
-              <span className="text-sm font-semibold text-white">{profile?.display_name ?? '—'}</span>
-            </div>
-            <div className="flex-1 flex items-center gap-2 min-w-0">
+            <div className="flex-1 flex items-center gap-2 min-w-0 basis-full sm:basis-auto">
               <Mail size={13} className="text-gray-500 shrink-0" />
-              <span className="text-sm text-gray-300">{user?.email ?? '—'}</span>
+              <span className="text-xs sm:text-sm text-gray-300 truncate">{user?.email ?? '—'}</span>
             </div>
             {members.filter(m => m.role !== 'spectateur').length > 0 && (
               <TransferSelector
@@ -212,7 +210,7 @@ export const TeamMembersPage = () => {
            ═══════════════════════════════════════════════════════════ */
         <>
           {/* Légende colonne */}
-          <div className="flex items-center gap-4 px-4 py-1.5 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+          <div className="hidden sm:flex items-center gap-4 px-4 py-1.5 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
             <span className="w-7 shrink-0" />
             <span className="w-40 shrink-0">Profil joueur</span>
             <span className="flex-1">Compte connecté</span>
@@ -572,40 +570,38 @@ function FlexMemberRow({
   return (
     <motion.div
       layout
-      className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors ${
-        isLinked
-          ? 'bg-dark-card border-dark-border'
-          : 'bg-dark-bg/40 border-dark-border/40'
+      className={`flex flex-wrap items-center gap-x-2 gap-y-2 px-3 sm:px-4 py-3 rounded-xl border transition-colors ${
+        isLinked ? 'bg-dark-card border-dark-border' : 'bg-dark-bg/40 border-dark-border/40'
       }`}
     >
-      {/* Icône lien */}
-      <span className="w-7 flex items-center justify-center shrink-0">
-        {isLinked
-          ? <Link size={15} className="text-accent-blue" />
-          : <Unlink size={15} className="text-gray-600" />
-        }
-      </span>
-
-      {/* Profil joueur */}
-      <div className="w-40 shrink-0">
-        {playerName ? (
-          <div>
-            <span className="text-sm font-semibold text-white">{playerName}</span>
-            {pseudo && pseudo !== playerName && (
-              <span className="text-xs text-gray-500 ml-1.5">#{pseudo}</span>
-            )}
-          </div>
-        ) : (
-          <span className="text-sm text-gray-600 italic">Sans profil</span>
-        )}
+      {/* Identity block */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="w-7 flex items-center justify-center shrink-0">
+          {isLinked
+            ? <Link size={14} className="text-accent-blue" />
+            : <Unlink size={14} className="text-gray-600" />
+          }
+        </span>
+        <div className="w-28 sm:w-40 shrink-0">
+          {playerName ? (
+            <div>
+              <span className="text-sm font-semibold text-white truncate block">{playerName}</span>
+              {pseudo && pseudo !== playerName && (
+                <span className="text-[11px] text-gray-500">#{pseudo}</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-sm text-gray-600 italic">Sans profil</span>
+          )}
+        </div>
       </div>
 
-      {/* Compte connecté */}
-      <div className="flex-1 flex items-center gap-2 min-w-0">
+      {/* Email — wraps on mobile */}
+      <div className="flex-1 flex items-center gap-2 min-w-0 basis-full sm:basis-auto">
         {isLinked ? (
           <>
-            <Mail size={13} className="text-gray-500 shrink-0" />
-            <span className="text-sm text-gray-300 truncate">{member!.email}</span>
+            <Mail size={12} className="text-gray-500 shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-300 truncate">{member!.email}</span>
             {isCoOwner && (
               <span className="shrink-0 text-[10px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 rounded-md">
                 CO-OWNER
@@ -617,44 +613,44 @@ function FlexMemberRow({
         )}
       </div>
 
-      {/* Bouton co-owner */}
-      <AnimatePresence>
-        {isLinked && canManageTeam && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={() => onSetCoOwner?.(!isCoOwner)}
-            disabled={settingCoOwner}
-            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-50 ${
-              isCoOwner
-                ? 'text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10'
-                : 'text-gray-400 border-gray-600/40 hover:bg-gray-500/10 hover:text-yellow-300'
-            }`}
-            title={isCoOwner ? 'Révoquer co-owner' : 'Désigner co-owner'}
-          >
-            {settingCoOwner ? <Loader2 size={13} className="animate-spin" /> : '👑'}
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Bouton virer */}
-      <AnimatePresence>
-        {isLinked && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={onKick}
-            disabled={kicking}
-            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/60 transition-colors disabled:opacity-50"
-            title="Retirer ce membre"
-          >
-            {kicking ? <Loader2 size={13} className="animate-spin" /> : <UserX size={13} />}
-            Virer
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Buttons */}
+      <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        <AnimatePresence>
+          {isLinked && canManageTeam && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => onSetCoOwner?.(!isCoOwner)}
+              disabled={settingCoOwner}
+              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-50 ${
+                isCoOwner
+                  ? 'text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10'
+                  : 'text-gray-400 border-gray-600/40 hover:bg-gray-500/10 hover:text-yellow-300'
+              }`}
+              title={isCoOwner ? 'Révoquer co-owner' : 'Désigner co-owner'}
+            >
+              {settingCoOwner ? <Loader2 size={13} className="animate-spin" /> : '👑'}
+            </motion.button>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {isLinked && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={onKick}
+              disabled={kicking}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/60 transition-colors disabled:opacity-50"
+              title="Retirer ce membre"
+            >
+              {kicking ? <Loader2 size={13} className="animate-spin" /> : <UserX size={13} />}
+              <span className="hidden sm:inline ml-0.5">Virer</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   )
 }
@@ -689,30 +685,28 @@ function MemberRow({
   return (
     <motion.div
       layout
-      className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-colors ${
-        hasEmail
-          ? 'bg-dark-card border-dark-border'
-          : 'bg-dark-bg/40 border-dark-border/40'
+      className={`flex flex-wrap items-center gap-x-2 gap-y-2 px-3 sm:px-4 py-3 rounded-xl border transition-colors ${
+        hasEmail ? 'bg-dark-card border-dark-border' : 'bg-dark-bg/40 border-dark-border/40'
       }`}
     >
-      <span className="text-xl w-7 text-center shrink-0">{emoji}</span>
-      <div className="w-20 shrink-0">
-        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{abbr}</span>
+      {/* Identity block */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xl w-7 text-center shrink-0">{emoji}</span>
+        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider w-10 sm:w-20 shrink-0">{abbr}</span>
+        <div className="w-24 sm:w-36 shrink-0">
+          {playerName
+            ? <span className="text-sm font-semibold text-white truncate block">{playerName}</span>
+            : <span className="text-sm text-gray-600 italic">—</span>
+          }
+        </div>
       </div>
 
-      <div className="w-36 shrink-0">
-        {playerName ? (
-          <span className="text-sm font-semibold text-white">{playerName}</span>
-        ) : (
-          <span className="text-sm text-gray-600 italic">—</span>
-        )}
-      </div>
-
-      <div className="flex-1 flex items-center gap-2 min-w-0">
+      {/* Email — wraps on mobile */}
+      <div className="flex-1 flex items-center gap-2 min-w-0 basis-full sm:basis-auto">
         {hasEmail ? (
           <>
-            <Mail size={13} className="text-gray-500 shrink-0" />
-            <span className="text-sm text-gray-300">{member!.email}</span>
+            <Mail size={12} className="text-gray-500 shrink-0" />
+            <span className="text-xs sm:text-sm text-gray-300 truncate">{member!.email}</span>
             {memberRole === 'co_owner' && (
               <span className="shrink-0 text-[10px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 rounded-md">
                 CO-OWNER
@@ -724,46 +718,44 @@ function MemberRow({
         )}
       </div>
 
-      <AnimatePresence>
-        {hasEmail && canManageTeam && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={() => onSetCoOwner?.(memberRole !== 'co_owner')}
-            disabled={settingCoOwner}
-            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-50 ${
-              memberRole === 'co_owner'
-                ? 'text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10'
-                : 'text-gray-400 border-gray-600/40 hover:bg-gray-500/10 hover:text-yellow-300'
-            }`}
-            title={memberRole === 'co_owner' ? 'Révoquer co-owner' : 'Désigner co-owner'}
-          >
-            {settingCoOwner ? <Loader2 size={13} className="animate-spin" /> : '👑'}
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {hasEmail && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={onKick}
-            disabled={kicking}
-            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/60 transition-colors disabled:opacity-50"
-            title="Retirer ce membre"
-          >
-            {kicking ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <UserX size={13} />
-            )}
-            Virer
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Buttons */}
+      <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        <AnimatePresence>
+          {hasEmail && canManageTeam && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => onSetCoOwner?.(memberRole !== 'co_owner')}
+              disabled={settingCoOwner}
+              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-50 ${
+                memberRole === 'co_owner'
+                  ? 'text-yellow-400 border-yellow-500/40 hover:bg-yellow-500/10'
+                  : 'text-gray-400 border-gray-600/40 hover:bg-gray-500/10 hover:text-yellow-300'
+              }`}
+              title={memberRole === 'co_owner' ? 'Révoquer co-owner' : 'Désigner co-owner'}
+            >
+              {settingCoOwner ? <Loader2 size={13} className="animate-spin" /> : '👑'}
+            </motion.button>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {hasEmail && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={onKick}
+              disabled={kicking}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 hover:border-red-500/60 transition-colors disabled:opacity-50"
+              title="Retirer ce membre"
+            >
+              {kicking ? <Loader2 size={13} className="animate-spin" /> : <UserX size={13} />}
+              <span className="hidden sm:inline ml-0.5">Virer</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   )
 }

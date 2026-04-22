@@ -950,7 +950,7 @@ function TabEvolution({ matches, playerName }: { matches: RawMatch[]; playerName
 
 export const SoloQPage = () => {
   const { players } = useTeam()
-  const { sidebarOpen, setSidebarOpen } = useLayout()
+  const { setSidebarOpen } = useLayout()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -969,6 +969,13 @@ export const SoloQPage = () => {
   const [rawMatches, setRawMatches]         = useState<RawMatch[]>([])
   const [activeTab, setActiveTab]           = useState<ResultTab>('resume')
   const [cachedContent, setCachedContent]   = useState<Record<string, string>>({})
+  const [configOpen, setConfigOpen]         = useState(() => window.innerWidth >= 768)
+  const [isMobile, setIsMobile]             = useState(() => window.innerWidth < 768)
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const dateFromRef = useRef<HTMLInputElement>(null)
   const dateToRef   = useRef<HTMLInputElement>(null)
@@ -1136,17 +1143,37 @@ export const SoloQPage = () => {
   ]
 
   return (
-    <div className="-m-6 flex overflow-hidden" style={{ height: 'calc(100vh - 5rem)' }}>
+    <div className="-m-3 md:-m-6 flex overflow-hidden relative" style={{ height: 'calc(100vh - 5rem)' }}>
+
+      {/* ── Backdrop mobile ───────────────────────────────────────────────── */}
+      {isMobile && configOpen && (
+        <div
+          className="absolute inset-0 bg-black/60 z-40"
+          onClick={() => setConfigOpen(false)}
+        />
+      )}
 
       {/* ── Panneau config ──────────────────────────────────────────────── */}
-      <div className="w-72 shrink-0 bg-dark-card border-r border-dark-border flex flex-col">
+      <div
+        className="bg-dark-card border-r border-dark-border flex flex-col shrink-0"
+        style={{
+          width: '18rem',
+          ...(isMobile ? {
+            position: 'absolute' as const,
+            top: 0, bottom: 0, left: 0,
+            zIndex: 50,
+            transform: configOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 300ms ease',
+          } : {}),
+        }}
+      >
         <div className="px-4 pt-4 pb-3 border-b border-dark-border shrink-0">
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => navigate('/team/analyse')} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors">
               <ArrowLeft size={13} /> Retour
             </button>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-dark-bg/60 transition-colors" title={sidebarOpen ? 'Replier' : 'Afficher la navigation'}>
-              {sidebarOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+            <button onClick={() => setConfigOpen(false)} className="p-1.5 rounded-lg text-gray-600 hover:text-white hover:bg-dark-bg/60 transition-colors md:hidden" title="Fermer">
+              <PanelLeftClose size={14} />
             </button>
           </div>
           <h2 className="font-display text-sm font-bold text-white">Configuration</h2>
@@ -1233,6 +1260,19 @@ export const SoloQPage = () => {
              backgroundImage: 'radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)',
              backgroundSize: '28px 28px',
            }}>
+
+        {/* Bouton Config — mobile uniquement, quand le panneau est fermé */}
+        {isMobile && !configOpen && (
+          <div className="shrink-0 px-3 pt-3">
+            <button
+              onClick={() => setConfigOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-dark-card border border-dark-border text-sm text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              <PanelLeftOpen size={15} />
+              Configuration
+            </button>
+          </div>
+        )}
 
         {/* Tab bar — visible uniquement quand analyse faite */}
         {analysisStatus === 'done' && analysisResult && (

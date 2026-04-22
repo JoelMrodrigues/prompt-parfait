@@ -132,7 +132,8 @@ function SoloqChampionsAccordion({
 
   return (
     <div className="rounded-xl border border-dark-border overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto scrollbar-none">
+      <table className="w-full text-sm min-w-[420px]">
         <thead>
           <tr className="bg-dark-bg/80 text-gray-400 text-left">
             <th className="px-4 py-3 font-medium">Champion</th>
@@ -167,7 +168,7 @@ function SoloqChampionsAccordion({
                   </td>
                   <td className="px-3 py-3 text-center text-gray-300">{champ.games}</td>
                   <td className="px-3 py-3 text-center">
-                    <span className={`font-semibold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr}%</span>
+                    <span className={`font-semibold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{Math.round(wr)}%</span>
                   </td>
                   <td className="px-3 py-3 text-center">
                     <span className={champ.kdaRatio >= 3 ? 'text-emerald-400' : champ.kdaRatio >= 2 ? 'text-white' : 'text-gray-400'}>{champ.kdaRatio}</span>
@@ -289,6 +290,7 @@ function SoloqChampionsAccordion({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
@@ -336,7 +338,8 @@ function TeamChampionsAccordion({
 
   return (
     <div className="rounded-xl border border-dark-border overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto scrollbar-none">
+      <table className="w-full text-sm min-w-[420px]">
         <thead>
           <tr className="bg-dark-bg/80 text-gray-400 text-left">
             <th className="px-4 py-3 font-medium">Champion</th>
@@ -372,7 +375,7 @@ function TeamChampionsAccordion({
                   </td>
                   <td className="px-3 py-3 text-center text-gray-300">{champ.games}</td>
                   <td className="px-3 py-3 text-center">
-                    <span className={`font-semibold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{wr}%</span>
+                    <span className={`font-semibold ${wr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{Math.round(wr)}%</span>
                   </td>
                   <td className="px-3 py-3 text-center">
                     <span className={champ.kdaRatio >= 3 ? 'text-emerald-400' : champ.kdaRatio >= 2 ? 'text-white' : 'text-gray-400'}>{champ.kdaRatio}</span>
@@ -496,6 +499,7 @@ function TeamChampionsAccordion({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
@@ -564,7 +568,7 @@ export const PlayerDetailPage = () => {
         </button>
         {/* Sélecteur compte — si le joueur a un compte secondaire configuré */}
         {player.secondary_account && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {[
               { idx: 1, label: player.pseudo || 'Compte 1', rank: isFlexTeam ? player.rank_flex : player.rank },
               { idx: 2, label: player.secondary_account, rank: isFlexTeam ? null : (player.rank_secondary ?? null) },
@@ -662,7 +666,7 @@ export const PlayerDetailPage = () => {
       </div>
 
       {/* Cartes principales (sans Team pour les équipes flex) */}
-      <div className={`grid gap-3 ${isFlexTeam ? 'grid-cols-4' : 'grid-cols-5'}`}>
+      <div className={`grid gap-3 grid-cols-3 ${isFlexTeam ? 'sm:grid-cols-4' : 'sm:grid-cols-5'}`}>
         {MAIN_CARDS.filter((card) => !(card.id === 'team' && isFlexTeam)).map((card) => {
           const label = (card.id === 'soloq' && isFlexTeam) ? 'Flex' : card.label
           const Icon = card.icon
@@ -816,10 +820,11 @@ export const PlayerDetailPage = () => {
                               <p className="text-xs text-gray-500">K/D/A</p>
                             </div>
                             {isRemake ? (
-                              <span className="px-3 py-1 rounded-lg text-sm font-semibold shrink-0 bg-gray-500/20 text-gray-400 border border-gray-500/40">Remake</span>
+                              <span className="px-2 sm:px-3 py-1 rounded-lg text-sm font-semibold shrink-0 bg-gray-500/20 text-gray-400 border border-gray-500/40">Remake</span>
                             ) : (
-                              <span className={`px-3 py-1 rounded-lg text-sm font-semibold shrink-0 ${m.win ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
-                                {m.win ? 'Victoire' : 'Défaite'}
+                              <span className={`px-2 sm:px-3 py-1 rounded-lg text-sm font-semibold shrink-0 ${m.win ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
+                                <span className="sm:hidden">{m.win ? 'V' : 'D'}</span>
+                                <span className="hidden sm:inline">{m.win ? 'Victoire' : 'Défaite'}</span>
                               </span>
                             )}
                           </Link>
@@ -1048,7 +1053,7 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
 
   return (
     <div className="space-y-6">
-    <div className="flex gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
       {/* Card 1 — Rang actuel */}
       <div className="flex-1 flex flex-col items-center gap-4 p-6 rounded-2xl bg-dark-bg border border-dark-border">
@@ -1105,7 +1110,7 @@ function GeneralSection({ player, teamId, teamStats, teamStatsLoading, allTeamMa
     <ScrimBlockCarousel teamStats={teamStats} loading={teamStatsLoading} allTeamMatches={allTeamMatches} playerId={playerId} />
 
     {/* Pool Champ + Coaching */}
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <PoolChampSummary player={player} onNavigate={onNavigate} />
       <CoachSummary teamId={teamId} playerId={playerId} onNavigate={onNavigate} />
     </div>

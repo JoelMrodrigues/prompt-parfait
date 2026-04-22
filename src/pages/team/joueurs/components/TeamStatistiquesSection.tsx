@@ -386,7 +386,7 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
                 />
               )}
               {avgK != null && avgD != null && avgA != null && (
-                <StatRow label="K / M / A par partie" value={`${fmt(avgK)} / ${fmt(avgD)} / ${fmt(avgA)}`} valueColor="text-gray-300" />
+                <StatRow label="K/M/A par partie" value={`${fmt(avgK)} / ${fmt(avgD)} / ${fmt(avgA)}`} valueColor="text-gray-300" />
               )}
               {n > 0 && (
                 <StatRow
@@ -412,7 +412,8 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
               <div className="px-4 py-3 border-b border-dark-border/50">
                 <p className="text-xs text-gray-500 uppercase tracking-wider">Champions joués</p>
               </div>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto scrollbar-none">
+              <table className="w-full text-sm min-w-[360px]">
                 <thead>
                   <tr className="text-gray-500 text-left bg-dark-bg/40">
                     <th className="px-4 py-2.5 font-medium text-xs">Champion</th>
@@ -434,7 +435,7 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
                       <td className="px-4 py-2.5 text-center text-gray-400">{games}</td>
                       <td className="px-4 py-2.5 text-center">
                         <span className={`font-semibold ${cWr >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{cWr}%</span>
-                        <span className="text-gray-600 text-xs ml-1">({w}V/{games - w}D)</span>
+                        <span className="text-gray-600 text-xs ml-1 hidden sm:inline">({w}V/{games - w}D)</span>
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         <span className={parseFloat(kda) >= 3 ? 'text-emerald-400' : parseFloat(kda) >= 2 ? 'text-white' : 'text-rose-300'}>{kda}</span>
@@ -448,6 +449,7 @@ export function TeamStatistiquesSection({ d }: { d: any }) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </>

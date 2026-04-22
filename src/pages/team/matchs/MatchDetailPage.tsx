@@ -292,20 +292,20 @@ export const MatchDetailPage = () => {
       </button>
 
       <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden mb-6">
-        <div className="p-6 border-b border-dark-border">
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="font-mono text-gray-500">Game #{match.game_id}</span>
+        <div className="p-4 sm:p-6 border-b border-dark-border">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <span
-              className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+              className={`px-3 py-1 rounded-lg text-sm font-bold ${
                 match.our_win ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
               }`}
             >
               {match.our_win ? 'Victoire' : 'Défaite'}
             </span>
-            {durationMin != null && <span className="text-gray-400">{durationMin} min</span>}
+            {durationMin != null && <span className="text-gray-400 font-medium">{durationMin} min</span>}
             {match.game_mode && <span className="text-gray-500 text-sm">{match.game_mode}</span>}
+            <span className="hidden sm:inline font-mono text-gray-600 text-xs">#{match.game_id}</span>
             {match.game_creation && (
-              <span className="text-gray-600 text-sm ml-auto">
+              <span className="text-gray-600 text-xs sm:text-sm sm:ml-auto">
                 {new Date(match.game_creation).toLocaleString('fr-FR')}
               </span>
             )}
@@ -313,20 +313,20 @@ export const MatchDetailPage = () => {
         </div>
 
         {/* Onglets */}
-        <div className="flex border-b border-dark-border bg-dark-bg/30">
+        <div className="flex overflow-x-auto border-b border-dark-border bg-dark-bg/30 scrollbar-none">
           {TABS.map((tab) => {
             const Icon = tab.icon
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                   activeTab === tab.id
                     ? 'text-accent-blue border-b-2 border-accent-blue bg-dark-bg/50'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={15} />
                 {tab.label}
               </button>
             )

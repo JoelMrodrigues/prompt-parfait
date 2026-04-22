@@ -133,8 +133,8 @@ export const ChampionPoolPage = () => {
   }, [champions, selectedRoleFilter, searchQuery])
 
   return (
-    <div className="flex w-full -ml-6 -mr-6">
-      {/* Sidebar filtre joueurs (à gauche) */}
+    <div className="flex flex-col md:flex-row w-full -mx-3 md:-ml-6 md:-mr-6">
+      {/* Sidebar filtre joueurs (strip horizontale sur mobile, colonne sur desktop) */}
       <PlayerFilterSidebar
         players={players}
         selectedId={selectedPlayerId}
@@ -143,7 +143,7 @@ export const ChampionPoolPage = () => {
       />
 
       {/* Zone principale */}
-      <div className="flex-1 min-w-0 pl-6 pr-6">
+      <div className="flex-1 min-w-0 px-3 md:pl-6 md:pr-6">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h2 className="font-display text-3xl font-bold mb-2">Pool de Champions</h2>
