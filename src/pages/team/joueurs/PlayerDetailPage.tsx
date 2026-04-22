@@ -557,8 +557,8 @@ export const PlayerDetailPage = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header : retour + sélecteur compte */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Header : retour */}
+      <div>
         <button
           onClick={() => navigate('/team/joueurs')}
           className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -566,38 +566,6 @@ export const PlayerDetailPage = () => {
           <ArrowLeft size={18} />
           Retour aux joueurs
         </button>
-        {/* Sélecteur compte — si le joueur a un compte secondaire configuré */}
-        {player.secondary_account && (
-          <div className="flex flex-wrap gap-2">
-            {[
-              { idx: 1, label: player.pseudo || 'Compte 1', rank: isFlexTeam ? player.rank_flex : player.rank },
-              { idx: 2, label: player.secondary_account, rank: isFlexTeam ? null : (player.rank_secondary ?? null) },
-              { idx: 0, label: 'Combiné', rank: null },
-            ].map(({ idx, label, rank }) => {
-              const isActive = d.selectedSoloqAccount === idx
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => d.setSelectedSoloqAccount(idx)}
-                  className={`flex flex-col items-start px-3 py-2 rounded-xl text-sm font-medium transition-colors max-w-[180px] ${
-                    isActive
-                      ? 'bg-accent-blue/15 text-white border border-accent-blue/60'
-                      : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
-                  }`}
-                  title={label}
-                >
-                  <span className="truncate w-full">{label}</span>
-                  {rank && (
-                    <span className={`text-[11px] font-semibold mt-0.5 ${isActive ? 'text-accent-blue' : 'text-gray-600'}`}>
-                      {rank}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )}
       </div>
 
       {/* Bloc identité */}
@@ -691,24 +659,59 @@ export const PlayerDetailPage = () => {
 
       {/* Sous-menu Solo Q */}
       {d.selectedCard === 'soloq' && (
-        <div className="flex flex-wrap gap-2">
-          {SOLOQ_SUB.map((sub) => {
-            const SubIcon = sub.icon
-            const isActive = d.selectedSoloqSub === sub.id
-            return (
-              <button
-                key={sub.id}
-                type="button"
-                onClick={() => d.setSelectedSoloqSub(sub.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  isActive ? 'bg-accent-blue text-white' : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
-                }`}
-              >
-                <SubIcon size={16} />
-                {sub.label}
-              </button>
-            )
-          })}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {SOLOQ_SUB.map((sub) => {
+              const SubIcon = sub.icon
+              const isActive = d.selectedSoloqSub === sub.id
+              return (
+                <button
+                  key={sub.id}
+                  type="button"
+                  onClick={() => d.setSelectedSoloqSub(sub.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    isActive ? 'bg-accent-blue text-white' : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <SubIcon size={16} />
+                  {sub.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Sélecteur compte — affiché sous les onglets quand pertinent */}
+          {player.secondary_account && (
+            <div className="flex flex-wrap gap-2">
+              {[
+                { idx: 1, label: player.pseudo || 'Compte 1', rank: isFlexTeam ? player.rank_flex : player.rank },
+                { idx: 2, label: player.secondary_account, rank: isFlexTeam ? null : (player.rank_secondary ?? null) },
+                { idx: 0, label: 'Combiné', rank: null },
+              ].map(({ idx, label, rank }) => {
+                const isActive = d.selectedSoloqAccount === idx
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => d.setSelectedSoloqAccount(idx)}
+                    className={`flex flex-col items-start px-3 py-2 rounded-xl text-sm font-medium transition-colors max-w-[180px] ${
+                      isActive
+                        ? 'bg-accent-blue/15 text-white border border-accent-blue/60'
+                        : 'bg-dark-card/80 border border-dark-border text-gray-400 hover:text-white'
+                    }`}
+                    title={label}
+                  >
+                    <span className="truncate w-full">{label}</span>
+                    {rank && (
+                      <span className={`text-[11px] font-semibold mt-0.5 ${isActive ? 'text-accent-blue' : 'text-gray-600'}`}>
+                        {rank}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 
