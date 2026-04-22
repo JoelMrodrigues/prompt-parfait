@@ -1,16 +1,28 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Moon, Sun, Shield, Users, BarChart3, Megaphone, Key, Menu, X } from 'lucide-react'
+import { Moon, Sun, Shield, Users, BarChart3, Megaphone, Key, Menu, X, User, Settings, LogOut, UserCircle } from 'lucide-react'
 import { UserProfileMenu } from './UserProfileMenu'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 
 export const Header = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
-  const { isAdmin } = useAuth()
+  const { isAdmin, user, profile, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    setMenuOpen(false)
+    navigate('/')
+    signOut().catch(() => {}).finally(() => setSigningOut(false))
+  }
+
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Joueur'
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
@@ -152,8 +164,34 @@ export const Header = () => {
                   {label}
                 </Link>
               ))}
-              <div className="pt-2 border-t border-dark-border/60">
-                <UserProfileMenu />
+              {/* Profil inline — pas de dropdown pour éviter le clipping overflow-hidden */}
+              <div className="pt-2 border-t border-dark-border/60 space-y-0.5">
+                {user && (
+                  <div className="flex items-center gap-3 px-4 py-3 mb-1">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt={displayName} className="w-8 h-8 rounded-full object-cover border border-dark-border shrink-0" />
+                    ) : (
+                      <UserCircle size={28} className="text-gray-400 shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                )}
+                <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-dark-bg/60 transition-colors">
+                  <User size={15} className="text-gray-500 shrink-0" /> Profil
+                </Link>
+                <Link to="/teams" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-dark-bg/60 transition-colors">
+                  <Shield size={15} className="text-gray-500 shrink-0" /> Équipes
+                </Link>
+                <Link to="/settings" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-dark-bg/60 transition-colors">
+                  <Settings size={15} className="text-gray-500 shrink-0" /> Paramètres
+                </Link>
+                <button onClick={handleSignOut} disabled={signingOut} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50">
+                  <LogOut size={15} className="shrink-0" />
+                  {signingOut ? 'Déconnexion…' : 'Se déconnecter'}
+                </button>
               </div>
             </div>
           </motion.div>
