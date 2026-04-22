@@ -815,8 +815,8 @@ export const PlayerDetailPage = () => {
                                 {m.gameDuration ? ` · ${Math.round(m.gameDuration / 60)} min` : ''}
                               </p>
                             </div>
-                            <div className="text-center shrink-0">
-                              <p className="text-sm font-mono text-white">{m.kills}/{m.deaths}/{m.assists}</p>
+                            <div className="text-center shrink-0 min-w-[4.5rem]">
+                              <p className="text-sm font-mono text-white whitespace-nowrap">{m.kills}/{m.deaths}/{m.assists}</p>
                               <p className="text-xs text-gray-500">K/D/A</p>
                             </div>
                             {isRemake ? (
