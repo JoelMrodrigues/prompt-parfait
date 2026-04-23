@@ -1242,13 +1242,14 @@ function ScrimBlockCarousel({ teamStats, loading, allTeamMatches, playerId }: {
 
       {/* Header avec tint victoire/défaite */}
       <div className={`bg-gradient-to-r ${winGradient} border-b border-dark-border/40`}>
-        <div className="flex items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Dernier bloc de scrims</p>
-            <span className="text-gray-700">·</span>
-            <span className="text-xs text-gray-500">{date}</span>
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest truncate">Scrims</p>
+            <span className="text-gray-700 hidden sm:inline">·</span>
+            <span className="text-xs text-gray-500 hidden sm:inline">{date}</span>
+            <span className="text-xs text-gray-500 sm:hidden">{date}</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {lastBlock.map((_: any, i: number) => {
               const g = lastBlock[i]
               const isWin = !!g.team_matches?.our_win
@@ -1299,10 +1300,10 @@ function ScrimBlockCarousel({ teamStats, loading, allTeamMatches, playerId }: {
           >
             {allParts.length > 0 ? (
               <>
-                <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
+                <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto_1fr] gap-3 items-start">
                   {/* Côté gauche */}
                   <div>
-                    <div className="flex items-center gap-1.5 mb-2.5">
+                    <div className="flex items-center gap-1.5 mb-2">
                       <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.6)]" />
                       <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Côté bleu</p>
                       {leftIsOurs && (
@@ -1318,15 +1319,15 @@ function ScrimBlockCarousel({ teamStats, loading, allTeamMatches, playerId }: {
                     </div>
                   </div>
 
-                  {/* VS central */}
-                  <div className="flex flex-col items-center justify-center gap-2 px-2 pt-8 self-center">
+                  {/* VS — horizontal sur mobile, vertical sur desktop */}
+                  <div className="flex sm:flex-col items-center justify-center gap-2 py-1 sm:pt-8 sm:px-2 sm:self-center">
                     <div className={`text-xs font-black tracking-widest ${win ? 'text-emerald-500/60' : 'text-rose-500/60'}`}>VS</div>
                     <span className="text-[10px] font-mono text-gray-500">{duration}</span>
                   </div>
 
                   {/* Côté droit */}
                   <div>
-                    <div className="flex items-center gap-1.5 mb-2.5">
+                    <div className="flex items-center gap-1.5 mb-2">
                       <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(251,113,133,0.6)]" />
                       <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400">Côté rouge</p>
                       {rightIsOurs && (
@@ -1344,7 +1345,7 @@ function ScrimBlockCarousel({ teamStats, loading, allTeamMatches, playerId }: {
                 </div>
 
                 {/* Footer stats joueur */}
-                <div className={`flex items-center gap-3 pt-2.5 border-t text-xs ${win ? 'border-emerald-500/15' : 'border-rose-500/15'}`}>
+                <div className={`flex flex-wrap items-center gap-3 pt-2.5 border-t text-xs ${win ? 'border-emerald-500/15' : 'border-rose-500/15'}`}>
                   <span className={`font-bold ${win ? 'text-emerald-400' : 'text-rose-400'}`}>{win ? 'Victoire' : 'Défaite'}</span>
                   <span className="text-gray-600">·</span>
                   <span className="font-mono text-white font-semibold">{game.kills}/{game.deaths}/{game.assists}</span>
