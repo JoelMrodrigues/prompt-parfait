@@ -39,9 +39,10 @@ interface PlayerModalProps {
   player: PlayerData | null
   onSave: (data: PlayerData) => void
   onClose: () => void
+  isFunTeam?: boolean
 }
 
-export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
+export const PlayerModal = ({ player, onSave, onClose, isFunTeam = false }: PlayerModalProps) => {
   const { error: toastError, success: toastSuccess, info: toastInfo } = useToast()
   const [playerName, setPlayerName] = useState(player?.player_name || '')
   const [pseudo, setPseudo] = useState(player?.pseudo || '')
@@ -123,7 +124,7 @@ export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
       player_name: playerName,
       pseudo,
       secondary_account: secondaryAccount.trim() || null,
-      position: role,
+      position: isFunTeam ? '' : role,
       player_type: playerType,
       region,
       opgg_link: generateOpggLink(pseudo, region) || null,
@@ -272,52 +273,54 @@ export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
           </div>
 
           {/* Section Rôle & Type */}
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Rôle & Profil</p>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {ROLES.map((r) => {
-                const isActive = role === r
-                const label = r === 'BOT' ? 'ADC' : r
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
-                      isActive
-                        ? (ROLE_ACTIVE[r] || 'bg-accent-blue border-accent-blue text-white')
-                        : (ROLE_COLORS[r] || 'text-gray-400 border-dark-border bg-dark-bg hover:border-gray-500')
-                    }`}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
+          {!isFunTeam && (
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Rôle & Profil</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {ROLES.map((r) => {
+                  const isActive = role === r
+                  const label = r === 'BOT' ? 'ADC' : r
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRole(r)}
+                      className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                        isActive
+                          ? (ROLE_ACTIVE[r] || 'bg-accent-blue border-accent-blue text-white')
+                          : (ROLE_COLORS[r] || 'text-gray-400 border-dark-border bg-dark-bg hover:border-gray-500')
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex h-[38px] rounded-lg overflow-hidden border border-dark-border w-48">
+                <button
+                  type="button"
+                  onClick={() => setPlayerType('starter')}
+                  className={`flex-1 text-xs font-semibold transition-colors ${
+                    playerType === 'starter' ? 'bg-accent-blue text-white' : 'bg-dark-bg text-gray-500 hover:text-white'
+                  }`}
+                >
+                  Titulaire
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayerType('sub')}
+                  className={`flex-1 text-xs font-semibold transition-colors ${
+                    playerType === 'sub' ? 'bg-gray-600 text-white' : 'bg-dark-bg text-gray-500 hover:text-white'
+                  }`}
+                >
+                  Sub
+                </button>
+              </div>
             </div>
-            <div className="flex h-[38px] rounded-lg overflow-hidden border border-dark-border w-48">
-              <button
-                type="button"
-                onClick={() => setPlayerType('starter')}
-                className={`flex-1 text-xs font-semibold transition-colors ${
-                  playerType === 'starter' ? 'bg-accent-blue text-white' : 'bg-dark-bg text-gray-500 hover:text-white'
-                }`}
-              >
-                Titulaire
-              </button>
-              <button
-                type="button"
-                onClick={() => setPlayerType('sub')}
-                className={`flex-1 text-xs font-semibold transition-colors ${
-                  playerType === 'sub' ? 'bg-gray-600 text-white' : 'bg-dark-bg text-gray-500 hover:text-white'
-                }`}
-              >
-                Sub
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Section Rang & Sync */}
-          <div>
+          {!isFunTeam && <div>
             <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">Rang</p>
             <div className="grid grid-cols-2 gap-3">
               <input
@@ -352,10 +355,10 @@ export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
                 </a>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Section Pool champions */}
-          <div>
+          {!isFunTeam && <div>
             <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-3">
               Pool de champions <span className="text-gray-600 normal-case text-[10px]">(facultatif — max 5)</span>
             </p>
@@ -396,7 +399,7 @@ export const PlayerModal = ({ player, onSave, onClose }: PlayerModalProps) => {
                 </button>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Actions */}
           <div className="flex gap-3 pt-1 border-t border-dark-border">

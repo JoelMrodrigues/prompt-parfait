@@ -83,7 +83,21 @@ export function useTeamAutoSync() {
       const updatePlayerFn = updatePlayerRef.current
       const listToSync = (currentPlayers || []).filter(hasValidPseudo)
       const isFlexTeam = team?.team_type === 'flex' || team?.features?.flex === true
+      const isFunTeam  = team?.team_type === 'fun'
       const queueSuffix = isFlexTeam ? '&queue=flex' : ''
+
+      // Queues actifs pour les équipes fun (selon features.mode_*)
+      const funQueues: Array<{ suffix: string; queueType: 'aram' | 'arena' }> = []
+      if (isFunTeam) {
+        const f = team?.features ?? {}
+        const modeAram      = (f as Record<string, unknown>).mode_aram       !== false
+        const modeChaosAram = (f as Record<string, unknown>).mode_chaos_aram !== false
+        const modeArena     = (f as Record<string, unknown>).mode_arena      !== false
+        if (modeAram || modeChaosAram) funQueues.push({ suffix: '&queue=aram',   queueType: 'aram'  })
+        if (modeArena)                 funQueues.push({ suffix: '&queue=arena',  queueType: 'arena' })
+        // Fallback : si aucun mode activé, syncer tout de même ARAM par défaut
+        if (funQueues.length === 0)    funQueues.push({ suffix: '&queue=aram',   queueType: 'aram'  })
+      }
 
       // Nouveau AbortController pour chaque cycle — annule toutes les requêtes en vol si abort
       const controller = new AbortController()
@@ -95,7 +109,167 @@ export function useTeamAutoSync() {
       let upsertErrorShown = false
 
       try {
-        for (let i = 0; i < listToSync.length; i++) {
+        // ─── Sync Fun (ARAM / Arena) — skip SoloQ/Flex entièrement ─────────────
+        if (isFunTeam) {
+          for (const { suffix: funSuffix, queueType: funQueueType } of funQueues) {
+            for (let i = 0; i < listToSync.length; i++) {
+              if (abortRef.current) break
+              const player = listToSync[i]
+              const pseudo = (player.pseudo || '').trim()
+              const name = player.player_name || pseudo
+              const region = (player.region || 'euw1').toLowerCase()
+              setSyncStatus({ isSyncing: true, currentPlayer: name, currentIndex: i + 1, totalPlayers: listToSync.length })
+              let cachedPuuid: string | null = player.puuid || null
+              const buildParams = (extra = '') => {
+                let p = `pseudo=${encodeURIComponent(pseudo)}&region=${encodeURIComponent(region)}`
+                if (cachedPuuid) p += `&puuid=${encodeURIComponent(cachedPuuid)}`
+                if (extra) p += `&${extra}`
+                return p
+              }
+
+              try {
+                // 1) Total parties (ARAM ou Arena)
+                let countRes = await apiFetch(`/api/riot/match-count?${buildParams()}${funSuffix}`, { signal })
+                let countData = await countRes.json().catch(() => ({}))
+                if (countRes.status === 429 && (countData.retry_after ?? countData.retryAfter)) {
+                  await delay(Math.max(2000, (countData.retry_after ?? countData.retryAfter) * 1000))
+                  countRes = await apiFetch(`/api/riot/match-count?${buildParams()}${funSuffix}`, { signal })
+                  countData = await countRes.json().catch(() => ({}))
+                }
+                if (!countData.success || typeof countData.total !== 'number') {
+                  logger.warn(LOG_PREFIX, name, `(${funQueueType}) | match-count erreur:`, countData.error || countRes.status)
+                  await delay(DELAY_BETWEEN_PLAYERS_MS)
+                  continue
+                }
+                const totalRiot = countData.total
+                if (countData.puuid && !cachedPuuid) {
+                  cachedPuuid = countData.puuid
+                  await updatePlayerFn(player.id, { puuid: cachedPuuid })
+                }
+                await delay(DELAY_BETWEEN_REQUESTS_MS)
+
+                if (totalRiot === 0) { await delay(DELAY_BETWEEN_PLAYERS_MS); continue }
+
+                // 2) IDs
+                const allRiotIds: string[] = []
+                let start = 0
+                const MAX_PAGES = Math.ceil(totalRiot / MATCH_IDS_PAGE) + 2
+                let pageCount = 0
+                while (allRiotIds.length < totalRiot && pageCount < MAX_PAGES) {
+                  if (abortRef.current) break
+                  pageCount++
+                  const idsRes = await apiFetch(`/api/riot/match-ids?${buildParams(`start=${start}&count=${MATCH_IDS_PAGE}`)}${funSuffix}`, { signal })
+                  const idsData = await idsRes.json().catch(() => ({}))
+                  if (idsRes.status === 429) { await delay(Math.max(2000, ((idsData.retry_after ?? idsData.retryAfter) || 2) * 1000)); pageCount--; continue }
+                  if (!idsData.success || !Array.isArray(idsData.matchIds)) { logger.warn(LOG_PREFIX, name, `(${funQueueType}) | match-ids erreur`); break }
+                  if (idsData.puuid && !cachedPuuid) { cachedPuuid = idsData.puuid; await updatePlayerFn(player.id, { puuid: cachedPuuid }) }
+                  for (const id of idsData.matchIds) { if (allRiotIds.length >= totalRiot) break; allRiotIds.push(id) }
+                  if (idsData.matchIds.length < MATCH_IDS_PAGE || !idsData.hasMore) break
+                  start += MATCH_IDS_PAGE
+                  await delay(DELAY_BETWEEN_REQUESTS_MS)
+                }
+                const idsToSync = allRiotIds.slice(0, totalRiot)
+
+                // 3) Diff avec base
+                const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, funQueueType)
+                const existingSet = new Set(existingIds || [])
+                const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
+
+                // 4) Détails manquants → upsert
+                if (missingIds.length > 0) {
+                  for (let c = 0; c < missingIds.length; c += DETAILS_CHUNK) {
+                    const chunk = missingIds.slice(c, c + DETAILS_CHUNK)
+                    try {
+                      const detailsRes = await apiFetch(`/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}${funSuffix}`, { signal })
+                      const detailsData = await detailsRes.json().catch(() => ({}))
+                      if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
+                        await delay(Math.max(2000, (detailsData.retry_after ?? detailsData.retryAfter) * 1000))
+                        c -= DETAILS_CHUNK; continue
+                      }
+                      if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0 && supabase) {
+                        const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'primary', funQueueType))
+                        const { error: upsertErr } = await upsertSoloqMatches(rows)
+                        if (upsertErr && !upsertErrorShown) {
+                          upsertErrorShown = true
+                          toastRef.current(`Erreur sauvegarde ${funQueueType} (${name}) — retry au prochain cycle`)
+                        }
+                      }
+                    } catch (err) {
+                      if (err instanceof Error && err.name === 'AbortError') throw err
+                      logger.warn(LOG_PREFIX, name, `(${funQueueType}) | erreur match-details:`, err)
+                    }
+                    await delay(DELAY_BETWEEN_REQUESTS_MS)
+                  }
+                }
+
+                // 4b) Ré-enrichissement parties sans match_json
+                const { data: unenrichedIds } = await fetchUnenrichedMatchIds(player.id, 'primary', SEASON_16_START_MS, 60, funQueueType)
+                if (unenrichedIds && unenrichedIds.length > 0) {
+                  for (let c = 0; c < unenrichedIds.length; c += DETAILS_CHUNK) {
+                    const chunk = unenrichedIds.slice(c, c + DETAILS_CHUNK)
+                    try {
+                      const detailsRes = await apiFetch(`/api/riot/match-details?${buildParams(`matchIds=${chunk.join(',')}`)}${funSuffix}`, { signal })
+                      const detailsData = await detailsRes.json().catch(() => ({}))
+                      if (detailsRes.status === 429 && (detailsData.retry_after ?? detailsData.retryAfter)) {
+                        await delay(Math.max(2000, (detailsData.retry_after ?? detailsData.retryAfter) * 1000))
+                        c -= DETAILS_CHUNK; continue
+                      }
+                      if (detailsData.success && Array.isArray(detailsData.matches) && detailsData.matches.length > 0 && supabase) {
+                        const rows = detailsData.matches.map((m: any) => buildSoloqMatchRow(m, player.id, 'primary', funQueueType))
+                        await upsertSoloqMatches(rows)
+                      }
+                    } catch (err) {
+                      if (err instanceof Error && err.name === 'AbortError') throw err
+                    }
+                    await delay(DELAY_BETWEEN_REQUESTS_MS)
+                  }
+                }
+
+                await delay(DELAY_BETWEEN_PLAYERS_MS)
+              } catch (e) {
+                if (e instanceof Error && e.name === 'AbortError') break
+                logger.warn(LOG_PREFIX, `Erreur joueur (${funQueueType})`, name, e)
+                await delay(DELAY_BETWEEN_PLAYERS_MS)
+              }
+            }
+          }
+
+          // Top 5 champions (tous modes fun confondus)
+          for (const player of listToSync) {
+            if (abortRef.current) break
+            try {
+              const { data: champRows } = await fetchSoloqChampionStats({
+                playerId: player.id,
+                accountSource: 'primary',
+                seasonStart: SEASON_16_START_MS,
+                minDuration: REMAKE_THRESHOLD_SEC,
+              })
+              if (champRows?.length) {
+                const byChamp: Record<string, { games: number; wins: number }> = {}
+                for (const r of champRows) {
+                  if (!r.champion_name) continue
+                  if (!byChamp[r.champion_name]) byChamp[r.champion_name] = { games: 0, wins: 0 }
+                  byChamp[r.champion_name].games++
+                  if (r.win) byChamp[r.champion_name].wins++
+                }
+                const top5 = Object.entries(byChamp)
+                  .sort((a, b) => b[1].games - a[1].games)
+                  .slice(0, 5)
+                  .map(([champName, s]) => ({
+                    name: champName,
+                    games: s.games,
+                    winrate: s.games > 0 ? Math.round((s.wins / s.games) * 100) : 0,
+                  }))
+                if (top5.length > 0) await updatePlayerFn(player.id, { top_champions: top5 })
+              }
+            } catch (e) {
+              if (e instanceof Error && e.name === 'AbortError') break
+            }
+          }
+        }
+
+        // ─── Sync SoloQ / Flex — non exécuté pour les équipes fun ────────────
+        if (!isFunTeam) for (let i = 0; i < listToSync.length; i++) {
           if (abortRef.current) {
             logger.debug(LOG_PREFIX, 'Cycle interrompu (changement équipe)')
             break
@@ -374,7 +548,7 @@ export function useTeamAutoSync() {
             // ─── 6) Top 5 via Supabase, hors remakes ───
             const { data: rows } = await fetchSoloqChampionStats({
               playerId: player.id,
-              accountSource: 'primary',
+              accountSource: isFlexTeam ? 'combined' : 'primary',
               seasonStart: SEASON_16_START_MS,
               minDuration: REMAKE_THRESHOLD_SEC,
               queueType: isFlexTeam ? 'flex' : 'soloq',
@@ -411,6 +585,7 @@ export function useTeamAutoSync() {
         }
 
         // ─── Passe secondaire : comptes alternatifs (soloq + flex selon type d'équipe) ───────
+        if (!isFunTeam) {
         const withSecondary = listToSync.filter((p) => {
           const s = ((p.secondary_account || '') as string).trim()
           return s.length > 0 && (s.includes('#') || s.includes('/'))
@@ -550,6 +725,7 @@ export function useTeamAutoSync() {
             await delay(DELAY_BETWEEN_PLAYERS_MS)
           }
         }
+        } // end if (!isFunTeam)
 
         // Pas de refetchFn() — les updatePlayer locaux maintiennent l'état React à jour
         // sans déclencher de refetch global (2 requêtes Supabase + re-render complet évités)

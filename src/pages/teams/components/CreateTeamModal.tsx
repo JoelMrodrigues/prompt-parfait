@@ -5,6 +5,7 @@ import {
   Loader2, Plus, Camera, X, ChevronRight, ChevronLeft,
   Swords, Users, Trophy, Gamepad2,
   Upload, LineChart, BarChart3, FileText, MessageSquare, CalendarDays, Map, Check,
+  Zap, Shield, Shuffle,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import type { Team } from '../../../contexts/TeamContext'
@@ -53,6 +54,14 @@ export const TEAM_TYPES = [
     glow: 'shadow-[0_0_24px_rgba(244,114,182,0.35)]',
   },
 ] as const
+
+// ─── Modes de jeu Fun ────────────────────────────────────────────────────────
+
+export const FUN_MODES = [
+  { id: 'aram',       label: 'ARAM',           desc: 'Howling Abyss classique',       icon: Swords  },
+  { id: 'chaos_aram', label: 'ARAM du Chaos',  desc: 'Modificateurs aléatoires',      icon: Shuffle },
+  { id: 'arena',      label: 'Arena',          desc: 'Combat 2v2 en arène',           icon: Shield  },
+]
 
 // ─── Fonctionnalités ──────────────────────────────────────────────────────────
 
@@ -122,6 +131,7 @@ export function CreateTeamModal({
 
   const [teamType, setTeamType]   = useState<string>('scrim')
   const [features, setFeatures]   = useState<Record<string, boolean>>(getDefaultFeatures('scrim'))
+  const [funModes, setFunModes]   = useState<string[]>(['aram', 'chaos_aram', 'arena'])
 
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -141,7 +151,11 @@ export function CreateTeamModal({
   const handleTypeSelect = (type: string) => {
     setTeamType(type)
     setFeatures(getDefaultFeatures(type))
+    if (type === 'fun') setFunModes(['aram', 'chaos_aram', 'arena'])
   }
+
+  const toggleFunMode = (id: string) =>
+    setFunModes(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id])
 
   const toggleFeature = (key: string) =>
     setFeatures(prev => ({ ...prev, [key]: !prev[key] }))
@@ -167,7 +181,15 @@ export function CreateTeamModal({
       }
 
       // Features — graceful fail si la colonne n'existe pas encore en DB
-      try { await onUpdateTeam(newTeam.id, { features } as any) } catch (_) { /* noop */ }
+      const finalFeatures = teamType === 'fun'
+        ? {
+            ...features,
+            mode_aram:       funModes.includes('aram'),
+            mode_chaos_aram: funModes.includes('chaos_aram'),
+            mode_arena:      funModes.includes('arena'),
+          }
+        : features
+      try { await onUpdateTeam(newTeam.id, { features: finalFeatures } as any) } catch (_) { /* noop */ }
 
       onClose()
     } catch (err) {
@@ -375,6 +397,65 @@ export function CreateTeamModal({
                     )
                   })}
                 </div>
+
+                {/* Modes de jeu — uniquement pour Fun */}
+                <AnimatePresence>
+                  {teamType === 'fun' && (
+                    <motion.div
+                      key="fun-modes"
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-4 border-t border-dark-border/50">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">
+                          Modes de jeu suivis
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {FUN_MODES.map(({ id, label, desc, icon: ModeIcon }) => {
+                            const active = funModes.includes(id)
+                            return (
+                              <motion.button
+                                key={id}
+                                type="button"
+                                onClick={() => toggleFunMode(id)}
+                                whileTap={{ scale: 0.97 }}
+                                className={`relative flex flex-col items-start gap-2 p-3 rounded-xl border text-left transition-all duration-150 ${
+                                  active
+                                    ? 'border-pink-400/50 bg-pink-500/10'
+                                    : 'border-dark-border/40 bg-dark-bg/30 opacity-50'
+                                }`}
+                              >
+                                <ModeIcon size={15} className={active ? 'text-pink-400' : 'text-gray-600'} />
+                                <div>
+                                  <p className={`text-xs font-bold leading-tight ${active ? 'text-pink-300' : 'text-gray-500'}`}>
+                                    {label}
+                                  </p>
+                                  <p className="text-[10px] text-gray-600 mt-0.5 leading-snug">{desc}</p>
+                                </div>
+                                <AnimatePresence>
+                                  {active && (
+                                    <motion.div
+                                      initial={{ scale: 0, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      exit={{ scale: 0, opacity: 0 }}
+                                      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                      className="absolute top-2 right-2 w-4 h-4 rounded-full bg-pink-500/20 border border-pink-400/60 flex items-center justify-center"
+                                    >
+                                      <Check size={9} className="text-pink-400" strokeWidth={3} />
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </motion.button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 

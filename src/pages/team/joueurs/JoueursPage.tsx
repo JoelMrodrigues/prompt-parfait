@@ -19,6 +19,7 @@ export const JoueursPage = () => {
   const { error: toastError } = useToast()
   const { team, players, loading, createPlayer, updatePlayer, deletePlayer } = useTeam()
   const isFlexTeam = team?.team_type === 'flex'
+  const isFunTeam  = team?.team_type === 'fun'
   const { matches: teamMatches } = useTeamMatchesFull(team?.id)
 
   const [showPlayerModal, setShowPlayerModal] = useState(false)
@@ -56,7 +57,7 @@ export const JoueursPage = () => {
           seasonStart: SEASON_16_START_MS,
           minDuration: REMAKE_THRESHOLD_SEC,
           columns: 'player_id,win,kills,deaths,assists,game_duration',
-          queueType: isFlexTeam ? 'flex' : 'soloq',
+          queueType: isFunTeam ? undefined : isFlexTeam ? 'flex' : 'soloq',
         })
         if (cancelled) return
         // Grouper par joueur, prendre les 5 premières (déjà triées desc)
@@ -93,7 +94,7 @@ export const JoueursPage = () => {
         seasonStart: SEASON_16_START_MS,
         minDuration: REMAKE_THRESHOLD_SEC,
         columns: 'player_id,win,kills,deaths,assists,game_duration,total_damage,gold_earned,match_json',
-        queueType: isFlexTeam ? 'flex' : 'soloq',
+        queueType: isFunTeam ? undefined : isFlexTeam ? 'flex' : 'soloq',
       })
       if (cancelled) return
       const next: DetailedStats = {}
@@ -291,7 +292,7 @@ export const JoueursPage = () => {
               </h1>
               <h2 className="font-display text-base sm:text-xl font-semibold text-gray-300 mt-0.5">Joueurs</h2>
               <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Gérez les joueurs de votre équipe</p>
-              {(() => {
+              {!isFunTeam && (() => {
                 const lastSync = players
                   .map((p) => isFlexTeam ? p.rank_flex_updated_at : p.rank_updated_at)
                   .filter(Boolean)
@@ -341,7 +342,7 @@ export const JoueursPage = () => {
           players={players}
           teamStats={teamDetailedStats}
           soloqStats={soloqDetailedStats}
-          isFlexTeam={isFlexTeam}
+          isFlexTeam={isFlexTeam || isFunTeam}
         />
       )}
 
@@ -351,7 +352,7 @@ export const JoueursPage = () => {
           <MoodSoloQCard
             players={players}
             mood={soloqMood}
-            title={isFlexTeam ? 'Mood des joueurs (Flex)' : undefined}
+            title={isFunTeam ? 'Mood ARAM/Arena' : isFlexTeam ? 'Mood des joueurs (Flex)' : undefined}
           />
           <MoodTeamCard players={players} mood={teamMood} />
         </div>
@@ -365,6 +366,7 @@ export const JoueursPage = () => {
             setEditingPlayer(null)
           }}
           onSave={handleSavePlayer}
+          isFunTeam={isFunTeam}
         />
       )}
 

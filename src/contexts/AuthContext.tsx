@@ -26,21 +26,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Supabase fire SIGNED_IN during _recoverAndRefresh (before DB is ready), then INITIAL_SESSION.
   // We skip loadProfile for SIGNED_IN until INITIAL_SESSION confirms the client is ready.
   const initialSessionReceived = useRef(false)
+  const loadingProfileRef = useRef(false)
 
   const loadProfile = async (u: User) => {
-    let p = await fetchProfile(u.id)
-if (!p) {
-      const defaultName = u.email?.split('@')[0] ?? 'Joueur'
-      p = await upsertProfile(u.id, { display_name: defaultName })
+    if (loadingProfileRef.current) return
+    loadingProfileRef.current = true
+    try {
+      let p = await fetchProfile(u.id)
+      if (!p) {
+        const defaultName = u.email?.split('@')[0] ?? 'Joueur'
+        p = await upsertProfile(u.id, { display_name: defaultName })
+      }
+      if ((p as any)?.is_suspended) {
+        await supabase!.auth.signOut()
+        setProfile(null)
+        setUser(null)
+        return
+      }
+      setProfile(p)
+      upsertProfile(u.id, { last_seen_at: new Date().toISOString() } as any).catch(() => {})
+    } finally {
+      loadingProfileRef.current = false
     }
-    if ((p as any)?.is_suspended) {
-      await supabase!.auth.signOut()
-      setProfile(null)
-      setUser(null)
-      return
-    }
-    setProfile(p)
-    upsertProfile(u.id, { last_seen_at: new Date().toISOString() } as any).catch(() => {})
   }
 
   const refreshProfile = async () => {

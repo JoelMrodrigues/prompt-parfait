@@ -20,6 +20,8 @@ export const SEASON_16_START_SEC = 1767830400
 export const SEASON_16_START_MS = 1767830400000
 export const QUEUE_SOLO_DUO = 420
 export const QUEUE_FLEX     = 440
+export const QUEUE_ARAM     = 450
+export const QUEUE_ARENA    = 1700
 
 // ─── PUUID ───────────────────────────────────────────────────────────────────
 
@@ -308,11 +310,12 @@ export async function fetchMatchIdsOnly(
   apiKey: string,
   region = 'euw1',
   queue = QUEUE_SOLO_DUO,
+  matchType = 'ranked',
 ): Promise<{ matchIds: string[]; hasMore: boolean } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const limit = Math.min(Math.max(1, count || 20), MATCH_IDS_PAGE_MAX)
   const res = await riotFetch<string[]>(
-    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${queue}&start=${start}&count=${limit}&startTime=${SEASON_16_START_SEC}`,
+    `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=${matchType}&queue=${queue}&start=${start}&count=${limit}&startTime=${SEASON_16_START_SEC}`,
     apiKey,
   )
   if (!res.ok) {
@@ -333,6 +336,7 @@ export async function fetchMatchDetailsByIds(
   apiKey: string,
   region = 'euw1',
   queue = QUEUE_SOLO_DUO,
+  skipQueueFilter = false,
 ): Promise<Array<{ matchId: string } & ParticipantData>> {
   const cluster = getCluster(region)
   const matches: Array<{ matchId: string } & ParticipantData> = []
@@ -345,7 +349,8 @@ export async function fetchMatchDetailsByIds(
       )
       if (!res.ok || !res.data?.info) continue
       const { info } = res.data
-      if ((info.queueId ?? 0) !== queue || (info.gameCreation ?? 0) < SEASON_16_START_MS) continue
+      if (!skipQueueFilter && (info.queueId ?? 0) !== queue) continue
+      if ((info.gameCreation ?? 0) < SEASON_16_START_MS) continue
       const participant = extractParticipantData(info, puuid)
       if (!participant) continue
       matches.push({ matchId, ...participant })
@@ -408,6 +413,7 @@ export async function fetchMatchCount(
   apiKey: string,
   region = 'euw1',
   queue = QUEUE_SOLO_DUO,
+  matchType = 'ranked',
 ): Promise<{ total: number; puuid?: string } | { error: string; status: number }> {
   const cluster = getCluster(region)
   const BATCH = 100
@@ -416,7 +422,7 @@ export async function fetchMatchCount(
 
   while (true) {
     const res = await riotFetch<string[]>(
-      `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=ranked&queue=${queue}&start=${start}&count=${BATCH}&startTime=${SEASON_16_START_SEC}`,
+      `https://${cluster}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?type=${matchType}&queue=${queue}&start=${start}&count=${BATCH}&startTime=${SEASON_16_START_SEC}`,
       apiKey,
     )
     if (!res.ok) {

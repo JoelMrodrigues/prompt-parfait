@@ -20,6 +20,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .eq('id', userId)
     .maybeSingle()
   if (error) {
+    // AbortError = tab-visibility race (Supabase cancels in-flight queries on token refresh)
+    if (error.message?.includes('AbortError')) return null
     console.error('fetchProfile error:', error)
     return null
   }

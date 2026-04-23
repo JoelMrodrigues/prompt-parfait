@@ -522,7 +522,7 @@ export const PlayerDetailPage = () => {
     )
   }
 
-  const { player, isFlexTeam } = d
+  const { player, isFlexTeam, isFunTeam } = d
   const roleLabel = ROLE_LABELS[player.position] || player.position
 
   // Rang et pseudo du compte actuellement sélectionné
@@ -570,7 +570,7 @@ export const PlayerDetailPage = () => {
 
       {/* Bloc identité */}
       <div
-        className={`relative rounded-2xl overflow-hidden ${bigChampBg ? '' : `bg-gradient-to-r ${getRankColor(isFlexTeam ? player.rank_flex : player.rank)}`}`}
+        className={`relative rounded-2xl overflow-hidden ${bigChampBg ? '' : isFunTeam ? 'bg-gradient-to-r from-pink-900/40 to-purple-900/30' : `bg-gradient-to-r ${getRankColor(isFlexTeam ? player.rank_flex : player.rank)}`}`}
         style={
           bigChampBg
             ? {
@@ -595,9 +595,14 @@ export const PlayerDetailPage = () => {
                 </h1>
                 <p className="text-off-white/80 mt-1">{displayedPseudo || '—'}</p>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{roleLabel}</span>
-                  {displayedRank && (
+                  {!isFunTeam && (
+                    <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{roleLabel}</span>
+                  )}
+                  {!isFunTeam && displayedRank && (
                     <span className="px-3 py-1 bg-off-white/20 rounded-lg text-sm font-medium text-off-white">{displayedRank}</span>
+                  )}
+                  {isFunTeam && (
+                    <span className="px-3 py-1 bg-pink-500/20 rounded-lg text-sm font-medium text-pink-300 border border-pink-500/30">Fun</span>
                   )}
                 </div>
               </div>
@@ -620,7 +625,7 @@ export const PlayerDetailPage = () => {
               )}
             </div>
           </div>
-          {(isFlexTeam ? player.rank_flex_updated_at : player.rank_updated_at) != null && (
+          {!isFunTeam && (isFlexTeam ? player.rank_flex_updated_at : player.rank_updated_at) != null && (
             <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-off-white/10">
               <span className="text-sm text-off-white/80">
                 Dernière MAJ rang :{' '}
@@ -633,10 +638,13 @@ export const PlayerDetailPage = () => {
         </div>
       </div>
 
-      {/* Cartes principales (sans Team pour les équipes flex) */}
-      <div className={`grid gap-3 grid-cols-3 ${isFlexTeam ? 'sm:grid-cols-4' : 'sm:grid-cols-5'}`}>
-        {MAIN_CARDS.filter((card) => !(card.id === 'team' && isFlexTeam)).map((card) => {
-          const label = (card.id === 'soloq' && isFlexTeam) ? 'Flex' : card.label
+      {/* Cartes principales */}
+      <div className={`grid gap-3 grid-cols-3 ${isFunTeam ? 'sm:grid-cols-3' : isFlexTeam ? 'sm:grid-cols-4' : 'sm:grid-cols-5'}`}>
+        {MAIN_CARDS
+          .filter((card) => !(card.id === 'team' && (isFlexTeam || isFunTeam)))
+          .filter((card) => !(card.id === 'pool-champ' && isFunTeam))
+          .map((card) => {
+          const label = (card.id === 'soloq' && isFunTeam) ? 'ARAM/Arena' : (card.id === 'soloq' && isFlexTeam) ? 'Flex' : card.label
           const Icon = card.icon
           const isActive = d.selectedCard === card.id
           return (

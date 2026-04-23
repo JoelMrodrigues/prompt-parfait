@@ -4,8 +4,9 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, Camera, Loader2, Trash2, Swords, Trophy, Users, Gamepad2, ZoomIn, ZoomOut, Check } from 'lucide-react'
+import { FUN_MODES } from '../../teams/components/CreateTeamModal'
 import Cropper from 'react-easy-crop'
 import type { Area, Point } from 'react-easy-crop'
 import { useTeam } from '../hooks/useTeam'
@@ -133,6 +134,7 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [typeSaving, setTypeSaving] = useState(false)
+  const [funModeSaving, setFunModeSaving] = useState(false)
 
   // ── Crop state ─────────────────────────────────────────────────────────────
   const [cropSrc, setCropSrc] = useState<string | null>(null)
@@ -286,6 +288,19 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
       toastError(`Erreur : ${e.message}`)
     } finally {
       setTypeSaving(false)
+    }
+  }
+
+  const handleToggleFunMode = async (modeId: string, newValue: boolean) => {
+    if (!team?.id || funModeSaving || !isTeamOwner) return
+    setFunModeSaving(true)
+    try {
+      const updatedFeatures = { ...(team.features ?? {}), [`mode_${modeId}`]: newValue }
+      await updateTeam(team.id, { features: updatedFeatures } as any)
+    } catch (e: any) {
+      toastError(`Erreur : ${e.message}`)
+    } finally {
+      setFunModeSaving(false)
     }
   }
 
@@ -492,6 +507,52 @@ export function TeamEditModal({ onClose }: { onClose: () => void }) {
                 )
               })}
             </div>
+
+            {/* Modes de jeu — uniquement pour Fun */}
+            <AnimatePresence>
+              {team.team_type === 'fun' && (
+                <motion.div
+                  key="fun-modes"
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3 border-t border-dark-border/40">
+                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-2.5">Modes de jeu suivis</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {FUN_MODES.map(({ id, label, icon: ModeIcon }) => {
+                        const active = (team.features as Record<string, unknown>)?.[`mode_${id}`] !== false
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            disabled={!isTeamOwner || funModeSaving}
+                            onClick={() => handleToggleFunMode(id, !active)}
+                            className={`relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all disabled:opacity-50 ${
+                              active
+                                ? 'border-pink-400/50 bg-pink-500/10'
+                                : 'border-dark-border/40 bg-dark-bg/30 opacity-50'
+                            }`}
+                          >
+                            <ModeIcon size={15} className={active ? 'text-pink-400' : 'text-gray-600'} />
+                            <span className={`text-[11px] font-semibold ${active ? 'text-pink-300' : 'text-gray-500'}`}>
+                              {label}
+                            </span>
+                            {active && (
+                              <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-pink-500/20 border border-pink-400/60 flex items-center justify-center">
+                                <Check size={8} className="text-pink-400" strokeWidth={3} />
+                              </div>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Couleur accent */}
