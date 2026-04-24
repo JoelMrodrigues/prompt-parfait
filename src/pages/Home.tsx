@@ -411,23 +411,12 @@ export const Home = () => {
       {/* ════════════════════════════════════════════════════════════════
           HERO — plein écran centré
       ════════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 text-center">
+      <section className="relative flex items-start justify-center text-center">
         <FloatingBackground />
 
-        <div className="relative z-10 container mx-auto max-w-4xl px-6 py-24">
+        <div className="relative z-10 container mx-auto max-w-4xl px-6 pb-20">
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent-blue/30 bg-accent-blue/10 text-accent-blue text-sm font-medium mb-8"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-pulse" />
-            Outil de préparation compétitive League of Legends
-          </motion.div>
-
-          <motion.h1
-            className="font-display font-bold leading-none mb-6 bg-gradient-to-r from-purple-300 via-white to-purple-200 bg-clip-text text-transparent"
-            style={{ fontSize: 'clamp(5rem, 14vw, 9.5rem)' }}
+            className="-mb-4 flex justify-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{
               opacity: 1, y: 0,
@@ -443,8 +432,9 @@ export const Home = () => {
               filter: { duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 1 },
             }}
           >
-            Void.pro
-          </motion.h1>
+            <img src="/resources/images/accueil-dark.svg"  alt="Logo" className="hidden dark:block h-auto w-[340px] sm:w-[480px] md:w-[600px] lg:w-[740px]" />
+            <img src="/resources/images/accueil-light.svg" alt="Logo" className="block dark:hidden h-auto w-[340px] sm:w-[480px] md:w-[600px] lg:w-[740px]" />
+          </motion.div>
 
           <motion.h2
             className="font-display text-2xl md:text-3xl font-bold mb-6 leading-tight"

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1400" width="1800" height="1400">
+    
+    <defs>
+      
+  <radialGradient id="ec-corona" cx="50%" cy="50%" r="55%">
+    <stop offset="35%" stop-color="#7b2cbf" stop-opacity="0"></stop>
+    <stop offset="50%" stop-color="#c77dff" stop-opacity=".7"></stop>
+    <stop offset="70%" stop-color="#7b2cbf" stop-opacity=".3"></stop>
+    <stop offset="100%" stop-color="#3b1466" stop-opacity="0"></stop>
+  </radialGradient>
+  <radialGradient id="ec-rim" cx="50%" cy="50%" r="50%">
+    <stop offset="85%" stop-color="#9d4edd" stop-opacity="0"></stop>
+    <stop offset="92%" stop-color="#e0aaff" stop-opacity=".95"></stop>
+    <stop offset="100%" stop-color="#7b2cbf" stop-opacity="0"></stop>
+  </radialGradient>
+      <linearGradient id="rule" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0%" stop-color="#7b2cbf" stop-opacity="0"></stop>
+        <stop offset="50%" stop-color="#7b2cbf" stop-opacity=".7"></stop>
+        <stop offset="100%" stop-color="#7b2cbf" stop-opacity="0"></stop>
+      </linearGradient>
+    </defs>
+    <g transform="translate(576 156) scale(5.4)">
+    <circle cx="60" cy="60" r="46" fill="#0a0410"></circle>
+    <circle cx="60" cy="60" r="58" fill="url(#ec-corona)"></circle>
+    <circle cx="60" cy="60" r="40" fill="url(#ec-rim)"></circle>
+    <circle cx="60" cy="60" r="36" fill="#050208"></circle>
+    <path d="M 60 24 A 36 36 0 0 1 96 60 A 30 30 0 0 0 60 30 Z" fill="#c77dff" opacity=".9"></path>
+    <g fill="#e0aaff">
+      <circle cx="18" cy="30" r=".8"></circle><circle cx="100" cy="98" r="1"></circle>
+      <circle cx="14" cy="88" r=".6"></circle><circle cx="104" cy="22" r=".7"></circle>
+      <circle cx="90" cy="108" r=".5"></circle>
+    </g>
+  </g>
+    <rect x="700" y="870" width="400" height="1.2" fill="url(#rule)"></rect>
+    <text x="504" y="1080" font-family="Cinzel, serif" font-weight="500" font-size="180" letter-spacing="22" fill="#ece6da">VOID<tspan fill="#9d4edd">.</tspan></text>
+    <text x="1086" y="1080" font-family="Cinzel, serif" font-weight="500" font-size="76" letter-spacing="18" fill="#c77dff">PRO</text>
+    <text x="900" y="1170" font-family="JetBrains Mono, monospace" font-weight="400" font-size="24" letter-spacing="12" fill="#8a7fa0" text-anchor="middle">· ECLIPSE OF THE ABYSS ·</text>
+  </svg>

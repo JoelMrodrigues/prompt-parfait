@@ -65,13 +65,19 @@ export const Header = () => {
         ? 'bg-dark-card/90 border-red-500/20'
         : 'bg-dark-card/80 border-dark-border'
     }`}>
-      <nav className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+      <nav className="container mx-auto px-4 sm:px-6 h-[68px] flex items-center justify-between gap-4">
         {/* Logo */}
         <Link
           to={isAdmin ? '/admin' : '/'}
-          className="font-display text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-300 to-white bg-clip-text text-transparent flex items-center gap-2 shrink-0"
+          className="flex items-center gap-2 shrink-0"
         >
-          Void.pro
+          <div className="flex items-center gap-3">
+            <img src="/resources/images/logo.svg" alt="Logo" className="h-[55px] w-auto" />
+            <div className="flex items-center leading-none">
+              <span className="font-logo text-[24px] tracking-[0.18em] font-normal text-white uppercase">VOID</span>
+              <span className="font-logo text-[16px] tracking-[0.12em] font-normal text-accent-blue">.pro</span>
+            </div>
+          </div>
           {isAdmin && (
             <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/30 px-1.5 py-0.5 rounded">
               <Shield size={9} />
