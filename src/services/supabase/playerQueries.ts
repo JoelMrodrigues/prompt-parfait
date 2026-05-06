@@ -255,6 +255,68 @@ export async function fetchMultiPlayerSoloqMatches({
   return { data: data ?? [], error }
 }
 
+// Colonnes copiées lors du bootstrap — exclut match_json et timeline_json (trop volumineux)
+// Ces champs seront re-fetched par l'étape de ré-enrichissement au prochain cycle.
+const BOOTSTRAP_COLUMNS =
+  'riot_match_id,account_source,queue_type,champion_id,champion_name,opponent_champion,' +
+  'individual_position,win,kills,deaths,assists,game_duration,game_creation,' +
+  'total_damage,cs,vision_score,gold_earned,items,runes'
+
+/**
+ * Copie les matchs SoloQ d'un autre joueur partageant le même PUUID vers targetPlayerId.
+ * Évite de re-fetcher toute l'historique Riot quand un joueur est ajouté dans une nouvelle équipe.
+ * Retourne le nombre de matchs copiés.
+ */
+export async function bootstrapMatchesFromPuuid(
+  targetPlayerId: string,
+  puuid: string,
+  accountSource: string,
+  seasonStart: number,
+  queueType?: string,
+  puuidField: 'puuid' | 'puuid_secondary' = 'puuid',
+): Promise<number> {
+  const { data: sourceData } = await supabase
+    .from('players')
+    .select('id')
+    .eq(puuidField, puuid)
+    .neq('id', targetPlayerId)
+    .limit(1)
+
+  if (!sourceData || sourceData.length === 0) return 0
+  const sourcePlayerId = sourceData[0].id
+
+  const BATCH = 200
+  let offset = 0
+  let totalCopied = 0
+
+  while (true) {
+    let query = supabase
+      .from('player_soloq_matches')
+      .select(BOOTSTRAP_COLUMNS)
+      .eq('player_id', sourcePlayerId)
+      .eq('account_source', accountSource)
+      .gte('game_creation', seasonStart)
+      .order('game_creation', { ascending: false })
+      .range(offset, offset + BATCH - 1)
+
+    if (queueType) query = query.eq('queue_type', queueType)
+
+    const { data, error } = await query
+    if (error || !data || data.length === 0) break
+
+    const rows = (data as unknown as Record<string, unknown>[]).map((r) => ({ ...r, player_id: targetPlayerId }))
+    const { error: upsertErr } = await supabase
+      .from('player_soloq_matches')
+      .upsert(rows, { onConflict: 'player_id,riot_match_id' })
+
+    if (!upsertErr) totalCopied += rows.length
+    if (data.length < BATCH) break
+    offset += BATCH
+  }
+
+  return totalCopied
+}
+
 export async function upsertSoloqMatches(rows: Array<Record<string, unknown>>) {
   const { error } = await supabase
     .from('player_soloq_matches')

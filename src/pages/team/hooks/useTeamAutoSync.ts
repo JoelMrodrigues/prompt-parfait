@@ -25,6 +25,7 @@ import {
   fetchSoloqMatchIds,
   fetchUnenrichedMatchIds,
   upsertSoloqMatches,
+  bootstrapMatchesFromPuuid,
 } from '../../../services/supabase/playerQueries'
 import {
   SEASON_16_START_MS,
@@ -170,9 +171,21 @@ export function useTeamAutoSync() {
                 }
                 const idsToSync = allRiotIds.slice(0, totalRiot)
 
-                // 3) Diff avec base
-                const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, funQueueType)
-                const existingSet = new Set(existingIds || [])
+                // 3) IDs en base → bootstrap si joueur nouveau, puis diff
+                const { data: rawExistingIdsFun } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, funQueueType)
+                let existingSet = new Set(rawExistingIdsFun || [])
+
+                if (existingSet.size === 0 && cachedPuuid) {
+                  const copied = await bootstrapMatchesFromPuuid(
+                    player.id, cachedPuuid, 'primary', SEASON_16_START_MS, funQueueType,
+                  )
+                  if (copied > 0) {
+                    logger.debug(LOG_PREFIX, name, `| Bootstrap PUUID (${funQueueType}) : ${copied} match(s) copiés depuis un autre joueur`)
+                    const { data: refreshed } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, funQueueType)
+                    existingSet = new Set(refreshed || [])
+                  }
+                }
+
                 const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
 
                 // 4) Détails manquants → upsert
@@ -395,9 +408,21 @@ export function useTeamAutoSync() {
             }
             const idsToSync = allRiotIds.slice(0, totalRiot)
 
-            // ─── 3) IDs déjà en base → manquants = idsToSync − base ───
-            const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, isFlexTeam ? 'flex' : 'soloq')
-            const existingSet = new Set(existingIds || [])
+            // ─── 3) IDs déjà en base → bootstrap si joueur nouveau, puis diff ───
+            const { data: rawExistingIds } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, isFlexTeam ? 'flex' : 'soloq')
+            let existingSet = new Set(rawExistingIds || [])
+
+            if (existingSet.size === 0 && cachedPuuid) {
+              const copied = await bootstrapMatchesFromPuuid(
+                player.id, cachedPuuid, 'primary', SEASON_16_START_MS, isFlexTeam ? 'flex' : 'soloq',
+              )
+              if (copied > 0) {
+                logger.debug(LOG_PREFIX, name, `| Bootstrap PUUID : ${copied} match(s) copiés depuis un autre joueur`)
+                const { data: refreshed } = await fetchSoloqMatchIds(player.id, 'primary', SEASON_16_START_MS, isFlexTeam ? 'flex' : 'soloq')
+                existingSet = new Set(refreshed || [])
+              }
+            }
+
             const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
 
             // ─── 4) Détails uniquement pour les manquants, upsert Supabase ───
@@ -656,10 +681,22 @@ export function useTeamAutoSync() {
             }
             const idsToSync = allRiotIds.slice(0, totalRiot)
 
-            // 3) Diff avec base
-            const { data: existingIds } = await fetchSoloqMatchIds(player.id, 'secondary', SEASON_16_START_MS, isFlexTeam ? 'flex' : undefined)
-            const existingSet = new Set(existingIds || [])
-            const missingIds = idsToSync.filter((id: string) => !existingSet.has(id))
+            // 3) IDs en base → bootstrap si joueur nouveau, puis diff
+            const { data: rawExistingIdsSec } = await fetchSoloqMatchIds(player.id, 'secondary', SEASON_16_START_MS, isFlexTeam ? 'flex' : undefined)
+            let existingSetSec = new Set(rawExistingIdsSec || [])
+
+            if (existingSetSec.size === 0 && cachedPuuid) {
+              const copied = await bootstrapMatchesFromPuuid(
+                player.id, cachedPuuid, 'secondary', SEASON_16_START_MS, isFlexTeam ? 'flex' : undefined, 'puuid_secondary',
+              )
+              if (copied > 0) {
+                logger.debug(LOG_PREFIX, name, `| Bootstrap PUUID secondaire : ${copied} match(s) copiés depuis un autre joueur`)
+                const { data: refreshed } = await fetchSoloqMatchIds(player.id, 'secondary', SEASON_16_START_MS, isFlexTeam ? 'flex' : undefined)
+                existingSetSec = new Set(refreshed || [])
+              }
+            }
+
+            const missingIds = idsToSync.filter((id: string) => !existingSetSec.has(id))
 
             // 4) Détails manquants
             if (missingIds.length > 0) {
