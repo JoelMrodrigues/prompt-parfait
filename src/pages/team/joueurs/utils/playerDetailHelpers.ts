@@ -69,12 +69,5 @@ export function getRankColorText(rank: string | null | undefined): string {
   return 'text-gray-400'
 }
 
-// Re-export from shared module for backward compatibility
 export { generateDpmLink } from '../../../../lib/team/linkGenerators'
-
-/** Extrait les LP du rang (ex. "Master 614 LP" → 614). Retourne null si non trouvé. */
-export function parseLpFromRank(rank: string | null | undefined): number | null {
-  if (!rank || typeof rank !== 'string') return null
-  const m = rank.match(/(\d+)\s*LP/i)
-  return m ? parseInt(m[1], 10) : null
-}
+export { parseLpFromRank } from '../../../../lib/rankUtils'

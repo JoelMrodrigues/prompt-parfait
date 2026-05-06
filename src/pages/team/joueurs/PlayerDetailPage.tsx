@@ -512,6 +512,13 @@ export const PlayerDetailPage = () => {
   const d = usePlayerDetail(playerId)
 
   if (!d.player) {
+    if (d.teamLoading) {
+      return (
+        <div className="max-w-4xl mx-auto py-12 text-center">
+          <p className="text-gray-400">Chargement…</p>
+        </div>
+      )
+    }
     return (
       <div className="max-w-4xl mx-auto py-12 text-center">
         <p className="text-gray-400 mb-4">Joueur introuvable</p>

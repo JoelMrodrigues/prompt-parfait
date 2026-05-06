@@ -1,7 +1,7 @@
 /**
  * Page d'accueil — Void.pro  (v2 — full animations)
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   motion,
@@ -105,9 +105,12 @@ const CARD_ENTRANCES = [
 
 // ─── COMPOSANTS ───────────────────────────────────────────────────────────────
 
-function FloatingBackground() {
+const FloatingBackground = memo(function FloatingBackground() {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { amount: 0 })
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div ref={ref} className="absolute inset-0 overflow-hidden pointer-events-none">
       <div
         className="absolute inset-0 opacity-[0.04]"
         style={{
@@ -120,8 +123,8 @@ function FloatingBackground() {
           key={i}
           className="absolute rounded-full"
           style={{ top: orb.top, left: orb.left, width: orb.size, height: orb.size, background: orb.color, filter: `blur(${orb.blur}px)`, marginLeft: -orb.size / 2, marginTop: -orb.size / 2 }}
-          animate={{ x: [0, orb.dx, 0], y: [0, orb.dy, 0] }}
-          transition={{ duration: orb.duration, repeat: Infinity, ease: 'easeInOut' }}
+          animate={inView ? { x: [0, orb.dx, 0], y: [0, orb.dy, 0] } : { x: 0, y: 0 }}
+          transition={inView ? { duration: orb.duration, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.5 }}
         />
       ))}
       {PARTICLES.map((p, i) => (
@@ -129,13 +132,13 @@ function FloatingBackground() {
           key={i}
           className="absolute rounded-full bg-accent-blue/30"
           style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.s, height: p.s }}
-          animate={{ y: [-p.dy / 2, p.dy / 2, -p.dy / 2], opacity: [0.1, 0.55, 0.1] }}
-          transition={{ duration: p.dur, delay: p.del, repeat: Infinity, ease: 'easeInOut' }}
+          animate={inView ? { y: [-p.dy / 2, p.dy / 2, -p.dy / 2], opacity: [0.1, 0.55, 0.1] } : { y: 0, opacity: 0.1 }}
+          transition={inView ? { duration: p.dur, delay: p.del, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.5 }}
         />
       ))}
     </div>
   )
-}
+})
 
 // Compteur animé
 function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
@@ -324,22 +327,25 @@ function DraftPreview() {
   const [stepIdx, setStepIdx] = useState(5)
 
   useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = []
     let cancelled = false
+
     function tick(idx: number) {
       if (cancelled) return
       setStepIdx(idx)
       if (idx < DRAFT_STEPS.length - 1) {
-        setTimeout(() => tick(idx + 1), 950)
+        timers.push(setTimeout(() => tick(idx + 1), 950))
       } else {
-        setTimeout(() => {
+        timers.push(setTimeout(() => {
           if (cancelled) return
           setStepIdx(0)
-          setTimeout(() => tick(1), 700)
-        }, 3000)
+          timers.push(setTimeout(() => tick(1), 700))
+        }, 3000))
       }
     }
-    const init = setTimeout(() => tick(1), 2200)
-    return () => { cancelled = true; clearTimeout(init) }
+
+    timers.push(setTimeout(() => tick(1), 2200))
+    return () => { cancelled = true; timers.forEach(clearTimeout) }
   }, [])
 
   const state = DRAFT_STEPS[Math.min(stepIdx, DRAFT_STEPS.length - 1)]

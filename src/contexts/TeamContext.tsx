@@ -31,11 +31,13 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type TeamType = 'scrim' | 'flex' | 'soloq' | 'fun'
+
 export interface Team {
   id: string
   user_id: string
   team_name: string
-  team_type?: string
+  team_type?: TeamType | null
   logo_url?: string | null
   accent_color?: string | null
   logo_bg_color?: string | null

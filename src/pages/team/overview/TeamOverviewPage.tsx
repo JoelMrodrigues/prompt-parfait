@@ -44,39 +44,10 @@ const ROLE_ORDER: Record<string, number> = {
 }
 const byRoleOrder = (pos?: string) => ROLE_ORDER[(pos ?? '').toUpperCase()] ?? 9
 import { getRankColorText } from '../joueurs/utils/playerDetailHelpers'
+import { parseLP, rankToSortValue, stripLP } from '../../../lib/rankUtils'
 
 function applyAccentColor(rgbStr: string) {
   document.documentElement.style.setProperty('--color-accent', rgbStr)
-}
-
-// ── Rank helpers ───────────────────────────────────────────────────────────────
-
-function parseLP(rank: string | null | undefined): number {
-  if (!rank) return 0
-  const m = rank.match(/(\d+)\s*LP/i)
-  return m ? parseInt(m[1]) : 0
-}
-
-function rankToSortValue(rank: string | null | undefined): number {
-  if (!rank) return -1
-  const tiers = [
-    'iron', 'bronze', 'silver', 'gold', 'platinum',
-    'emerald', 'diamond', 'master', 'grandmaster', 'challenger',
-  ]
-  const divisions = ['IV', 'III', 'II', 'I']
-  const r = rank.toLowerCase()
-  const tierIdx = tiers.findIndex((t) => r.includes(t))
-  const divIdx = divisions.findIndex(
-    (d) => rank.includes(` ${d} `) || rank.includes(` ${d}`) || rank.endsWith(d),
-  )
-  const lp = parseLP(rank)
-  return (tierIdx >= 0 ? tierIdx * 400 : 0) + (divIdx >= 0 ? divIdx * 100 : 0) + lp
-}
-
-
-function stripLP(rank: string | null | undefined): string {
-  if (!rank) return '—'
-  return rank.replace(/\s*\d+\s*LP/i, '').trim()
 }
 
 /** Retourne le rang le plus élevé entre compte principal et secondaire */

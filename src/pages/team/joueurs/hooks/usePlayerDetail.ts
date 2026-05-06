@@ -14,7 +14,7 @@ import { aggregateChampionStats } from '../../../../lib/team/statsAggregation'
 
 export function usePlayerDetail(playerSlug: string | undefined) {
   const { error: toastError, info: toastInfo } = useToast()
-  const { players = [], team, updatePlayer, refetch } = useTeam()
+  const { players = [], team, updatePlayer, refetch, loading: teamLoading } = useTeam()
 
   // ─── Tab navigation ───────────────────────────────────────────────────────
   const [selectedCard, setSelectedCard] = useState('general')
@@ -113,7 +113,7 @@ export function usePlayerDetail(playerSlug: string | undefined) {
 
   return {
     // player
-    player, team, isFlexTeam, isFunTeam,
+    player, team, isFlexTeam, isFunTeam, teamLoading,
     // tab navigation
     selectedCard, setSelectedCard,
     selectedSoloqSub, setSelectedSoloqSub,
