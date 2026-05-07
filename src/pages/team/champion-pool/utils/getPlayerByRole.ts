@@ -4,8 +4,10 @@
  * @param {string} role - Rôle (TOP, JNG, MID, ADC, SUP)
  * @returns {Object|null} Le joueur trouvé ou null
  */
+const normalizeRole = (r: string) => (r === 'ADC' ? 'BOT' : r)
+
 export function getPlayerByRole(players, role) {
   if (!players?.length || !role) return null
-  const roleUpper = role.toUpperCase()
-  return players.find((p) => (p.position || '').toUpperCase() === roleUpper) || null
+  const target = normalizeRole(role.toUpperCase())
+  return players.find((p) => normalizeRole((p.position || '').toUpperCase()) === target) || null
 }
